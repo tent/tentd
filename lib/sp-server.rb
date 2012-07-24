@@ -2,6 +2,7 @@ require 'sp-server/version'
 
 module SP
   module Server
-    # Your code goes here...
+    autoload :API, 'sp-server/api'
   end
 end
+
