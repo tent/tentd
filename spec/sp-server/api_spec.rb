@@ -5,10 +5,10 @@ describe SP::Server::API do
     SP::Server::API
   end
 
-  describe "GET /foo" do
-    it "works" do
-      get "/foo"
-      last_response.status.should == 404
+  describe "POST /subscriptions" do
+    it "creates a new subscription" do
+      json_post '/subscriptions', :foo => 'bar'
+      last_response.status.should == 201
     end
   end
 end
