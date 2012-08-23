@@ -1,6 +1,6 @@
 require 'grape'
 
-module SP
+module Tent
   module Server
     class API < Grape::API
       version 'v1', using: :header

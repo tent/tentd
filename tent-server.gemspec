@@ -1,13 +1,13 @@
 # -*- encoding: utf-8 -*-
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'sp-server/version'
+require 'tent-server/version'
 
 Gem::Specification.new do |gem|
-  gem.name          = "sp-server"
-  gem.version       = SP::Server::VERSION
-  gem.authors       = ["Jonathan Rudenberg"]
-  gem.email         = ["jonathan@titanous.com"]
+  gem.name          = "tent-server"
+  gem.version       = Tent::Server::VERSION
+  gem.authors       = ["Jonathan Rudenberg", "Jesse Stuart"]
+  gem.email         = ["jonathan@titanous.com", "jessestuart@gmail.com"]
   gem.description   = %q{TODO: Write a gem description}
   gem.summary       = %q{TODO: Write a gem summary}
   gem.homepage      = ""

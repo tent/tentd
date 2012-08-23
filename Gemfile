@@ -1,4 +1,4 @@
 source 'https://rubygems.org'
 
-# Specify your gem's dependencies in sp-server.gemspec
+# Specify your gem's dependencies in tent-server.gemspec
 gemspec

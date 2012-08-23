@@ -3,7 +3,7 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 
 require 'bundler/setup'
 require 'rack/test'
-require 'sp-server'
+require 'tent-server'
 
 Dir["#{File.dirname(__FILE__)}/support/*.rb"].each { |f| require f }
 

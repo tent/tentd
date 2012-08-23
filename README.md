@@ -1,4 +1,4 @@
-# SP::Server
+# Tent::Server
 
 TODO: Write a gem description
 
@@ -6,7 +6,7 @@ TODO: Write a gem description
 
 Add this line to your application's Gemfile:
 
-    gem 'sp-server'
+    gem 'tent-server'
 
 And then execute:
 
@@ -14,7 +14,7 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install sp-server
+    $ gem install tent-server
 
 ## Usage
 
