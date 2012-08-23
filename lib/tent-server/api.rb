@@ -3,12 +3,8 @@ require 'grape'
 module Tent
   module Server
     class API < Grape::API
-      version 'v1', using: :header
-
-      resource :subscriptions do
-        post do
-          puts params[:foo]
-        end
+      get "/posts/:post_id" do
+        Action.get_post(env)
       end
     end
   end
