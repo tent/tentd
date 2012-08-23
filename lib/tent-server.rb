@@ -6,3 +6,4 @@ module Tent
   end
 end
 
+require 'tent-server/action'

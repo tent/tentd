@@ -3,9 +3,9 @@ require 'grape'
 module Tent
   module Server
     class API < Grape::API
-      get "/posts/:post_id" do
-        Action.get_post(env)
-      end
+      autoload :Posts, 'tent-server/api/posts'
+
+      mount Posts
     end
   end
 end
