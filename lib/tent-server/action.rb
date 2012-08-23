@@ -4,7 +4,7 @@ module Tent
       class << self
         def get_post(env)
           Builder.new.tap do |b|
-            b.use Persistence::Post :get
+            b.use GetPosts
           end.call env
         end
       end
