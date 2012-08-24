@@ -16,12 +16,5 @@ module TentServer
       property :published_at, DateTime
       property :received_at, DateTime
     end
-
-    alias :original_as_json :as_json
-    def as_json(options = {})
-      original_as_json({
-        
-      }).merge(options)
-    end
   end
 end
