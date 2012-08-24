@@ -3,6 +3,8 @@ module TentServer
     class Post
       include DataMapper::Resource
 
+      storage_names[:default] = "posts"
+
       property :id, Serial
       property :entity, URI
       property :scope, Enum[:public, :limited, :direct], :default => :direct
@@ -16,3 +18,6 @@ module TentServer
     end
   end
 end
+
+DataMapper.auto_migrate!
+DataMapper.finalize

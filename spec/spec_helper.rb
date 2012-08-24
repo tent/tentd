@@ -7,6 +7,9 @@ require 'tent-server'
 
 Dir["#{File.dirname(__FILE__)}/support/*.rb"].each { |f| require f }
 
+require 'data_mapper'
+DataMapper.setup(:default, 'postgres://root@localhost/tent_server_test')
+
 RSpec.configure do |config|
   config.include Rack::Test::Methods
   config.include JsonPostHelper
