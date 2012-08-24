@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe Tent::Server::API do
+describe TentServer::API do
   def app
-    Tent::Server::API
+    TentServer::API
   end
 
   describe "GET /foo" do

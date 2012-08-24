@@ -1,4 +1,4 @@
-require File.expand_path("../../../../../lib/tent-server/action/builder", __FILE__)
+require 'spec_helper'
 
 class TestMiddleware
   def initialize(app)
@@ -12,7 +12,7 @@ class TestMiddleware
   end
 end
 
-describe Tent::Server::Action::Builder do
+describe TentServer::Action::Builder do
   let(:instance) { described_class.new }
 
   context "basic `use`" do

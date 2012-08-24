@@ -1,10 +1,10 @@
 require 'spec_helper'
 
-class Tent::Server::Post; end
+class TentServer::Post; end
 
-describe Tent::Server::Action::Posts::Get do
+describe TentServer::Action::Posts::Get do
   let(:app) { lambda { |env| env } }
-  let(:post_class) { Tent::Server::Post }
+  let(:post_class) { TentServer::Post }
 
   context "get single post" do
     let(:instance) { described_class.new(app, :get_one) }

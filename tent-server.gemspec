@@ -5,7 +5,7 @@ require 'tent-server/version'
 
 Gem::Specification.new do |gem|
   gem.name          = "tent-server"
-  gem.version       = Tent::Server::VERSION
+  gem.version       = TentServer::VERSION
   gem.authors       = ["Jonathan Rudenberg", "Jesse Stuart"]
   gem.email         = ["jonathan@titanous.com", "jessestuart@gmail.com"]
   gem.description   = %q{TODO: Write a gem description}
@@ -18,6 +18,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
 
   gem.add_runtime_dependency 'grape'
+  gem.add_runtime_dependency 'data_mapper'
 
   gem.add_development_dependency 'rack-test'
   gem.add_development_dependency 'rspec'
