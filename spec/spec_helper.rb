@@ -10,11 +10,13 @@ require 'fabrication'
 Dir["#{File.dirname(__FILE__)}/support/*.rb"].each { |f| require f }
 
 require 'data_mapper'
-DataMapper.setup(:default, 'postgres://root@localhost/tent_server_test')
-DataMapper.auto_migrate!
 
 RSpec.configure do |config|
   config.include Rack::Test::Methods
-  config.include JsonPostHelper
+  config.include JsonRequest
   config.mock_with :mocha
+  config.before(:all) do
+    DataMapper.setup(:default, 'postgres://localhost/tent_server_test')
+    DataMapper.auto_migrate!
+  end
 end
