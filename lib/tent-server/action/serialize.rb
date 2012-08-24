@@ -6,7 +6,6 @@ module TentServer
       end
 
       def call(env)
-        puts env['tent.post'].inspect
         env['response'] = env['tent.post'].to_json
         @app.call(env)
       end
