@@ -19,5 +19,4 @@ module TentServer
   end
 end
 
-DataMapper.auto_migrate!
 DataMapper.finalize

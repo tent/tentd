@@ -7,7 +7,7 @@ module TentServer
         end
 
         def call(env)
-          env['tent.post'] = ::TentServer::Post.find(env['post_id'])
+          env['tent.post'] = ::TentServer::Model::Post.get(env['post_id'])
           @app.call(env)
         end
       end

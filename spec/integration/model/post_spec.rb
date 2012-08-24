@@ -15,7 +15,7 @@ describe TentServer::Model::Post do
     }
 
     post = described_class.create!(attributes)
-    post = described_class.find(post.id).first
+    post = described_class.get(post.id)
     attributes.each_pair do |k,v|
       actual_value = post.send(k)
       if actual_value.is_a? Addressable::URI
@@ -23,7 +23,6 @@ describe TentServer::Model::Post do
       end
       expect(actual_value).to eq(v)
     end
-    post.destroy
   end
 end
 
