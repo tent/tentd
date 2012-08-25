@@ -3,12 +3,15 @@ module TentServer
     class Posts
       include Router
 
-      get '/posts/:post_id' do |b|
-        b.use Get
+      class Get < Middleware
+        def action(env, params, request)
+          env['response'] = ::TentServer::Model::Post.get(params[:post_id])
+          env
+        end
       end
 
-      post '/posts' do
-        use Create
+      get '/posts/:post_id' do |b|
+        b.use Get
       end
     end
   end

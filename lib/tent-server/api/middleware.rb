@@ -1,13 +1,12 @@
 module TentServer
-  module Action
-    class Serialize
+  class API
+    class Middleware
       def initialize(app)
         @app = app
       end
 
       def call(env)
-        env['response'] = env['tent.post'].to_json
-        @app.call(env)
+        @app.call action(env, env['params'], env['request'])
       end
     end
   end
