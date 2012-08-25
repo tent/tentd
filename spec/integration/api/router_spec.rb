@@ -1,25 +1,25 @@
 require 'spec_helper'
 
-class TestMiddleware
-  def initialize(app)
-    @app = app
-  end
-
-  def call(env)
-    env['response'] = { 'params' => env['params'] }
-    @app.call(env)
-  end
-end
-
-class TestApp
-  include TentServer::API::Router
-
-  get '/foo/:bar' do |b|
-    b.use TestMiddleware
-  end
-end
-
 describe TentServer::API::Router do
+  class TestMiddleware
+    def initialize(app)
+      @app = app
+    end
+
+    def call(env)
+      env['response'] = { 'params' => env['params'] }
+      @app.call(env)
+    end
+  end
+
+  class TestApp
+    include TentServer::API::Router
+
+    get '/foo/:bar' do |b|
+      b.use TestMiddleware
+    end
+  end
+
   def app
     TestApp.new
   end
