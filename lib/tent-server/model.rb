@@ -3,11 +3,13 @@ require 'tent-server/data_mapper_array_property'
 
 module TentServer
   module Model
-    autoload :Post, 'tent-server/model/post'
-    autoload :Follow, 'tent-server/model/follow'
-    autoload :App, 'tent-server/model/app'
-    autoload :AppAuthorization, 'tent-server/model/app_authorization'
-    autoload :NotificationSubscription, 'tent-server/model/notification_subscription'
-    autoload :ProfileInfo, 'tent-server/model/profile_info'
+    require 'tent-server/model/post'
+    require 'tent-server/model/follow'
+    require 'tent-server/model/app'
+    require 'tent-server/model/app_authorization'
+    require 'tent-server/model/notification_subscription'
+    require 'tent-server/model/profile_info'
   end
 end
+
+DataMapper.finalize
