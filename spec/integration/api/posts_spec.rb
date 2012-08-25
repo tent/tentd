@@ -71,7 +71,17 @@ describe TentServer::API::Posts do
       expect(last_response.body).to eq([post].to_json)
     end
 
-    it "should filter by params[:since_time]"
+    it "should filter by params[:since_time]" do
+      since_post = Fabricate(:post)
+      since_post.published_at = Time.at(Time.now.to_i + 86400) # 1.day.from_now
+      since_post.save!
+      post = Fabricate(:post)
+      post.published_at = Time.at(Time.now.to_i + (86400 * 2)) # 2.days.from_now
+      post.save!
+
+      get "/posts?since_time=#{since_post.published_at.to_time.to_i}"
+      expect(last_response.body).to eq([post].to_json)
+    end
 
     it "should filter by params[:before_time]"
 
