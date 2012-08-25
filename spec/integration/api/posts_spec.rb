@@ -83,7 +83,33 @@ describe TentServer::API::Posts do
       expect(last_response.body).to eq([post].to_json)
     end
 
-    it "should filter by params[:before_time]"
+    it "should filter by params[:before_time]" do
+      post = Fabricate(:post)
+      post.published_at = Time.at(Time.now.to_i - (86400 * 2)) # 2.days.ago
+      post.save!
+      before_post = Fabricate(:post)
+      before_post.published_at = Time.at(Time.now.to_i - 86400) # 1.day.ago
+      before_post.save!
+
+      get "/posts?before_time=#{before_post.published_at.to_time.to_i}"
+      expect(last_response.body).to eq([post].to_json)
+    end
+
+    it "should filter by both params[:before_time] and params[:since_time]" do
+      now = Time.at(Time.now.to_i - (86400 * 6)) # 6.days.ago
+      since_post = Fabricate(:post)
+      since_post.published_at = Time.at(now.to_i - (86400 * 3)) # 3.days.ago
+      since_post.save!
+      post = Fabricate(:post)
+      post.published_at = Time.at(now.to_i - (86400 * 2)) # 2.days.ago
+      post.save!
+      before_post = Fabricate(:post)
+      before_post.published_at = Time.at(now.to_i - 86400) # 1.day.ago
+      before_post.save!
+
+      get "/posts?before_time=#{before_post.published_at.to_time.to_i}&since_time=#{since_post.published_at.to_time.to_i}"
+      expect(last_response.body).to eq([post].to_json)
+    end
 
     it "should set feed length with params[:limit]" do
       0.upto(2).each { Fabricate(:post).save! }
