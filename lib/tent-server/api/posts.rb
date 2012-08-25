@@ -28,8 +28,7 @@ module TentServer
           conditions[:id.gt] = params['since_id'] if params['since_id']
           conditions[:id.lt] = params['before_id'] if params['before_id']
           conditions[:published_at.gt] = Time.at(params['since_time'].to_i) if params['since_time']
-          conditions[:limit] = (params['limit'] || PER_PAGE).to_i
-          puts conditions.inspect
+          conditions[:limit] = [(params['limit'] || PER_PAGE).to_i, MAX_PER_PAGE].min
           conditions
         end
       end

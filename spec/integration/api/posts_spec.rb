@@ -85,11 +85,19 @@ describe TentServer::API::Posts do
 
     it "should filter by params[:before_time]"
 
-    it "should set max feed length with params[:limit]" do
+    it "should set feed length with params[:limit]" do
       0.upto(2).each { Fabricate(:post).save! }
       posts = TentServer::Model::Post.all(:limit => 1)
       get '/posts?limit=1'
       expect(last_response.body).to eq(posts.to_json)
+    end
+
+    it "limit should never exceed TentServer::API::MAX_PER_PAGE" do
+      with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
+        0.upto(2).each { Fabricate(:post).save! }
+        get '/posts?limit=1'
+        expect(last_response.body).to eq([].to_json)
+      end
     end
   end
 
