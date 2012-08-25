@@ -1,8 +1,14 @@
 module TentServer
   class API
-    class Posts < Grape::API
-      get "/posts/:post_id" do
-        Action::Posts.get(params)['response']
+    class Posts
+      include Router
+
+      get '/posts/:post_id' do |b|
+        b.use Get
+      end
+
+      post '/posts' do
+        use Create
       end
     end
   end
