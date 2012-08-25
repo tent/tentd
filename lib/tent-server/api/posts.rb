@@ -5,7 +5,11 @@ module TentServer
 
       class Get < Middleware
         def action(env, params, request)
-          env['response'] = ::TentServer::Model::Post.get(params[:post_id])
+          if post = ::TentServer::Model::Post.get(params[:post_id])
+            env['response'] = post
+          else
+            env['response.status'] = 404
+          end
           env
         end
       end
