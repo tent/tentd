@@ -17,8 +17,17 @@ module TentServer
       class GetFeed < Middleware
         def action(env, params, request)
           params.slice!(*%w{ post_types since_id before_id since_time before_time limit })
-          env['response'] = ::TentServer::Model::Post.all(:limit => (params['limit'] || PER_PAGE).to_i)
+          env['response'] = ::TentServer::Model::Post.all(conditions_from_params(params))
           env
+        end
+
+        private
+
+        def conditions_from_params(params)
+          conditions = {}
+          conditions[:id.gt] = params['since_id'] if params['since_id']
+          conditions[:limit] = (params['limit'] || PER_PAGE).to_i
+          conditions
         end
       end
 

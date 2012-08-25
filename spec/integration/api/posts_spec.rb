@@ -38,7 +38,15 @@ describe TentServer::API::Posts do
 
     it "should filter by params[:post_types]"
 
-    it "should filter by params[:since_id]"
+    it "should filter by params[:since_id]" do
+      since_post = Fabricate(:post)
+      since_post.save!
+      post = Fabricate(:post)
+      post.save!
+
+      get "/posts?since_id=#{since_post.id}"
+      expect(last_response.body).to eq([post].to_json)
+    end
 
     it "should filter by params[:before_id]"
 
