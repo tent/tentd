@@ -26,6 +26,7 @@ module TentServer
         def conditions_from_params(params)
           conditions = {}
           conditions[:id.gt] = params['since_id'] if params['since_id']
+          conditions[:id.lt] = params['before_id'] if params['before_id']
           conditions[:limit] = (params['limit'] || PER_PAGE).to_i
           conditions
         end

@@ -48,7 +48,28 @@ describe TentServer::API::Posts do
       expect(last_response.body).to eq([post].to_json)
     end
 
-    it "should filter by params[:before_id]"
+    it "should filter by params[:before_id]" do
+      TentServer::Model::Post.all.each(&:destroy)
+      post = Fabricate(:post)
+      post.save!
+      before_post = Fabricate(:post)
+      before_post.save!
+
+      get "/posts?before_id=#{before_post.id}"
+      expect(last_response.body).to eq([post].to_json)
+    end
+
+    it "should filter by both params[:since_id] and params[:before_id]" do
+      since_post = Fabricate(:post)
+      since_post.save!
+      post = Fabricate(:post)
+      post.save!
+      before_post = Fabricate(:post)
+      before_post.save!
+
+      get "/posts?before_id=#{before_post.id}&since_id=#{since_post.id}"
+      expect(last_response.body).to eq([post].to_json)
+    end
 
     it "should filter by params[:since_time]"
 
