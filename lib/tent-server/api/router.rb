@@ -1,5 +1,24 @@
 require 'rack/mount'
 
+class Rack::Mount::RouteSet
+  def merge_routes(routes)
+    routes.each { |r| merge_route(r) }
+    rehash
+  end
+
+  def merge_route(route)
+    @routes << route
+
+    @recognition_key_analyzer << route.conditions
+
+    @named_routes[route.name] = route if route.name
+    @generation_route_keys << route.generation_keys
+
+    expire!
+    route
+  end
+end
+
 module TentServer
   class API
     module Router
@@ -16,10 +35,11 @@ module TentServer
 
       module ClassMethods
         def mount(klass)
+          routes.merge_routes klass.routes.instance_variable_get("@routes")
         end
 
         def routes
-          @routes
+          @routes ||= Rack::Mount::RouteSet.new
         end
 
         #### This section heavily "inspired" by sinatra
@@ -49,8 +69,8 @@ module TentServer
           builder.use(ExtractParams, path, params)
           block.call(builder)
 
-          (@routes ||= Rack::Mount::RouteSet.new).add_route(builder.to_app, :request_method => verb, :path_info => path)
-          @routes.rehash
+          routes.add_route(builder.to_app, :request_method => verb, :path_info => path)
+          routes.rehash
         end
 
         def route_exists?(verb, path)
