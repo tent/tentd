@@ -19,6 +19,13 @@ describe TentServer::API::Posts do
     end
   end
 
+  # Params:
+  # - post_types
+  # - since_id
+  # - before_id
+  # - since_time
+  # - before_time
+  # - limit
   describe 'GET /posts' do
     it "should respond with first TentServer::API::PER_PAGE posts if no params given" do
       with_constants "TentServer::API::PER_PAGE" => 1 do
@@ -27,6 +34,23 @@ describe TentServer::API::Posts do
         get '/posts'
         expect(last_response.body).to eq(posts.to_json)
       end
+    end
+
+    it "should filter by params[:post_types]"
+
+    it "should filter by params[:since_id]"
+
+    it "should filter by params[:before_id]"
+
+    it "should filter by params[:since_time]"
+
+    it "should filter by params[:before_time]"
+
+    it "should set max feed length with params[:limit]" do
+      0.upto(2).each { Fabricate(:post).save! }
+      posts = TentServer::Model::Post.all(:limit => 1)
+      get '/posts?limit=1'
+      expect(last_response.body).to eq(posts.to_json)
     end
   end
 

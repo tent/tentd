@@ -1,3 +1,5 @@
+require 'tent-server/core_ext/hash/slice'
+
 module TentServer
   class API
     class Posts
@@ -14,7 +16,8 @@ module TentServer
 
       class GetFeed < Middleware
         def action(env, params, request)
-          env['response'] = ::TentServer::Model::Post.all(:limit => PER_PAGE)
+          params.slice!(*%w{ post_types since_id before_id since_time before_time limit })
+          env['response'] = ::TentServer::Model::Post.all(:limit => (params['limit'] || PER_PAGE).to_i)
           env
         end
       end
