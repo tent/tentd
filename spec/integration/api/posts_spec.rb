@@ -36,7 +36,25 @@ describe TentServer::API::Posts do
       end
     end
 
-    it "should filter by params[:post_types]"
+    it "should filter by params[:post_types]" do
+      picture_type_uri = URI("https://tent.io/types/posts/picture")
+      blog_type_uri = URI("https://tent.io/types/posts/blog")
+
+      picture_post = Fabricate(:post)
+      picture_post.type = picture_type_uri
+      picture_post.save!
+      non_picture_post = Fabricate(:post)
+      non_picture_post.save!
+      blog_post = Fabricate(:post)
+      blog_post.type = blog_type_uri
+      blog_post.save!
+
+      posts = TentServer::Model::Post.all(:type => [picture_type_uri, blog_type_uri])
+      post_types = [picture_post, blog_post].map { |p| URI.escape(p.type.to_s, "://") }
+
+      get "/posts?post_types=#{post_types.join(',')}"
+      expect(last_response.body).to eq(posts.to_json)
+    end
 
     it "should filter by params[:since_id]" do
       since_post = Fabricate(:post)

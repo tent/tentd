@@ -29,6 +29,7 @@ module TentServer
           conditions[:id.lt] = params['before_id'] if params['before_id']
           conditions[:published_at.gt] = Time.at(params['since_time'].to_i) if params['since_time']
           conditions[:published_at.lt] = Time.at(params['before_time'].to_i) if params['before_time']
+          conditions[:type] = params['post_types'].split(',').map { |t| URI.parse(URI.unescape(t)) } if params['post_types']
           conditions[:limit] = [(params['limit'] || PER_PAGE).to_i, MAX_PER_PAGE].min
           conditions
         end
