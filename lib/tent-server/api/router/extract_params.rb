@@ -11,7 +11,6 @@ module TentServer
         def call(env)
           add_request(env)
           extract_params(env)
-          merge_params(env)
           @app.call(env)
         end
 
@@ -22,10 +21,10 @@ module TentServer
         end
 
         def extract_params(env)
-          route = env['request'].path_info
+          route = env['request'].script_name
           route = '/' if route.empty?
           return unless match = pattern.match(route)
-          values += match.captures.to_a.map { |v| URI.decode_www_form_component(v) if v }
+          values = match.captures.to_a.map { |v| URI.decode_www_form_component(v) if v }
 
           params = env['request'].params.dup
 

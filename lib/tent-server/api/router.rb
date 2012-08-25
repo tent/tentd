@@ -1,3 +1,5 @@
+require 'rack/mount'
+
 module TentServer
   class API
     module Router
@@ -9,13 +11,15 @@ module TentServer
       end
 
       def call(env)
-        @@routes.call(env)
+        self.class.routes.call(env)
       end
 
       module ClassMethods
-        attr_accessor :routes
-
         def mount(klass)
+        end
+
+        def routes
+          @routes
         end
 
         #### This section heavily "inspired" by sinatra
@@ -39,11 +43,21 @@ module TentServer
         def route(verb, path, options={}, &block)
           path, params = compile_path(path)
 
-          builder = Rack::Builder.new(SerializeResponse)
+          return if route_exists?(verb, path)
+
+          builder = Rack::Builder.new(SerializeResponse.new)
           builder.use(ExtractParams, path, params)
           block.call(builder)
 
           (@routes ||= Rack::Mount::RouteSet.new).add_route(builder.to_app, :request_method => verb, :path_info => path)
+          @routes.rehash
+        end
+
+        def route_exists?(verb, path)
+          @added_routes ||= []
+          return true if @added_routes.include?("#{verb}#{path}")
+          @added_routes << "#{verb}#{path}"
+          false
         end
 
         def compile_path(path)

@@ -1,3 +1,5 @@
+require 'json'
+
 module TentServer
   class API
     module Router
