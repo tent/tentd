@@ -10,6 +10,7 @@ module TentServer
       property :entity, URI
       property :profile, Json
       property :type, Enum[:following, :follower]
+      timestamps :at
     end
   end
 end
