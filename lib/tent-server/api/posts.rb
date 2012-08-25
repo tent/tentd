@@ -3,11 +3,18 @@ module TentServer
     class Posts
       include Router
 
-      class Get < Middleware
+      class GetOne < Middleware
         def action(env, params, request)
           if post = ::TentServer::Model::Post.get(params[:post_id])
             env['response'] = post
           end
+          env
+        end
+      end
+
+      class GetFeed < Middleware
+        def action(env, params, request)
+          env['response'] = ::TentServer::Model::Post.all(:limit => PER_PAGE)
           env
         end
       end
@@ -22,7 +29,11 @@ module TentServer
       end
 
       get '/posts/:post_id' do |b|
-        b.use Get
+        b.use GetOne
+      end
+
+      get '/posts' do |b|
+        b.use GetFeed
       end
 
       post '/posts' do |b|

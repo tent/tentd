@@ -2,7 +2,7 @@ require 'spec_helper'
 
 class TentServer::Model::Post; end
 
-describe TentServer::API::Posts::Get do
+describe TentServer::API::Posts::GetOne do
   let(:instance) { described_class.new({}) }
 
   it "should get single post and set response in env" do
