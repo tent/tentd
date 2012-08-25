@@ -7,5 +7,6 @@ module TentServer
     autoload :Follow, 'tent-server/model/follow'
     autoload :App, 'tent-server/model/app'
     autoload :AppAuthorization, 'tent-server/model/app_authorization'
+    autoload :NotificationSubscription, 'tent-server/model/notification_subscription'
   end
 end

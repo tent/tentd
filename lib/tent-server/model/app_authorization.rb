@@ -19,6 +19,7 @@ module TentServer
       timestamps :at
 
       belongs_to :app, 'TentServer::Model::App'
+      has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription'
     end
   end
 end

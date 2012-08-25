@@ -11,6 +11,8 @@ module TentServer
       property :profile, Json
       property :type, Enum[:following, :follower]
       timestamps :at
+
+      has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription'
     end
   end
 end
