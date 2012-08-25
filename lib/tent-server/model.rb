@@ -8,5 +8,6 @@ module TentServer
     autoload :App, 'tent-server/model/app'
     autoload :AppAuthorization, 'tent-server/model/app_authorization'
     autoload :NotificationSubscription, 'tent-server/model/notification_subscription'
+    autoload :ProfileInfo, 'tent-server/model/profile_info'
   end
 end
