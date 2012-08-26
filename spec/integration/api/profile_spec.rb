@@ -15,14 +15,10 @@ describe TentServer::API::Profile do
       profile_infos.each(&:save!)
 
       json_get "/profile", nil, 'tent.entity' => "smith.example.com"
-      expect(last_response.body).to eq([
-        {
-          :type => profile_infos.first.type.to_s
-        }.merge(profile_infos.first.content),
-        {
-          :type => profile_infos.last.type.to_s
-        }.merge(profile_infos.last.content)
-      ].to_json)
+      expect(last_response.body).to eq({
+        "#{ profile_infos.first.type }" => profile_infos.first.content,
+        "#{ profile_infos.last.type }" => profile_infos.last.content
+      }.to_json)
     end
   end
 end

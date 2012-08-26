@@ -11,8 +11,9 @@ module TentServer
 
       class << self
         def build_for_entity(entity_hostname)
-          all(:entity => URI("https://#{entity_hostname}")).map do |info|
-            { :type => info.type }.merge(info.content)
+          all(:entity => URI("https://#{entity_hostname}")).inject({}) do |memo, info|
+            memo[info.type.to_s] = info.content
+            memo
           end
         end
       end
