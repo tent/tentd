@@ -1,5 +1,3 @@
-require 'tent-server/core_ext/hash/slice'
-
 module TentServer
   class API
     class Posts
