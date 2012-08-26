@@ -16,7 +16,6 @@ module TentServer
 
       class GetFeed < Middleware
         def action(env, params, request)
-          params.slice!(*%w{ post_types since_id before_id since_time before_time limit })
           env['response'] = ::TentServer::Model::Post.all(conditions_from_params(params))
           env
         end
