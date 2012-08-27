@@ -5,7 +5,7 @@ module TentServer
 
       class GetOne < Middleware
         def action(env, params, request)
-          if post = ::TentServer::Model::Post.get(params[:post_id])
+          if post = Model::Post.get(params[:post_id])
             env['response'] = post
           end
           env
@@ -14,7 +14,7 @@ module TentServer
 
       class GetFeed < Middleware
         def action(env, params, request)
-          env['response'] = ::TentServer::Model::Post.all(conditions_from_params(params))
+          env['response'] = Model::Post.all(conditions_from_params(params))
           env
         end
 
@@ -35,7 +35,7 @@ module TentServer
       class Create < Middleware
         def action(env, params, request)
           post_attributes = params[:data]
-          post = ::TentServer::Model::Post.create!(post_attributes)
+          post = Model::Post.create!(post_attributes)
           env['response'] = post
           env
         end

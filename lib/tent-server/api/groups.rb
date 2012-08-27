@@ -5,14 +5,14 @@ module TentServer
 
       class GetAll < Middleware
         def action(env, params, request)
-          env['response'] = TentServer::Model::Group.all
+          env['response'] = Model::Group.all
           env
         end
       end
 
       class GetOne < Middleware
         def action(env, params, request)
-          if group = TentServer::Model::Group.get(params[:group_id])
+          if group = Model::Group.get(params[:group_id])
             env['response'] = group
           end
           env
@@ -21,7 +21,7 @@ module TentServer
 
       class Update < Middleware
         def action(env, params, request)
-          if group = TentServer::Model::Group.get(params[:group_id])
+          if group = Model::Group.get(params[:group_id])
             group_attributes = params[:data]
             group.update(group_attributes)
             env['response'] = group.reload
@@ -33,7 +33,7 @@ module TentServer
       class Create < Middleware
         def action(env, params, request)
           group_attributes = params[:data]
-          env['response'] = TentServer::Model::Group.create!(group_attributes)
+          env['response'] = Model::Group.create!(group_attributes)
           env
         end
       end
