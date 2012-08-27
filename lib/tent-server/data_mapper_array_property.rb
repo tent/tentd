@@ -2,6 +2,10 @@ module DataMapper
   class Property
     # Implements flat postgres string arrays
     class Array < DataMapper::Property::Text
+      def custom?
+        true
+      end
+
       def load(value)
         return value if value.kind_of? ::Array
         value[1..-2].split(',').map { |v| v[1..-2] } unless value.nil?
