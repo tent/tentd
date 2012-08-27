@@ -29,6 +29,16 @@ module TentServer
           profile_infos.each(&:save!)
           old_profile_infos.each(&:destroy)
         end
+
+        def update_type_for_entity(entity_hostname, type_url, type_hash)
+          entity_uri = URI("https://#{entity_hostname}")
+          type_uri = URI(type_url)
+
+          profile_info = new(:type => type_uri, :entity => entity_uri, :content => type_hash)
+          old_profile_infos = all(:entity => entity_uri, :type => type_uri).to_a
+          profile_info.save!
+          old_profile_infos.each(&:destroy)
+        end
       end
     end
   end

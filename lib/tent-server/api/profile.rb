@@ -13,7 +13,11 @@ module TentServer
       class Update < Middleware
         def action(env, params, request)
           data = JSON.parse(env['rack.input'].read)
-          Model::ProfileInfo.update_for_entity(env['tent.entity'], data)
+          if params[:type_url]
+            Model::ProfileInfo.update_type_for_entity(env['tent.entity'], URI.unescape(params[:type_url]), data)
+          else
+            Model::ProfileInfo.update_for_entity(env['tent.entity'], data)
+          end
           env['response'] = Model::ProfileInfo.build_for_entity(env['tent.entity'])
           env
         end
@@ -42,6 +46,10 @@ module TentServer
       end
 
       put '/profile' do |b|
+        b.use Update
+      end
+
+      put '/profile/:type_url' do |b|
         b.use Update
       end
 

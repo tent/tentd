@@ -51,6 +51,33 @@ describe TentServer::API::Profile do
     end
   end
 
+  describe 'PUT /profile/:type_url' do
+    it 'should add/replace info type with given JSON' do
+      TentServer::Model::ProfileInfo.all.destroy
+
+      profile_infos = []
+      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"), :tent => true)
+      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"))
+      profile_infos.each(&:save!)
+
+      data = {
+        "name" => "Smith",
+        "age" => 35,
+        "city" => "Toronto"
+      }
+
+
+      type_uri = URI('https://tent.io/types/info-types/basic-info')
+      json_put "/profile/#{URI.escape(type_uri.to_s, ':/')}", data, 'tent.entity' => 'smith.example.com'
+
+      profile_hash = TentServer::Model::ProfileInfo.build_for_entity('smith.example.com')
+      expect(last_response.body).to eq(profile_hash.to_json)
+      expect(TentServer::Model::ProfileInfo.all(:type => type_uri).first.as_json(:only => :content)).to eq(
+        :content => data
+      )
+    end
+  end
+
   describe 'PATCH /profile' do
     it 'should update profile with given JSON diff array' do
       profile_infos = []
