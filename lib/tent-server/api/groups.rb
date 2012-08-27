@@ -22,7 +22,7 @@ module TentServer
       class Update < Middleware
         def action(env, params, request)
           if group = TentServer::Model::Group.get(params[:group_id])
-            group_attributes = JSON.parse(env['rack.input'].read)
+            group_attributes = params[:data]
             group.update(group_attributes)
             env['response'] = group.reload
           end
@@ -32,7 +32,7 @@ module TentServer
 
       class Create < Middleware
         def action(env, params, request)
-          group_attributes = JSON.parse(env['rack.input'].read)
+          group_attributes = params[:data]
           env['response'] = TentServer::Model::Group.create!(group_attributes)
           env
         end

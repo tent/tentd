@@ -12,7 +12,7 @@ module TentServer
 
       class Update < Middleware
         def action(env, params, request)
-          data = JSON.parse(env['rack.input'].read)
+          data = params[:data]
           if params[:type_url]
             Model::ProfileInfo.update_type_for_entity(env['tent.entity'], URI.unescape(params[:type_url]), data)
           else
@@ -25,7 +25,7 @@ module TentServer
 
       class Patch < Middleware
         def action(env, params, request)
-          diff_array = JSON.parse(env['rack.input'].read)
+          diff_array = params[:data]
           profile_hash = Model::ProfileInfo.build_for_entity(env['tent.entity'])
           new_profile_hash = Marshal.load(Marshal.dump(profile_hash)) # equivalent of recursive dup
           JsonPatch.merge(new_profile_hash, diff_array)

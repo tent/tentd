@@ -34,7 +34,7 @@ module TentServer
 
       class Create < Middleware
         def action(env, params, request)
-          post_attributes = JSON.parse(env['rack.input'].read)
+          post_attributes = params[:data]
           post = ::TentServer::Model::Post.create!(post_attributes)
           env['response'] = post
           env

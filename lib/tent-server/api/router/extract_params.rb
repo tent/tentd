@@ -33,6 +33,11 @@ module TentServer
             keys.zip(values) { |k,v| Array === params[k] ? params[k] << v : params[k] = v if v }
           end
 
+          if env['HTTP_CONTENT_TYPE'] =~ /\bjson\Z/
+            params['data'] = JSON.parse(env['rack.input'].read)
+            env['rack.input'].rewind
+          end
+
           env['params'] = indifferent_params(params)
         end
 
