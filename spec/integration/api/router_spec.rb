@@ -1,14 +1,16 @@
 require 'spec_helper'
 
 describe TentServer::API::Router do
-  class TestMiddleware
-    def initialize(app)
-      @app = app
-    end
-
-    def call(env)
+  class TestMiddleware < TentServer::API::Middleware
+    def action(env, params, request)
       env['response'] = { 'params' => env['params'] }
-      @app.call(env)
+      env
+    end
+  end
+
+  class TestMiddlewarePrematureResponse < TentServer::API::Middleware
+    def action(env, params, request)
+      [200, { 'Content-Type' => 'text/plain' }, 'Premature-Response']
     end
   end
 
@@ -24,6 +26,11 @@ describe TentServer::API::Router do
     include TentServer::API::Router
 
     get '/foo/:bar' do |b|
+      b.use TestMiddleware
+    end
+
+    get '/premature/response' do |b|
+      b.use TestMiddlewarePrematureResponse
       b.use TestMiddleware
     end
 
@@ -56,5 +63,10 @@ describe TentServer::API::Router do
     get '/chunky/crunch'
     expect(last_response.status).to eq(200)
     expect(JSON.parse(last_response.body)['params']['bacon']).to eq('crunch')
+  end
+
+  it "should allow middleware to prematurely respond" do
+    get '/premature/response'
+    expect(last_response.body).to eq('Premature-Response')
   end
 end

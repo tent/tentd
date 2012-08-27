@@ -6,7 +6,8 @@ module TentServer
       end
 
       def call(env)
-        @app.call action(env, env['params'], env['request'])
+        response = action(env, env['params'], env['request'])
+        response.kind_of?(Hash) ? @app.call(response) : response
       end
     end
   end
