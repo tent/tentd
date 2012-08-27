@@ -5,6 +5,7 @@ module TentServer
     autoload :Posts, 'tent-server/api/posts'
     autoload :Groups, 'tent-server/api/groups'
     autoload :Profile, 'tent-server/api/profile'
+    autoload :Followers, 'tent-server/api/followers'
     autoload :Router, 'tent-server/api/router'
     autoload :Middleware, 'tent-server/api/middleware'
     include Router

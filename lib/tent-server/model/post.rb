@@ -18,5 +18,3 @@ module TentServer
     end
   end
 end
-
-DataMapper.finalize
