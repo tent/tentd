@@ -9,6 +9,7 @@ module TentServer
       property :groups, Array
       property :entity, URI
       property :profile, Json
+      property :licenses, Array
       property :type, Enum[:following, :follower]
       timestamps :at
 

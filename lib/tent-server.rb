@@ -1,4 +1,5 @@
 require 'tent-server/version'
+require 'tent-client'
 
 module TentServer
   autoload :API, 'tent-server/api'
