@@ -5,7 +5,7 @@ module TentServer
 
       class Get < Middleware
         def action(env, params, request)
-          env['response'] = ::TentServer::Model::ProfileInfo.build_for_entity(env['tent.entity'])
+          env['response'] = Model::ProfileInfo.build_for_entity(env['tent.entity'])
           env
         end
       end
@@ -13,8 +13,26 @@ module TentServer
       class Update < Middleware
         def action(env, params, request)
           data = JSON.parse(env['rack.input'].read)
-          ::TentServer::Model::ProfileInfo.update_for_entity(env['tent.entity'], data)
-          env['response'] = ::TentServer::Model::ProfileInfo.build_for_entity(env['tent.entity'])
+          Model::ProfileInfo.update_for_entity(env['tent.entity'], data)
+          env['response'] = Model::ProfileInfo.build_for_entity(env['tent.entity'])
+          env
+        end
+      end
+
+      class Patch < Middleware
+        def action(env, params, request)
+          diff_array = JSON.parse(env['rack.input'].read)
+          profile_hash = Model::ProfileInfo.build_for_entity(env['tent.entity'])
+          new_profile_hash = Marshal.load(Marshal.dump(profile_hash)) # equivalent of recursive dup
+          JsonPatch.merge(new_profile_hash, diff_array)
+          if new_profile_hash != profile_hash
+            Model::ProfileInfo.update_for_entity(env['tent.entity'], new_profile_hash)
+          end
+          env['response'] = new_profile_hash
+          env
+        rescue JsonPatch::ObjectNotFound, JsonPatch::ObjectExists => e
+          env['response.status'] = 422
+          env['response'] = profile_hash
           env
         end
       end
@@ -25,6 +43,10 @@ module TentServer
 
       put '/profile' do |b|
         b.use Update
+      end
+
+      patch '/profile' do |b|
+        b.use Patch
       end
     end
   end

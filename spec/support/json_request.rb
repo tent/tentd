@@ -1,6 +1,10 @@
 require 'json'
 
 module JsonRequest
+  def json_patch(path, data = {}, rack_env = {})
+    patch path, data.to_json,  { 'HTTP_CONTENT_TYPE' => 'application/json' }.merge(rack_env)
+  end
+
   def json_put(path, data = {}, rack_env= {})
     put path, data.to_json, { 'HTTP_CONTENT_TYPE' => 'application/json' }.merge(rack_env)
   end

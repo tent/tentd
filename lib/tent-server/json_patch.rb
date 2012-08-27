@@ -100,7 +100,13 @@ module TentServer
       end
 
       def keys
-        @pointer.sub(%r{^/}, '').split("/")
+        @pointer.sub(%r{^/}, '').split("/").map do |key|
+          unescape_key(key)
+        end
+      end
+
+      def unescape_key(key)
+        key.gsub(/~1/, '/').gsub(/~0/, '~')
       end
     end
 
