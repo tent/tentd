@@ -5,45 +5,41 @@ describe TentServer::API::AuthenticationFinalize do
     TentServer::API.new
   end
 
-  [:server, :app, :user].each do |type|
-    it "should set current_#{type}" do
-      instance = stub(:mac_timestamp_delta => 1346171050)
-      env = Hashie::Mash.new({
-        "potential_#{type}" => instance,
-        'hmac' => { 'ts' => "1336363200" }
-      })
-      described_class.new(app).call(env)
-      expect(env["current_#{type}"]).to eq(instance)
-    end
-
-    it "should set mac_timestamp_delta on current_#{type}" do
-      now = Time.now; Time.stubs(:now).returns(now)
-      delta = now.to_i - 1336363200
-      instance = stub(:mac_timestamp_delta => nil)
-      env = Hashie::Mash.new({
-        "potential_#{type}" => instance,
-        'hmac' => { 'ts' => "1336363200" }
-      })
-      instance.expects(:update).with(:mac_timestamp_delta => delta).returns(true)
-      described_class.new(app).call(env)
-    end
-
-    it "should not set mac_timestamp_delta on current_#{type} if already set" do
-      instance = stub(:mac_timestamp_delta => 1346171050)
-      env = Hashie::Mash.new({
-        "potential_#{type}" => instance,
-        'hmac' => { 'ts' => "1336363200" }
-      })
-      instance.expects(:update).never
-      described_class.new(app).call(env)
-    end
+  it "should set current_auth" do
+    instance = stub(:mac_timestamp_delta => 1346171050)
+    env = Hashie::Mash.new({
+      "potential_auth" => instance,
+      'hmac' => { 'ts' => "1336363200", 'verified' => true }
+    })
+    described_class.new(app).call(env)
+    expect(env["current_auth"]).to eq(instance)
   end
 
-  it 'should do nothing unless env["hmac"] present' do
-    [:server, :app, :user].each do |type|
-      env = Hashie::Mash.new({ "potential_#{type}" => stub(:mac_timestamp_delta => 1346171050) })
-      described_class.new(app).call(env)
-      expect(env["current_#{type}"]).to be_nil
-    end
+  it "should set mac_timestamp_delta on current_auth" do
+    now = Time.now; Time.stubs(:now).returns(now)
+    delta = now.to_i - 1336363200
+    instance = stub(:mac_timestamp_delta => nil)
+    env = Hashie::Mash.new({
+      "potential_auth" => instance,
+      'hmac' => { 'ts' => "1336363200", 'verified' => true }
+    })
+    instance.expects(:update).with(:mac_timestamp_delta => delta).returns(true)
+    described_class.new(app).call(env)
+  end
+
+  it "should not set mac_timestamp_delta on current_auth if already set" do
+    instance = stub(:mac_timestamp_delta => 1346171050)
+    env = Hashie::Mash.new({
+      "potential_auth" => instance,
+      'hmac' => { 'ts' => "1336363200", 'verified' => true }
+    })
+    instance.expects(:update).never
+    described_class.new(app).call(env)
+  end
+
+  it 'should do nothing unless env.hmac.verified present' do
+    env = Hashie::Mash.new({ "potential_auth" => stub(:mac_timestamp_delta => 1346171050) })
+    described_class.new(app).call(env)
+    expect(env.current_auth).to be_nil
   end
 end

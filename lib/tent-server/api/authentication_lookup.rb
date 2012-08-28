@@ -2,22 +2,18 @@ module TentServer
   class API
     class AuthenticationLookup < Middleware
       def action(env)
-        return env unless env['Authorization']
-        env['hmac'] = Hash[env['Authorization'].scan(/([a-z]+)="([^"]+)"/i)]
+        return env unless env['HTTP_AUTHORIZATION']
+        env['hmac'] = Hash[env['HTTP_AUTHORIZATION'].scan(/([a-z]+)="([^"]+)"/i)]
         case env['hmac']['id'].to_s[0,1]
         when 's'
-          env['potential_server'] = TentServer::Model::Follower.first(:mac_key_id => env['hmac']['id'])
-          env['hmac.key'] = env['potential_server'].mac_key
-          env['hmac.algorithm'] = env['potential_server'].mac_algorithm
+          env.potential_auth = TentServer::Model::Follower.first(:mac_key_id => env['hmac']['id'])
         when 'a'
-          env['potential_app'] = TentServer::Model::App.first(:mac_key_id => env['hmac']['id'])
-          env['hmac.key'] = env['potential_app'].mac_key
-          env['hmac.algorithm'] = env['potential_app'].mac_algorithm
+          env.potential_auth = TentServer::Model::App.first(:mac_key_id => env['hmac']['id'])
         when 'u'
-          env['potential_user'] = TentServer::Model::AppAuthorization.first(:mac_key_id => env['hmac']['id'])
-          env['hmac.key'] = env['potential_user'].mac_key
-          env['hmac.algorithm'] = env['potential_user'].mac_algorithm
+          env.potential_auth = TentServer::Model::AppAuthorization.first(:mac_key_id => env['hmac']['id'])
         end
+        env.hmac.secret = env.potential_auth.mac_key
+        env.hmac.algorithm = env.potential_auth.mac_algorithm
         env
       end
     end

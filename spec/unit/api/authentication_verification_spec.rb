@@ -8,10 +8,10 @@ describe TentServer::API::AuthenticationVerification do
   it 'should verify mac signature' do
     env = Hashie::Mash.new({
       'hmac' => {
-        "id" => "s:h480djs93hd8", "ts" => "1336363200", "nonce" => "dj83hs9s", "mac" => "hqpo01mLJLSYDbxmfRgNMEw38Wg="
+        "id" => "s:h480djs93hd8", "ts" => "1336363200", "nonce" => "dj83hs9s", "mac" => "hqpo01mLJLSYDbxmfRgNMEw38Wg=",
+        "secret" => '489dks293j39',
+        'algorithm' => 'hmac-sha-1',
       },
-      'hmac.key' => '489dks293j39',
-      'hmac.algorithm' => 'hmac-sha-1',
       'rack.input' => StringIO.new("asdf\nasdf"),
       'REQUEST_METHOD' => 'POST',
       'SCRIPT_NAME' => "/resource/1",
@@ -20,16 +20,16 @@ describe TentServer::API::AuthenticationVerification do
       'SERVER_PORT' => "80"
     })
     described_class.new(app).call(env)
-    expect(env['hmac.verified']).to be_true
+    expect(env.hmac.verified).to be_true
   end
 
   it 'should respond 403 Unauthorized if signature fails verification' do
     env = Hashie::Mash.new({
       'hmac' => {
-        "id" => "s:h480djs93hd8", "ts" => "1336363200", "nonce" => "dj83hs9s", "mac" => "hqpo01mLJLSYDbxmfRgNMEw38Wg="
+        "id" => "s:h480djs93hd8", "ts" => "1336363200", "nonce" => "dj83hs9s", "mac" => "hqpo01mLJLSYDbxmfRgNMEw38Wg=",
+        "secret" => 'WRONG-KEY',
+        'algorithm' => 'hmac-sha-1',
       },
-      'hmac.key' => 'WRONG-KEY',
-      'hmac.algorithm' => 'hmac-sha-1',
       'rack.input' => StringIO.new("asdf\nasdf"),
       'REQUEST_METHOD' => 'POST',
       'SCRIPT_NAME' => "/resource/1",
@@ -45,6 +45,6 @@ describe TentServer::API::AuthenticationVerification do
   it 'should not do anything if no signature' do
     env = Hashie::Mash.new({})
     res = described_class.new(app).call(env)
-    expect(env['hmac.verified']).to be_nil
+    expect(env.hmac).to be_nil
   end
 end
