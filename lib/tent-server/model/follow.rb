@@ -1,4 +1,5 @@
 require 'tent-server/core_ext/hash/slice'
+require 'securerandom'
 
 module TentServer
   module Model
@@ -13,6 +14,10 @@ module TentServer
       property :profile, Json
       property :licenses, Array
       property :type, Enum[:following, :follower]
+      property :mac_key_id, String, :default => lambda { |*args| 's:' + SecureRandom.hex(4) }, :unique => true
+      property :mac_key, String, :default => lambda { |*args| SecureRandom.hex(16) }
+      property :mac_algorithm, String, :default => 'hmac-sha-256'
+      property :mac_timestamp_delta, Integer
       property :created_at, DateTime
       property :updated_at, DateTime
 

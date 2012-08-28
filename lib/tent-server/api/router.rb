@@ -66,6 +66,9 @@ module TentServer
           return if route_exists?(verb, path)
 
           builder = Rack::Builder.new(SerializeResponse.new)
+          builder.use(AuthenticationLookup)
+          builder.use(AuthenticationVerification)
+          builder.use(AuthenticationFinalize)
           builder.use(ExtractParams, path, params)
           block.call(builder)
 
