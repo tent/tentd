@@ -9,8 +9,14 @@ module TentServer
           profile = client.discover(params[:data]['entity']).get_profile
           return [404, {}, 'Not Found'] unless profile
           return [409, {}, 'Entity Mismatch'] if profile[profile.keys.first]['entity'] != params[:data]['entity']
+          env['profile'] = profile
+          env
+        end
+      end
 
-          if follower = Model::Follow.create_follower(params[:data].merge('profile' => profile))
+      class Create < Middleware
+        def action(env, params, response)
+          if follower = Model::Follow.create_follower(params[:data].merge('profile' => env['profile']))
             env['response'] = follower.as_json(:only => [:id, :mac_key_id, :mac_key, :mac_algorithm])
           end
           env
@@ -19,6 +25,7 @@ module TentServer
 
       post '/followers' do |b|
         b.use Discover
+        b.use Create
       end
     end
   end
