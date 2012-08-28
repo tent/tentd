@@ -23,9 +23,22 @@ module TentServer
         end
       end
 
+      class Get < Middleware
+        def action(env, params, response)
+          if follower = Model::Follow.get(params[:follower_id])
+            env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_algorithm])
+          end
+          env
+        end
+      end
+
       post '/followers' do |b|
         b.use Discover
         b.use Create
+      end
+
+      get '/followers/:follower_id' do |b|
+        b.use Get
       end
     end
   end

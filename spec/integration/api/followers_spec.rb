@@ -86,4 +86,17 @@ describe TentServer::API::Followers do
       end
     end
   end
+
+  describe 'GET /followers/:id' do
+    it 'should respond with follower json' do
+      follower = Fabricate(:follow, :type => :follower)
+      json_get "/followers/#{follower.id}"
+      expect(last_response.body).to eq(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_algorithm]).to_json)
+    end
+
+    it 'should respond with 404 if no follower exists with :id' do
+      json_get "/followers/invalid-id"
+      expect(last_response.status).to eq(404)
+    end
+  end
 end
