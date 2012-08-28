@@ -9,6 +9,7 @@ module TentServer
       belongs_to :profile_info, 'TentServer::Model::ProfileInfo'
       belongs_to :group, 'TentServer::Model::Group'
       belongs_to :follow, 'TentServer::Model::Follow'
+      belongs_to :follower, 'TentServer::Model::Follow', :key => true
       belongs_to :app_authorization, 'TentServer::Model::AppAuthorization'
 
       property :id, Serial
