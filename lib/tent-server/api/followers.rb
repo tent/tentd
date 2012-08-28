@@ -32,6 +32,16 @@ module TentServer
         end
       end
 
+      class Destroy < Middleware
+        def action(env, params, response)
+          if follower = Model::Follow.first(:id => params[:follower_id], :type => :follower)
+            follower.destroy
+            env['response'] = ''
+          end
+          env
+        end
+      end
+
       post '/followers' do |b|
         b.use Discover
         b.use Create
@@ -39,6 +49,10 @@ module TentServer
 
       get '/followers/:follower_id' do |b|
         b.use Get
+      end
+
+      delete '/followers/:follower_id' do |b|
+        b.use Destroy
       end
     end
   end

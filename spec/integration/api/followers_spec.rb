@@ -96,6 +96,16 @@ describe TentServer::API::Followers do
 
     it 'should respond with 404 if no follower exists with :id' do
       json_get "/followers/invalid-id"
+  describe 'DELETE /followers/:id' do
+    it 'should delete follower' do
+      follower = Fabricate(:follow, :type => :follower)
+      expect(lambda { delete "/followers/#{follower.id}" }).to change(TentServer::Model::Follow, :count).by(-1)
+      expect(last_response.status).to eq(200)
+    end
+
+    it 'should respond with 404 if no follower exists with :id' do
+      following = Fabricate(:follow, :type => :following)
+      delete "/followers/#{following.id}"
       expect(last_response.status).to eq(404)
     end
   end
