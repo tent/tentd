@@ -6,6 +6,7 @@ module TentServer
     autoload :Groups, 'tent-server/api/groups'
     autoload :Profile, 'tent-server/api/profile'
     autoload :Followers, 'tent-server/api/followers'
+    autoload :Followings, 'tent-server/api/followings'
     autoload :AuthenticationLookup, 'tent-server/api/authentication_lookup'
     autoload :AuthenticationVerification, 'tent-server/api/authentication_verification'
     autoload :AuthenticationFinalize, 'tent-server/api/authentication_finalize'

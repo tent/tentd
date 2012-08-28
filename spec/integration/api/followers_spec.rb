@@ -87,6 +87,10 @@ describe TentServer::API::Followers do
     end
   end
 
+  describe 'GET /followers' do
+    it 'should return a list of followers'
+  end
+
   describe 'GET /followers/:id' do
     it 'should respond with follower json' do
       follower = Fabricate(:follow, :type => :follower)
