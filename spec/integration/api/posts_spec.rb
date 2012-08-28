@@ -31,7 +31,7 @@ describe TentServer::API::Posts do
       with_constants "TentServer::API::PER_PAGE" => 1 do
         0.upto(TentServer::API::PER_PAGE+1).each { Fabricate(:post).save! }
         posts = TentServer::Model::Post.all(:limit => TentServer::API::PER_PAGE)
-        get '/posts'
+        json_get '/posts'
         expect(last_response.body).to eq(posts.to_json)
       end
     end
@@ -52,7 +52,7 @@ describe TentServer::API::Posts do
       posts = TentServer::Model::Post.all(:type => [picture_type_uri, blog_type_uri])
       post_types = [picture_post, blog_post].map { |p| URI.escape(p.type.to_s, "://") }
 
-      get "/posts?post_types=#{post_types.join(',')}"
+      json_get "/posts?post_types=#{post_types.join(',')}"
       expect(last_response.body).to eq(posts.to_json)
     end
 
@@ -62,7 +62,7 @@ describe TentServer::API::Posts do
       post = Fabricate(:post)
       post.save!
 
-      get "/posts?since_id=#{since_post.id}"
+      json_get "/posts?since_id=#{since_post.id}"
       expect(last_response.body).to eq([post].to_json)
     end
 
@@ -73,7 +73,7 @@ describe TentServer::API::Posts do
       before_post = Fabricate(:post)
       before_post.save!
 
-      get "/posts?before_id=#{before_post.id}"
+      json_get "/posts?before_id=#{before_post.id}"
       expect(last_response.body).to eq([post].to_json)
     end
 
@@ -85,7 +85,7 @@ describe TentServer::API::Posts do
       before_post = Fabricate(:post)
       before_post.save!
 
-      get "/posts?before_id=#{before_post.id}&since_id=#{since_post.id}"
+      json_get "/posts?before_id=#{before_post.id}&since_id=#{since_post.id}"
       expect(last_response.body).to eq([post].to_json)
     end
 
@@ -97,7 +97,7 @@ describe TentServer::API::Posts do
       post.published_at = Time.at(Time.now.to_i + (86400 * 2)) # 2.days.from_now
       post.save!
 
-      get "/posts?since_time=#{since_post.published_at.to_time.to_i}"
+      json_get "/posts?since_time=#{since_post.published_at.to_time.to_i}"
       expect(last_response.body).to eq([post].to_json)
     end
 
@@ -109,7 +109,7 @@ describe TentServer::API::Posts do
       before_post.published_at = Time.at(Time.now.to_i - 86400) # 1.day.ago
       before_post.save!
 
-      get "/posts?before_time=#{before_post.published_at.to_time.to_i}"
+      json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}"
       expect(last_response.body).to eq([post].to_json)
     end
 
@@ -125,21 +125,21 @@ describe TentServer::API::Posts do
       before_post.published_at = Time.at(now.to_i - 86400) # 1.day.ago
       before_post.save!
 
-      get "/posts?before_time=#{before_post.published_at.to_time.to_i}&since_time=#{since_post.published_at.to_time.to_i}"
+      json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}&since_time=#{since_post.published_at.to_time.to_i}"
       expect(last_response.body).to eq([post].to_json)
     end
 
     it "should set feed length with params[:limit]" do
       0.upto(2).each { Fabricate(:post).save! }
       posts = TentServer::Model::Post.all(:limit => 1)
-      get '/posts?limit=1'
+      json_get '/posts?limit=1'
       expect(last_response.body).to eq(posts.to_json)
     end
 
     it "limit should never exceed TentServer::API::MAX_PER_PAGE" do
       with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
         0.upto(2).each { Fabricate(:post).save! }
-        get '/posts?limit=1'
+        json_get '/posts?limit=1'
         expect(last_response.body).to eq([].to_json)
       end
     end
