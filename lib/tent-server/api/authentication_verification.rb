@@ -4,7 +4,7 @@ require 'base64'
 module TentServer
   class API
     class AuthenticationVerification < Middleware
-      def action(env, params, request)
+      def action(env)
         if env['hmac'] && !(env['hmac.verified'] = verify_signature(env))
           env = [403, {}, 'Invalid MAC Signature']
         end

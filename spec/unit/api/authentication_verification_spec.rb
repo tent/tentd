@@ -6,7 +6,7 @@ describe TentServer::API::AuthenticationVerification do
   end
 
   it 'should verify mac signature' do
-    env = {
+    env = Hashie::Mash.new({
       'hmac' => {
         "id" => "s:h480djs93hd8", "ts" => "1336363200", "nonce" => "dj83hs9s", "mac" => "hqpo01mLJLSYDbxmfRgNMEw38Wg="
       },
@@ -18,13 +18,13 @@ describe TentServer::API::AuthenticationVerification do
       'QUERY_STRING' => "b=1&a=2",
       'HTTP_HOST' => "example.com",
       'SERVER_PORT' => "80"
-    }
+    })
     described_class.new(app).call(env)
     expect(env['hmac.verified']).to be_true
   end
 
   it 'should respond 403 Unauthorized if signature fails verification' do
-    env = {
+    env = Hashie::Mash.new({
       'hmac' => {
         "id" => "s:h480djs93hd8", "ts" => "1336363200", "nonce" => "dj83hs9s", "mac" => "hqpo01mLJLSYDbxmfRgNMEw38Wg="
       },
@@ -36,14 +36,14 @@ describe TentServer::API::AuthenticationVerification do
       'QUERY_STRING' => "b=1&a=2",
       'HTTP_HOST' => "example.com",
       'SERVER_PORT' => "80"
-    }
+    })
     env = described_class.new(app).call(env)
     expect(env).to be_an(Array)
     expect(env.first).to eq(403)
   end
 
   it 'should not do anything if no signature' do
-    env = {}
+    env = Hashie::Mash.new({})
     res = described_class.new(app).call(env)
     expect(env['hmac.verified']).to be_nil
   end

@@ -1,7 +1,7 @@
 module TentServer
   class API
     class AuthenticationLookup < Middleware
-      def action(env, params, request)
+      def action(env)
         return env unless env['Authorization']
         env['hmac'] = Hash[env['Authorization'].scan(/([a-z]+)="([^"]+)"/i)]
         case env['hmac']['id'].to_s[0,1]

@@ -5,15 +5,13 @@ describe TentServer::API::AuthenticationFinalize do
     TentServer::API.new
   end
 
-  let(:env) { {} }
-
   [:server, :app, :user].each do |type|
     it "should set current_#{type}" do
       instance = stub(:mac_timestamp_delta => 1346171050)
-      env = {
+      env = Hashie::Mash.new({
         "potential_#{type}" => instance,
         'hmac' => { 'ts' => "1336363200" }
-      }
+      })
       described_class.new(app).call(env)
       expect(env["current_#{type}"]).to eq(instance)
     end
@@ -22,20 +20,20 @@ describe TentServer::API::AuthenticationFinalize do
       now = Time.now; Time.stubs(:now).returns(now)
       delta = now.to_i - 1336363200
       instance = stub(:mac_timestamp_delta => nil)
-      env = {
+      env = Hashie::Mash.new({
         "potential_#{type}" => instance,
         'hmac' => { 'ts' => "1336363200" }
-      }
+      })
       instance.expects(:update).with(:mac_timestamp_delta => delta).returns(true)
       described_class.new(app).call(env)
     end
 
     it "should not set mac_timestamp_delta on current_#{type} if already set" do
       instance = stub(:mac_timestamp_delta => 1346171050)
-      env = {
+      env = Hashie::Mash.new({
         "potential_#{type}" => instance,
         'hmac' => { 'ts' => "1336363200" }
-      }
+      })
       instance.expects(:update).never
       described_class.new(app).call(env)
     end
@@ -43,7 +41,7 @@ describe TentServer::API::AuthenticationFinalize do
 
   it 'should do nothing unless env["hmac"] present' do
     [:server, :app, :user].each do |type|
-      env = { "potential_#{type}" => stub(:mac_timestamp_delta => 1346171050) }
+      env = Hashie::Mash.new({ "potential_#{type}" => stub(:mac_timestamp_delta => 1346171050) })
       described_class.new(app).call(env)
       expect(env["current_#{type}"]).to be_nil
     end

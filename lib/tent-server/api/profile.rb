@@ -4,17 +4,17 @@ module TentServer
       include Router
 
       class Get < Middleware
-        def action(env, params, request)
+        def action(env)
           env['response'] = Model::ProfileInfo.build_for_entity(env['tent.entity'])
           env
         end
       end
 
       class Update < Middleware
-        def action(env, params, request)
-          data = params[:data]
-          if params[:type_url]
-            Model::ProfileInfo.update_type_for_entity(env['tent.entity'], URI.unescape(params[:type_url]), data)
+        def action(env)
+          data = env.params[:data]
+          if env.params[:type_url]
+            Model::ProfileInfo.update_type_for_entity(env['tent.entity'], URI.unescape(env.params[:type_url]), data)
           else
             Model::ProfileInfo.update_for_entity(env['tent.entity'], data)
           end
@@ -24,8 +24,8 @@ module TentServer
       end
 
       class Patch < Middleware
-        def action(env, params, request)
-          diff_array = params[:data]
+        def action(env)
+          diff_array = env.params[:data]
           profile_hash = Model::ProfileInfo.build_for_entity(env['tent.entity'])
           new_profile_hash = Marshal.load(Marshal.dump(profile_hash)) # equivalent of recursive dup
           JsonPatch.merge(new_profile_hash, diff_array)

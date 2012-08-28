@@ -5,7 +5,7 @@ describe TentServer::API::AuthenticationLookup do
     TentServer::API.new
   end
 
-  let(:env) { {} }
+  let(:env) { Hashie::Mash.new({}) }
   let(:auth_header) { 'MAC id="%s:h480djs93hd8", ts="1336363200", nonce="dj83hs9s", mac="hqpo01mLJLSYDbxmfRgNMEw38Wg="' }
 
   it 'should parse hmac authorization header' do

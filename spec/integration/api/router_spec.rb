@@ -2,14 +2,14 @@ require 'spec_helper'
 
 describe TentServer::API::Router do
   class TestMiddleware < TentServer::API::Middleware
-    def action(env, params, request)
+    def action(env)
       env['response'] = { 'params' => env['params'] }
       env
     end
   end
 
   class TestMiddlewarePrematureResponse < TentServer::API::Middleware
-    def action(env, params, request)
+    def action(env)
       [200, { 'Content-Type' => 'text/plain' }, 'Premature-Response']
     end
   end

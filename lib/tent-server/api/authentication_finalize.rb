@@ -1,7 +1,7 @@
 module TentServer
   class API
     class AuthenticationFinalize < Middleware
-      def action(env, params, request)
+      def action(env)
         return env unless env['hmac']
         env['current_server'] = env['potential_server'] if env['potential_server']
         env['current_app'] = env['potential_app'] if env['potential_app']

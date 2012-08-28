@@ -4,13 +4,13 @@ module TentServer
       include Router
 
       class GetOne < Middleware
-        def action(env, params, request)
-          post = Model::Post.first(:id => params[:post_id], :public => true)
+        def action(env)
+          post = Model::Post.first(:id => env.params[:post_id], :public => true)
           if env['current_auth']
             post ||= Model::Post.first(
-              :id => params[:post_id],
+              :id => env.params[:post_id],
               Model::Post.permissions.group_id => env.current_auth.groups,
-              current_auth.permissions.post_id => params[:post_id]
+              current_auth.permissions.post_id => env.params[:post_id]
             )
           end
           if post
@@ -21,8 +21,8 @@ module TentServer
       end
 
       class GetFeed < Middleware
-        def action(env, params, request)
-          env['response'] = Model::Post.all(conditions_from_params(params))
+        def action(env)
+          env['response'] = Model::Post.all(conditions_from_params(env.params))
           env
         end
 
@@ -41,8 +41,8 @@ module TentServer
       end
 
       class Create < Middleware
-        def action(env, params, request)
-          post_attributes = params[:data]
+        def action(env)
+          post_attributes = env.params[:data]
           post = Model::Post.create!(post_attributes)
           env['response'] = post
           env

@@ -4,19 +4,19 @@ module TentServer
       include Router
 
       class Discover < Middleware
-        def action(env, params, response)
+        def action(env)
           client = ::TentClient.new
-          profile = client.discover(params[:data]['entity']).get_profile
+          profile = client.discover(env.params[:data]['entity']).get_profile
           return [404, {}, 'Not Found'] unless profile
-          return [409, {}, 'Entity Mismatch'] if profile[profile.keys.first]['entity'] != params[:data]['entity']
+          return [409, {}, 'Entity Mismatch'] if profile[profile.keys.first]['entity'] != env.params[:data]['entity']
           env['profile'] = profile
           env
         end
       end
 
       class Create < Middleware
-        def action(env, params, response)
-          if follower = Model::Follower.create_follower(params[:data].merge('profile' => env['profile']))
+        def action(env)
+          if follower = Model::Follower.create_follower(env.params[:data].merge('profile' => env['profile']))
             env['response'] = follower.as_json(:only => [:id, :mac_key_id, :mac_key, :mac_algorithm])
           end
           env
@@ -24,8 +24,8 @@ module TentServer
       end
 
       class Get < Middleware
-        def action(env, params, response)
-          if follower = Model::Follower.get(params[:follower_id])
+        def action(env)
+          if follower = Model::Follower.get(env.params[:follower_id])
             env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_algorithm])
           end
           env
@@ -33,15 +33,15 @@ module TentServer
       end
 
       class Update < Middleware
-        def action(env, params, response)
-          Model::Follower.update_follower(params[:follower_id], params[:data])
+        def action(env)
+          Model::Follower.update_follower(env.params[:follower_id], env.params[:data])
           env
         end
       end
 
       class Destroy < Middleware
-        def action(env, params, response)
-          if (follower = Model::Follower.get(params[:follower_id])) && follower.destroy
+        def action(env)
+          if (follower = Model::Follower.get(env.params[:follower_id])) && follower.destroy
             env['response'] = ''
           end
           env

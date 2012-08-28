@@ -18,6 +18,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
 
   gem.add_runtime_dependency 'rack-mount'
+  gem.add_runtime_dependency 'hashie'
   gem.add_runtime_dependency 'data_mapper'
   gem.add_runtime_dependency 'tent-client'
 

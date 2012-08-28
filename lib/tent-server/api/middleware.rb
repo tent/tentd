@@ -1,3 +1,5 @@
+require 'hashie'
+
 module TentServer
   class API
     class Middleware
@@ -6,7 +8,8 @@ module TentServer
       end
 
       def call(env)
-        response = action(env, env['params'], env['request'])
+        env = Hashie::Mash.new(env) unless env.kind_of?(Hashie::Mash)
+        response = action(env)
         response.kind_of?(Hash) ? @app.call(response) : response
       end
     end

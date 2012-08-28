@@ -4,15 +4,15 @@ module TentServer
       include Router
 
       class GetAll < Middleware
-        def action(env, params, request)
+        def action(env)
           env['response'] = Model::Group.all
           env
         end
       end
 
       class GetOne < Middleware
-        def action(env, params, request)
-          if group = Model::Group.get(params[:group_id])
+        def action(env)
+          if group = Model::Group.get(env.params[:group_id])
             env['response'] = group
           end
           env
@@ -20,9 +20,9 @@ module TentServer
       end
 
       class Update < Middleware
-        def action(env, params, request)
-          if group = Model::Group.get(params[:group_id])
-            group_attributes = params[:data]
+        def action(env)
+          if group = Model::Group.get(env.params[:group_id])
+            group_attributes = env.params[:data]
             group.update(group_attributes)
             env['response'] = group.reload
           end
@@ -31,8 +31,8 @@ module TentServer
       end
 
       class Create < Middleware
-        def action(env, params, request)
-          group_attributes = params[:data]
+        def action(env)
+          group_attributes = env.params[:data]
           env['response'] = Model::Group.create!(group_attributes)
           env
         end
