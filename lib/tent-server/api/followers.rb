@@ -11,7 +11,7 @@ module TentServer
           return [409, {}, 'Entity Mismatch'] if profile[profile.keys.first]['entity'] != params[:data]['entity']
 
           if follower = Model::Follow.create_follower(params[:data].merge('profile' => profile))
-            env['response'] = ''
+            env['response'] = follower.as_json(:only => [:id, :mac_key_id, :mac_key, :mac_algorithm])
           end
           env
         end

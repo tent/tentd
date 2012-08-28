@@ -65,10 +65,17 @@ describe TentServer::API::Followers do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
       end
 
-      it 'should create follower db record' do
+      it 'should create follower db record and respond with hmac secret' do
         expect(lambda { json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com' }).
           to change(TentServer::Model::Follow, :count).by(1)
         expect(last_response.status).to eq(200)
+        follow = TentServer::Model::Follow.last
+        expect(last_response.body).to eq({
+          "id" => follow.id,
+          "mac_key_id" => follow.mac_key_id,
+          "mac_key" => follow.mac_key,
+          "mac_algorithm" => follow.mac_algorithm
+        }.to_json)
       end
 
       it 'should create notification subscription for each type given' do
