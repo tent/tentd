@@ -25,6 +25,10 @@ module TentServer
       has n, :view_permissions, 'TentServer::Model::Permission'
       has n, :access_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_id ]
 
+      def self.permissions
+        view_permissions + access_permissions
+      end
+
       def self.create_follower(data)
         follower = create(data.slice('entity', 'licenses', 'profile').merge(:type => :follower))
         data['types'].each do |type_url|

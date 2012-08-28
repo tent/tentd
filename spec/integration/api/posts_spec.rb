@@ -17,6 +17,27 @@ describe TentServer::API::Posts do
       json_get "/posts/invalid-id"
       expect(last_response.status).to eq(404)
     end
+
+    shared_examples "private post" do
+      let(:group) { Fabricate(:group, :name => 'friends') }
+      let(:post) { Fabricate(:post, :public => false, :groups => [group]) }
+      before do
+        current_auth.values.first.groups << group
+      end
+
+      context 'when post is not public' do
+        it 'should return 404'
+      end
+    end
+
+    context 'when current_follower' do
+      let(:current_auth) { { 'current_follower' => Fabricate(:follow, :type => :follower) } }
+
+      it_behaves_like "private post"
+    end
+
+    context 'when current_app_auth' do
+    end
   end
 
   # Params:
@@ -142,6 +163,10 @@ describe TentServer::API::Posts do
         json_get '/posts?limit=1'
         expect(last_response.body).to eq([].to_json)
       end
+    end
+
+    [:user, :server, :app].each do |type|
+      it "should return exclude posts current_#{type} does not have permission"
     end
   end
 

@@ -5,7 +5,15 @@ module TentServer
 
       class GetOne < Middleware
         def action(env, params, request)
-          if post = Model::Post.get(params[:post_id])
+          post = Model::Post.first(:id => params[:post_id], :public => true)
+          if env['current_auth']
+            post ||= Model::Post.first(
+              :id => params[:post_id],
+              Model::Post.permissions.group_id => env.current_auth.groups,
+              current_auth.permissions.post_id => params[:post_id]
+            )
+          end
+          if post
             env['response'] = post
           end
           env
