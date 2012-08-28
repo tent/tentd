@@ -23,13 +23,24 @@ module TentServer
 
       has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription'
 
-      class << self
-        def create_follower(data)
-          follower = create(data.slice('entity', 'licenses', 'profile').merge(:type => :follower))
+      def self.create_follower(data)
+        follower = create(data.slice('entity', 'licenses', 'profile').merge(:type => :follower))
+        data['types'].each do |type_url|
+          follower.notification_subscriptions.create(:type => URI(type_url))
+        end
+        follower
+      end
+
+      def self.update_follower(id, data)
+        follower = first(:id => id, :type => :follower)
+        follower.update(data.slice('licenses'))
+        if data['types']
+          if follower.notification_subscriptions.any?
+            follower.notification_subscriptions.find(:type.not => [data['types']]).each(&:destroy)
+          end
           data['types'].each do |type_url|
             follower.notification_subscriptions.create(:type => URI(type_url))
           end
-          follower
         end
       end
     end

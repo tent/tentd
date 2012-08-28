@@ -95,7 +95,64 @@ describe TentServer::API::Followers do
     end
 
     it 'should respond with 404 if no follower exists with :id' do
-      json_get "/followers/invalid-id"
+      following = Fabricate(:follow, :type => :following)
+      json_get "/followers/#{following.id}"
+      expect(last_response.status).to eq(404)
+    end
+  end
+
+  describe 'PUT /followers/:id' do
+    it 'should update follower licenses' do
+      follower = Fabricate(:follow, :type => :follower)
+      data = {
+        :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
+      }
+      json_put "/followers/#{follower.id}", data
+      follower.reload
+      expect(follower.licenses).to eq(data[:licenses])
+    end
+
+    context '' do
+      let(:follower) { Fabricate(:follow, :type => :follower) }
+      before(:all) do
+        @data = {
+          :entity => URI("https://chunky-bacon.example.com"),
+          :profile => { :entity => URI("https:://chunky-bacon.example.com") },
+          :type => :following,
+          :mac_key_id => '12345',
+          :mac_key => '12312',
+          :mac_algorithm => 'sdfjhsd',
+          :mac_timestamp_delta => '124123'
+        }
+      end
+      [:entity, :profile, :type, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each do |property|
+        it "should not update #{property}" do
+          original_value = follower.send(property)
+          data = { property => @data[property] }
+          json_put "/followers/#{follower.id}", data
+          follower.reload
+          expect(follower.send(property)).to eq(original_value)
+        end
+      end
+    end
+
+    it 'should update follower type notifications' do
+      follower = Fabricate(:follow, :type => :follower)
+      data = {
+        :types => follower.notification_subscriptions.map {|ns| ns.type.to_s}.concat(["https://tent.io/types/post/video/v0.1.x#meta"])
+      }
+      expect( lambda { json_put "/followers/#{follower.id}", data } ).
+        to change(TentServer::Model::NotificationSubscription, :count).by (1)
+
+      follower.reload
+      data = {
+        :types => follower.notification_subscriptions.map {|ns| ns.type.to_s}[0..-2]
+      }
+      expect( lambda { json_put "/followers/#{follower.id}", data } ).
+        to change(TentServer::Model::NotificationSubscription, :count).by (-1)
+    end
+  end
+
   describe 'DELETE /followers/:id' do
     it 'should delete follower' do
       follower = Fabricate(:follow, :type => :follower)

@@ -25,9 +25,16 @@ module TentServer
 
       class Get < Middleware
         def action(env, params, response)
-          if follower = Model::Follow.get(params[:follower_id])
+          if follower = Model::Follow.first(:id => params[:follower_id], :type => :follower)
             env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_algorithm])
           end
+          env
+        end
+      end
+
+      class Update < Middleware
+        def action(env, params, response)
+          Model::Follow.update_follower(params[:follower_id], params[:data])
           env
         end
       end
@@ -49,6 +56,10 @@ module TentServer
 
       get '/followers/:follower_id' do |b|
         b.use Get
+      end
+
+      put '/followers/:follower_id' do |b|
+        b.use Update
       end
 
       delete '/followers/:follower_id' do |b|
