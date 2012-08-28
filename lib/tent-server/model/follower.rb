@@ -3,17 +3,16 @@ require 'securerandom'
 
 module TentServer
   module Model
-    class Follow
+    class Follower
       include DataMapper::Resource
 
-      storage_names[:default] = 'follows'
+      storage_names[:default] = 'followers'
 
       property :id, Serial
       property :groups, Array
       property :entity, URI
       property :profile, Json
       property :licenses, Array
-      property :type, Enum[:following, :follower]
       property :mac_key_id, String, :default => lambda { |*args| 's:' + SecureRandom.hex(4) }, :unique => true
       property :mac_key, String, :default => lambda { |*args| SecureRandom.hex(16) }
       property :mac_algorithm, String, :default => 'hmac-sha-256'
@@ -22,15 +21,15 @@ module TentServer
       property :updated_at, DateTime
 
       has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription'
-      has n, :view_permissions, 'TentServer::Model::Permission'
-      has n, :access_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_id ]
+      has n, :view_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_view_id ]
+      has n, :access_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_access_id ]
 
       def self.permissions
         view_permissions + access_permissions
       end
 
       def self.create_follower(data)
-        follower = create(data.slice('entity', 'licenses', 'profile').merge(:type => :follower))
+        follower = create(data.slice('entity', 'licenses', 'profile'))
         data['types'].each do |type_url|
           follower.notification_subscriptions.create(:type => URI(type_url))
         end
@@ -38,7 +37,7 @@ module TentServer
       end
 
       def self.update_follower(id, data)
-        follower = first(:id => id, :type => :follower)
+        follower = get(id)
         follower.update(data.slice('licenses'))
         if data['types']
           if follower.notification_subscriptions.any?

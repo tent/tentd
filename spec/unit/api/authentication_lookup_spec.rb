@@ -9,8 +9,8 @@ describe TentServer::API::AuthenticationLookup do
   let(:auth_header) { 'MAC id="%s:h480djs93hd8", ts="1336363200", nonce="dj83hs9s", mac="hqpo01mLJLSYDbxmfRgNMEw38Wg="' }
 
   it 'should parse hmac authorization header' do
-    TentServer::Model::Follow.all.destroy
-    follow = TentServer::Model::Follow.create(:mac_key_id => "s:h480djs93hd8")
+    TentServer::Model::Follower.all.destroy
+    follow = TentServer::Model::Follower.create(:mac_key_id => "s:h480djs93hd8")
     env['Authorization'] = auth_header % 's'
     described_class.new(app).call(env)
     expect(env['hmac']).to eq({
@@ -22,8 +22,8 @@ describe TentServer::API::AuthenticationLookup do
   end
 
   it 'should lookup server authentication model' do
-    TentServer::Model::Follow.all.destroy
-    follow = TentServer::Model::Follow.create(:mac_key_id => "s:h480djs93hd8")
+    TentServer::Model::Follower.all.destroy
+    follow = TentServer::Model::Follower.create(:mac_key_id => "s:h480djs93hd8")
     expect(follow.saved?).to be_true
     env['Authorization'] = auth_header % 's'
     described_class.new(app).call(env)

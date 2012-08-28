@@ -6,7 +6,7 @@ module TentServer
         env['hmac'] = Hash[env['Authorization'].scan(/([a-z]+)="([^"]+)"/i)]
         case env['hmac']['id'].to_s[0,1]
         when 's'
-          env['potential_server'] = TentServer::Model::Follow.first(:mac_key_id => env['hmac']['id'])
+          env['potential_server'] = TentServer::Model::Follower.first(:mac_key_id => env['hmac']['id'])
           env['hmac.key'] = env['potential_server'].mac_key
           env['hmac.algorithm'] = env['potential_server'].mac_algorithm
         when 'a'

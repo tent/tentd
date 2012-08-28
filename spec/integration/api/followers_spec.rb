@@ -14,6 +14,7 @@ describe TentServer::API::Followers do
   end
 
   let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
+  let(:follower) { Fabricate(:follower) }
 
   describe 'POST /followers' do
     let(:follower_entity_url) { "https://alex.example.org" }
@@ -67,9 +68,9 @@ describe TentServer::API::Followers do
 
       it 'should create follower db record and respond with hmac secret' do
         expect(lambda { json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com' }).
-          to change(TentServer::Model::Follow, :count).by(1)
+          to change(TentServer::Model::Follower, :count).by(1)
         expect(last_response.status).to eq(200)
-        follow = TentServer::Model::Follow.last
+        follow = TentServer::Model::Follower.last
         expect(last_response.body).to eq({
           "id" => follow.id,
           "mac_key_id" => follow.mac_key_id,
@@ -93,21 +94,18 @@ describe TentServer::API::Followers do
 
   describe 'GET /followers/:id' do
     it 'should respond with follower json' do
-      follower = Fabricate(:follow, :type => :follower)
       json_get "/followers/#{follower.id}"
       expect(last_response.body).to eq(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_algorithm]).to_json)
     end
 
     it 'should respond with 404 if no follower exists with :id' do
-      following = Fabricate(:follow, :type => :following)
-      json_get "/followers/#{following.id}"
+      json_get "/followers/invalid-id"
       expect(last_response.status).to eq(404)
     end
   end
 
   describe 'PUT /followers/:id' do
     it 'should update follower licenses' do
-      follower = Fabricate(:follow, :type => :follower)
       data = {
         :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
       }
@@ -117,7 +115,6 @@ describe TentServer::API::Followers do
     end
 
     context '' do
-      let(:follower) { Fabricate(:follow, :type => :follower) }
       before(:all) do
         @data = {
           :entity => URI("https://chunky-bacon.example.com"),
@@ -129,7 +126,7 @@ describe TentServer::API::Followers do
           :mac_timestamp_delta => '124123'
         }
       end
-      [:entity, :profile, :type, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each do |property|
+      [:entity, :profile, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each do |property|
         it "should not update #{property}" do
           original_value = follower.send(property)
           data = { property => @data[property] }
@@ -141,7 +138,6 @@ describe TentServer::API::Followers do
     end
 
     it 'should update follower type notifications' do
-      follower = Fabricate(:follow, :type => :follower)
       data = {
         :types => follower.notification_subscriptions.map {|ns| ns.type.to_s}.concat(["https://tent.io/types/post/video/v0.1.x#meta"])
       }
@@ -159,14 +155,13 @@ describe TentServer::API::Followers do
 
   describe 'DELETE /followers/:id' do
     it 'should delete follower' do
-      follower = Fabricate(:follow, :type => :follower)
-      expect(lambda { delete "/followers/#{follower.id}" }).to change(TentServer::Model::Follow, :count).by(-1)
+      follower # create follower
+      expect(lambda { delete "/followers/#{follower.id}" }).to change(TentServer::Model::Follower, :count).by(-1)
       expect(last_response.status).to eq(200)
     end
 
     it 'should respond with 404 if no follower exists with :id' do
-      following = Fabricate(:follow, :type => :following)
-      delete "/followers/#{following.id}"
+      delete "/followers/invalid-id"
       expect(last_response.status).to eq(404)
     end
   end

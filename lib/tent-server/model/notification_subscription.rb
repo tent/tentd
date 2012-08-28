@@ -12,7 +12,7 @@ module TentServer
       property :updated_at, DateTime
 
       belongs_to :app_authorization, 'TentServer::Model::AppAuthorization', :required => false
-      belongs_to :follow, 'TentServer::Model::Follow', :required => false
+      belongs_to :follower, 'TentServer::Model::Follower', :required => false
 
       before :save, :extract_view
 

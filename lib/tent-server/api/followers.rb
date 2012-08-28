@@ -16,7 +16,7 @@ module TentServer
 
       class Create < Middleware
         def action(env, params, response)
-          if follower = Model::Follow.create_follower(params[:data].merge('profile' => env['profile']))
+          if follower = Model::Follower.create_follower(params[:data].merge('profile' => env['profile']))
             env['response'] = follower.as_json(:only => [:id, :mac_key_id, :mac_key, :mac_algorithm])
           end
           env
@@ -25,8 +25,8 @@ module TentServer
 
       class Get < Middleware
         def action(env, params, response)
-          if follower = Model::Follow.first(:id => params[:follower_id], :type => :follower)
-            env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_algorithm])
+          if follower = Model::Follower.get(params[:follower_id])
+            env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_algorithm])
           end
           env
         end
@@ -34,15 +34,14 @@ module TentServer
 
       class Update < Middleware
         def action(env, params, response)
-          Model::Follow.update_follower(params[:follower_id], params[:data])
+          Model::Follower.update_follower(params[:follower_id], params[:data])
           env
         end
       end
 
       class Destroy < Middleware
         def action(env, params, response)
-          if follower = Model::Follow.first(:id => params[:follower_id], :type => :follower)
-            follower.destroy
+          if (follower = Model::Follower.get(params[:follower_id])) && follower.destroy
             env['response'] = ''
           end
           env

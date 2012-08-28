@@ -4,7 +4,8 @@ require 'tent-server/data_mapper_array_property'
 module TentServer
   module Model
     require 'tent-server/model/post'
-    require 'tent-server/model/follow'
+    require 'tent-server/model/follower'
+    require 'tent-server/model/following'
     require 'tent-server/model/app'
     require 'tent-server/model/app_authorization'
     require 'tent-server/model/notification_subscription'
