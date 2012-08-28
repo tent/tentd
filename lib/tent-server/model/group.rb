@@ -7,6 +7,8 @@ module TentServer
 
       property :id, Serial
       property :name, String
+
+      has n, :permissions, 'TentServer::Model::Permission'
     end
   end
 end

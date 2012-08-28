@@ -10,6 +10,8 @@ module TentServer
       property :type, URI
       property :content, Json, :default => {}
 
+      has n, :permissions, 'TentServer::Model::Permission'
+
       class << self
         def build_for_entity(entity_hostname)
           all(:entity => URI("https://#{entity_hostname}")).inject({}) do |memo, info|

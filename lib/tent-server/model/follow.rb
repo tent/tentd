@@ -22,6 +22,7 @@ module TentServer
       property :updated_at, DateTime
 
       has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription'
+      has n, :permissions, 'TentServer::Model::Permission'
 
       def self.create_follower(data)
         follower = create(data.slice('entity', 'licenses', 'profile').merge(:type => :follower))

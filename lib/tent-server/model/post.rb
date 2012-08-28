@@ -15,6 +15,8 @@ module TentServer
       property :content, Json
       property :published_at, DateTime
       property :received_at, DateTime
+
+      has n, :permissions, 'TentServer::Model::Permission'
     end
   end
 end

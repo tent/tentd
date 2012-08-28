@@ -22,6 +22,7 @@ module TentServer
 
       belongs_to :app, 'TentServer::Model::App'
       has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription'
+      has n, :permissions, 'TentServer::Model::Permission'
     end
   end
 end

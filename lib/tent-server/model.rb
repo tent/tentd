@@ -10,6 +10,7 @@ module TentServer
     require 'tent-server/model/notification_subscription'
     require 'tent-server/model/profile_info'
     require 'tent-server/model/group'
+    require 'tent-server/model/permission'
   end
 end
 
