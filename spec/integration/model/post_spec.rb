@@ -2,40 +2,68 @@ require 'spec_helper'
 
 describe TentServer::Model::Post do
   describe 'find_with_permissions' do
-    let(:group) { Fabricate(:group, :name => 'family') }
-    let(:post) { Fabricate(:post, :public => false) }
-    let(:current_auth) { Fabricate(:follower) }
+    shared_examples 'current_auth param' do |options={}|
+      let(:group) { Fabricate(:group, :name => 'family') }
+      let(:post) { Fabricate(:post, :public => false) }
 
-    context 'when has permission via explicit' do
-      before do
-        current_auth.access_permissions.create(:post_id => post.id)
+      context 'when has permission via explicit' do
+        before do
+          case current_auth
+          when TentServer::Model::Follower
+            current_auth.access_permissions.create(:post_id => post.id)
+          else
+            current_auth.permissions.create(:post_id => post.id)
+          end
+        end
+
+        it 'should return post' do
+          returned_post = described_class.find_with_permissions(post.id, current_auth)
+          expect(returned_post).to eq(post)
+        end
+
       end
 
-      it 'should return post' do
-        returned_post = described_class.find_with_permissions(post.id, current_auth)
-        expect(returned_post).to eq(described_class.get(post.id))
+      unless options[:groups] == false
+        context 'when has permission via group' do
+          before do
+            group.permissions.create(:post_id => post.id)
+            current_auth.groups = [group.id]
+            current_auth.save
+          end
+
+          it 'should return post' do
+            returned_post = described_class.find_with_permissions(post.id, current_auth)
+            expect(returned_post).to eq(post)
+          end
+        end
+      end
+
+      context 'when does not have permission' do
+        it 'should return nil' do
+          returned_post = described_class.find_with_permissions(post.id, current_auth)
+          expect(returned_post).to be_nil
+        end
       end
     end
 
-    context 'when has permission via group' do
-      before do
-        group.permissions.create(:post_id => post.id)
-        current_auth.groups = [group.id]
-        current_auth.save
-      end
+    context 'when Follower' do
+      let(:current_auth) { Fabricate(:follower, :groups => []) }
 
-      it 'should return post' do
-        returned_post = described_class.find_with_permissions(post.id, current_auth)
-        expect(returned_post).to eq(post)
-      end
+      it_behaves_like 'current_auth param'
     end
 
-    context 'when does not have permission' do
-      it 'should return nil' do
-        returned_post = described_class.find_with_permissions(post.id, current_auth)
-        expect(returned_post).to be_nil
-      end
+    context 'when AppAuthorization' do
+      let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
+
+      it_behaves_like 'current_auth param'
     end
+
+    context 'when App' do
+      let(:current_auth) { Fabricate(:app) }
+
+      it_behaves_like 'current_auth param', :groups => false
+    end
+
   end
 
   it "should persist with proper serialization" do

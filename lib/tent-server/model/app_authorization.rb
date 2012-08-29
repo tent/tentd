@@ -9,6 +9,7 @@ module TentServer
 
       property :id, Serial
       property :scopes, Array
+      property :groups, Array
       property :post_types, Array
       property :profile_info_types, Array
       property :token_code, String
@@ -21,8 +22,8 @@ module TentServer
       timestamps :at
 
       belongs_to :app, 'TentServer::Model::App'
-      has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription'
-      has n, :permissions, 'TentServer::Model::Permission'
+      has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription', :constraint => :destroy
+      has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
     end
   end
 end

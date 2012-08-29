@@ -20,7 +20,8 @@ module TentServer
       property :mac_timestamp_delta, Integer
       timestamps :at
 
-      has n, :authorizations, 'TentServer::Model::AppAuthorization'
+      has n, :authorizations, 'TentServer::Model::AppAuthorization', :constraint => :destroy
+      has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
     end
   end
 end

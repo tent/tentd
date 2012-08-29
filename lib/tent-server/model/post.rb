@@ -20,11 +20,31 @@ module TentServer
       has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
 
       def self.find_with_permissions(id, current_auth)
+        query = []
+        query_bindings = []
+
+        permissible_key = case current_auth
+        when Follower
+          'follower_access_id'
+        when AppAuthorization
+          'app_authorization_id'
+        when App
+          'app_id'
+        end
+
+        query << "SELECT posts.* FROM posts INNER JOIN permissions ON permissions.post_id = posts.id"
+        query << "AND (permissions.#{permissible_key} = ?"
+        query_bindings << current_auth.id
+        if current_auth.respond_to?(:groups) && current_auth.groups.to_a.any?
+          query << "OR permissions.group_id IN ?)"
+          query_bindings << current_auth.groups
+        else
+          query << ")"
+        end
+        query << "WHERE posts.id = ?"
+        query_bindings << id
         posts = find_by_sql(
-          [
-            "SELECT posts.* FROM posts INNER JOIN permissions ON permissions.post_id = posts.id AND (permissions.follower_access_id = ? OR permissions.group_id IN ?) WHERE posts.id = ?",
-           current_auth.id.to_i, current_auth.groups, id.to_i
-          ]
+          [query.join(' '), *query_bindings]
         )
         posts.first
       end

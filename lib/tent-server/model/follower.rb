@@ -28,10 +28,6 @@ module TentServer
       # permissions describing what they have access too
       has n, :access_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_access_id ], :constraint => :destroy
 
-      def self.permissions
-        view_permissions
-      end
-
       def self.create_follower(data)
         follower = create(data.slice('entity', 'licenses', 'profile'))
         data['types'].each do |type_url|

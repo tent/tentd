@@ -18,22 +18,41 @@ describe TentServer::API::Posts do
       expect(last_response.status).to eq(404)
     end
 
-    shared_examples "current_auth" do
+    shared_examples "current_auth" do |options={}|
       context 'when post is not public' do
         let(:group) { Fabricate(:group, :name => 'friends') }
         let(:post) { Fabricate(:post, :public => false) }
 
-        context 'when has permission' do
+        context 'when has explicit permission' do
           before do
-            post.permissions.create(:group_id => group.id)
-            current_auth.groups = [group.id]
-            current_auth.save
+            case current_auth
+            when TentServer::Model::Follower
+              current_auth.access_permissions.create(:post_id => post.id)
+            else
+              current_auth.permissions.create(:post_id => post.id)
+            end
           end
 
           it 'should return post' do
             json_get "/posts/#{post.id}", nil, 'current_auth' => current_auth
             expect(last_response.status).to_not eq(404)
             expect(last_response.body).to eq(post.to_json)
+          end
+        end
+
+        unless options[:groups] == false
+          context 'when has permission via groups' do
+            before do
+              post.permissions.create(:group_id => group.id)
+              current_auth.groups = [group.id]
+              current_auth.save
+            end
+
+            it 'should return post' do
+              json_get "/posts/#{post.id}", nil, 'current_auth' => current_auth
+              expect(last_response.status).to_not eq(404)
+              expect(last_response.body).to eq(post.to_json)
+            end
           end
         end
 
@@ -47,13 +66,22 @@ describe TentServer::API::Posts do
       end
     end
 
-    context 'when current_follower' do
+    context 'when Follower' do
       let(:current_auth) { Fabricate(:follower) }
 
       it_behaves_like "current_auth"
     end
 
-    context 'when current_app_auth' do
+    context 'when AppAuthorization' do
+      let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
+
+      it_behaves_like "current_auth"
+    end
+
+    context 'when App' do
+      let(:current_auth) { Fabricate(:app) }
+
+      it_behaves_like "current_auth", :groups => false
     end
   end
 
