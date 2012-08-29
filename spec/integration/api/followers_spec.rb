@@ -89,7 +89,12 @@ describe TentServer::API::Followers do
   end
 
   describe 'GET /followers' do
-    it 'should return a list of followers'
+    it 'should return a list of followers' do
+      TentServer::Model::Follower.all.destroy!
+      followers = 2.times.map { Fabricate(:follower, :public => true) }
+      json_get '/followers'
+      expect(last_response.body).to eq(followers.to_json)
+    end
   end
 
   describe 'GET /followers/:id' do

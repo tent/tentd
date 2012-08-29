@@ -1,5 +1,6 @@
 require 'tent-server/core_ext/hash/slice'
 require 'securerandom'
+require 'hashie'
 
 module TentServer
   module Model
@@ -85,6 +86,48 @@ module TentServer
           [query.join(' '), *query_bindings]
         )
         followers.first
+      end
+
+      def self.fetch_with_permissions(params, current_auth)
+        params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
+
+        query = []
+        query_bindings = []
+
+        query << "SELECT followers.* FROM followers"
+
+        if current_auth && current_auth.respond_to?(:permissible_foreign_key)
+          query << "LEFT OUTER JOIN permissions ON permissions.follower_visibility_id = followers.id"
+          query << "AND (permissions.#{current_auth.permissible_foreign_key} = ?"
+          query_bindings << current_auth.id
+          if current_auth.respond_to?(:groups) && current_auth.groups.to_a.any?
+            query << "OR permissions.group_id IN ?)"
+            query_bindings << current_auth.groups
+          else
+            query << ")"
+          end
+
+          query << "WHERE (followers.id = permissions.follower_visibility_id OR followers.public = ?)"
+          query_bindings << true
+        else
+          query << "WHERE public = ?"
+          query_bindings << true
+        end
+
+        if params.since_id
+          query << "AND followers.id > ?"
+          query_bindings << params.since_id.to_i
+        end
+
+        if params.before_id
+          query << "AND followers.id < ?"
+          query_bindings << params.before_id.to_i
+        end
+
+        query << "LIMIT ?"
+        query_bindings << [(params.limit ? params.limit.to_i : TentServer::API::PER_PAGE), TentServer::API::MAX_PER_PAGE].min
+
+        find_by_sql([query.join(' '), *query_bindings])
       end
 
       def permissible_foreign_key

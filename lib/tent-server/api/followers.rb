@@ -23,11 +23,18 @@ module TentServer
         end
       end
 
-      class Get < Middleware
+      class GetOne < Middleware
         def action(env)
           if follower = Model::Follower.find_with_permissions(env.params.follower_id, env.current_auth)
             env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_algorithm])
           end
+          env
+        end
+      end
+
+      class GetMany < Middleware
+        def action(env)
+          env['response'] = Model::Follower.fetch_with_permissions(env.params, env.current_auth)
           env
         end
       end
@@ -54,7 +61,11 @@ module TentServer
       end
 
       get '/followers/:follower_id' do |b|
-        b.use Get
+        b.use GetOne
+      end
+
+      get '/followers' do |b|
+        b.use GetMany
       end
 
       put '/followers/:follower_id' do |b|
