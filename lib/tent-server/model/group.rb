@@ -8,7 +8,7 @@ module TentServer
       property :id, Serial
       property :name, String
 
-      has n, :permissions, 'TentServer::Model::Permission'
+      has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
     end
   end
 end

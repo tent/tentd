@@ -20,12 +20,16 @@ module TentServer
       property :created_at, DateTime
       property :updated_at, DateTime
 
-      has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription'
-      has n, :view_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_view_id ]
-      has n, :access_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_access_id ]
+      has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription', :constraint => :destroy
+
+      # permissions describing who can see them
+      has n, :visibility_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_visibility_id ], :constraint => :destroy
+
+      # permissions describing what they have access too
+      has n, :access_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_access_id ], :constraint => :destroy
 
       def self.permissions
-        view_permissions + access_permissions
+        view_permissions
       end
 
       def self.create_follower(data)

@@ -24,7 +24,7 @@ describe TentServer::API::AuthenticationLookup do
   end
 
   it 'should lookup server authentication model' do
-    TentServer::Model::Follower.all.destroy
+    TentServer::Model::Follower.all(:mac_key_id => "s:h480djs93hd8").destroy
     follow = TentServer::Model::Follower.create(:mac_key_id => "s:h480djs93hd8")
     expect(follow.saved?).to be_true
     env['HTTP_AUTHORIZATION'] = auth_header % 's'

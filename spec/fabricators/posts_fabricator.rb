@@ -4,8 +4,6 @@ Fabricator(:post, :class_name => "TentServer::Model::Post") do |f|
   f.public true
   f.type   URI("https://tent.io/types/posts/status")
   f.licenses ["http://creativecommons.org/licenses/by-nc-sa/3.0/", "http://www.gnu.org/copyleft/gpl.html"]
-  f.groups { ["family", "friends"].map {|name| g = Fabricate(:group); g.name = name; g.save!; g.id.to_s } }
-  f.recipients ["https://alex.example.com", "https://john.example.org"]
   f.content {{ 'text' => "Debitis exercitationem et cum dolores dolor laudantium. Delectus sit eius id. Totam voluptatem et sunt consectetur sed facere debitis. Quia molestias ratione." }}
   f.published_at { |attrs| Time.now }
 end

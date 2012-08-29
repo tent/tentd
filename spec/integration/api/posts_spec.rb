@@ -7,7 +7,7 @@ describe TentServer::API::Posts do
 
   describe 'GET /posts/:post_id' do
     it "should find existing post" do
-      post = Fabricate(:post)
+      post = Fabricate(:post, :public => true)
       post.save!
       json_get "/posts/#{post.id}"
       expect(last_response.body).to eq(post.to_json)
@@ -18,22 +18,39 @@ describe TentServer::API::Posts do
       expect(last_response.status).to eq(404)
     end
 
-    shared_examples "private post" do
-      let(:group) { Fabricate(:group, :name => 'friends') }
-      let(:post) { Fabricate(:post, :public => false, :groups => [group]) }
-      before do
-        current_auth.values.first.groups << group
-      end
-
+    shared_examples "current_auth" do
       context 'when post is not public' do
-        it 'should return 404'
+        let(:group) { Fabricate(:group, :name => 'friends') }
+        let(:post) { Fabricate(:post, :public => false) }
+
+        context 'when has permission' do
+          before do
+            post.permissions.create(:group_id => group.id)
+            current_auth.groups = [group.id]
+            current_auth.save
+          end
+
+          it 'should return post' do
+            json_get "/posts/#{post.id}", nil, 'current_auth' => current_auth
+            expect(last_response.status).to_not eq(404)
+            expect(last_response.body).to eq(post.to_json)
+          end
+        end
+
+        context 'when does not have permission' do
+          it 'should return 404' do
+            post # create post
+            json_get "/posts/#{post.id}", nil, 'current_auth' => current_auth
+            expect(last_response.status).to eq(404)
+          end
+        end
       end
     end
 
     context 'when current_follower' do
-      let(:current_auth) { { 'current_follower' => Fabricate(:follow, :type => :follower) } }
+      let(:current_auth) { Fabricate(:follower) }
 
-      it_behaves_like "private post"
+      it_behaves_like "current_auth"
     end
 
     context 'when current_app_auth' do
@@ -88,7 +105,7 @@ describe TentServer::API::Posts do
     end
 
     it "should filter by params[:before_id]" do
-      TentServer::Model::Post.all.each(&:destroy)
+      TentServer::Model::Post.all.destroy!
       post = Fabricate(:post)
       post.save!
       before_post = Fabricate(:post)

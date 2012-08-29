@@ -15,7 +15,8 @@ RSpec.configure do |config|
   config.include Rack::Test::Methods
   config.include JsonRequest
   config.mock_with :mocha
-  config.before(:all) do
+  config.before(:suite) do
+    # DataMapper::Logger.new(STDOUT, :debug)
     DataMapper.setup(:default, 'postgres://localhost/tent_server_test')
     DataMapper.auto_migrate!
   end
