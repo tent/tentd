@@ -11,6 +11,7 @@ module TentServer
       property :id, Serial
       property :groups, Array
       property :entity, URI
+      property :public, Boolean, :default => false
       property :profile, Json
       property :licenses, Array
       property :mac_key_id, String, :default => lambda { |*args| 's:' + SecureRandom.hex(4) }, :unique => true
@@ -47,6 +48,43 @@ module TentServer
             follower.notification_subscriptions.create(:type => URI(type_url))
           end
         end
+      end
+
+      def self.find_with_permissions(id, current_auth)
+        query = []
+        query_bindings = []
+
+        query << "SELECT followers.* FROM followers"
+
+        if current_auth && current_auth.respond_to?(:permissible_foreign_key)
+          query << "LEFT OUTER JOIN permissions ON permissions.follower_visibility_id = followers.id"
+          query << "AND (permissions.#{current_auth.permissible_foreign_key} = ?"
+          query_bindings << current_auth.id
+          if current_auth.respond_to?(:groups) && current_auth.groups.to_a.any?
+            query << "OR permissions.group_id IN ?)"
+            query_bindings << current_auth.groups
+          else
+            query << ")"
+          end
+        end
+
+        query << "WHERE followers.id = ?"
+        query_bindings << id
+
+        if current_auth && current_auth.respond_to?(:permissible_foreign_key)
+          query << "AND (followers.id = permissions.follower_visibility_id OR followers.public = ?)"
+          query_bindings << true
+        else
+          query << "AND public = ?"
+          query_bindings << true
+        end
+
+        query << "LIMIT 1"
+
+        followers = find_by_sql(
+          [query.join(' '), *query_bindings]
+        )
+        followers.first
       end
 
       def permissible_foreign_key

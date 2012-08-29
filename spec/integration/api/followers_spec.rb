@@ -99,7 +99,8 @@ describe TentServer::API::Followers do
     end
 
     it 'should respond with 404 if no follower exists with :id' do
-      json_get "/followers/invalid-id"
+      invalid_id = TentServer::Model::Follower.count * 100
+      json_get "/followers/#{invalid_id}"
       expect(last_response.status).to eq(404)
     end
   end

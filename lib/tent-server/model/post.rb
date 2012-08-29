@@ -24,17 +24,28 @@ module TentServer
         query = []
         query_bindings = []
 
-        query << "SELECT posts.* FROM posts INNER JOIN permissions ON permissions.post_id = posts.id"
-        query << "AND (permissions.#{current_auth.permissible_foreign_key} = ?"
-        query_bindings << current_auth.id
-        if current_auth.respond_to?(:groups) && current_auth.groups.to_a.any?
-          query << "OR permissions.group_id IN ?)"
-          query_bindings << current_auth.groups
-        else
-          query << ")"
+        query << "SELECT posts.* FROM posts"
+
+        if current_auth && current_auth.respond_to?(:permissible_foreign_key)
+          query << "INNER JOIN permissions ON permissions.post_id = posts.id"
+          query << "AND (permissions.#{current_auth.permissible_foreign_key} = ?"
+          query_bindings << current_auth.id
+          if current_auth.respond_to?(:groups) && current_auth.groups.to_a.any?
+            query << "OR permissions.group_id IN ?)"
+            query_bindings << current_auth.groups
+          else
+            query << ")"
+          end
         end
+
         query << "WHERE posts.id = ?"
         query_bindings << id
+
+        if !current_auth || !current_auth.respond_to?(:permissible_foreign_key)
+          query << "AND posts.public = ?"
+          query_bindings << true
+        end
+
         posts = find_by_sql(
           [query.join(' '), *query_bindings]
         )
@@ -48,7 +59,7 @@ module TentServer
 
         query << "SELECT posts.* FROM posts"
 
-        if current_auth
+        if current_auth && current_auth.respond_to?(:permissible_foreign_key)
           query << "LEFT OUTER JOIN permissions ON permissions.post_id = posts.id"
           query << "AND (permissions.#{current_auth.permissible_foreign_key} = ?"
           query_bindings << current_auth.id

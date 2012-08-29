@@ -14,7 +14,8 @@ describe TentServer::API::Posts do
     end
 
     it "should be 404 if post_id doesn't exist" do
-      json_get "/posts/invalid-id"
+      TentServer::Model::Post.all.destroy!
+      json_get "/posts/1"
       expect(last_response.status).to eq(404)
     end
 

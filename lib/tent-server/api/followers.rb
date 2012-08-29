@@ -25,7 +25,7 @@ module TentServer
 
       class Get < Middleware
         def action(env)
-          if follower = Model::Follower.get(env.params[:follower_id])
+          if follower = Model::Follower.find_with_permissions(env.params.follower_id, env.current_auth)
             env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_algorithm])
           end
           env
