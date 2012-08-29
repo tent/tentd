@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe TentServer::Model::Post do
   describe 'find_with_permissions(id, current_auth)' do
-    shared_examples 'current_auth param' do |options={}|
+    shared_examples 'current_auth param' do
       let(:group) { Fabricate(:group, :name => 'family') }
       let(:post) { Fabricate(:post, :public => false) }
 
@@ -23,18 +23,16 @@ describe TentServer::Model::Post do
 
       end
 
-      unless options[:groups] == false
-        context 'when has permission via group' do
-          before do
-            group.permissions.create(:post_id => post.id)
-            current_auth.groups = [group.id]
-            current_auth.save
-          end
+      context 'when has permission via group' do
+        before do
+          group.permissions.create(:post_id => post.id)
+          current_auth.groups = [group.id]
+          current_auth.save
+        end
 
-          it 'should return post' do
-            returned_post = described_class.find_with_permissions(post.id, current_auth)
-            expect(returned_post).to eq(post)
-          end
+        it 'should return post' do
+          returned_post = described_class.find_with_permissions(post.id, current_auth)
+          expect(returned_post).to eq(post)
         end
       end
 
@@ -56,12 +54,6 @@ describe TentServer::Model::Post do
       let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
 
       it_behaves_like 'current_auth param'
-    end
-
-    context 'when App' do
-      let(:current_auth) { Fabricate(:app) }
-
-      it_behaves_like 'current_auth param', :groups => false
     end
   end
 

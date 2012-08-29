@@ -24,17 +24,8 @@ module TentServer
         query = []
         query_bindings = []
 
-        permissible_key = case current_auth
-        when Follower
-          'follower_access_id'
-        when AppAuthorization
-          'app_authorization_id'
-        when App
-          'app_id'
-        end
-
         query << "SELECT posts.* FROM posts INNER JOIN permissions ON permissions.post_id = posts.id"
-        query << "AND (permissions.#{permissible_key} = ?"
+        query << "AND (permissions.#{current_auth.permissible_foreign_key} = ?"
         query_bindings << current_auth.id
         if current_auth.respond_to?(:groups) && current_auth.groups.to_a.any?
           query << "OR permissions.group_id IN ?)"
