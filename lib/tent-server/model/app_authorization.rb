@@ -24,6 +24,10 @@ module TentServer
       belongs_to :app, 'TentServer::Model::App'
       has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription', :constraint => :destroy
       has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
+
+      def permissible_foreign_key
+        :app_authorization_id
+      end
     end
   end
 end

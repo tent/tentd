@@ -48,6 +48,10 @@ module TentServer
           end
         end
       end
+
+      def permissible_foreign_key
+        :follower_access_id
+      end
     end
   end
 end

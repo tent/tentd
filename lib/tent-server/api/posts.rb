@@ -18,21 +18,8 @@ module TentServer
 
       class GetFeed < Middleware
         def action(env)
-          env['response'] = Model::Post.all(conditions_from_params(env.params))
+          env['response'] = Model::Post.fetch_with_permissions(env.params, env.current_auth)
           env
-        end
-
-        private
-
-        def conditions_from_params(params)
-          conditions = {}
-          conditions[:id.gt] = params['since_id'] if params['since_id']
-          conditions[:id.lt] = params['before_id'] if params['before_id']
-          conditions[:published_at.gt] = Time.at(params['since_time'].to_i) if params['since_time']
-          conditions[:published_at.lt] = Time.at(params['before_time'].to_i) if params['before_time']
-          conditions[:type] = params['post_types'].split(',').map { |t| URI.parse(URI.unescape(t)) } if params['post_types']
-          conditions[:limit] = [(params['limit'] || PER_PAGE).to_i, MAX_PER_PAGE].min
-          conditions
         end
       end
 

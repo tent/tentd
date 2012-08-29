@@ -96,9 +96,8 @@ describe TentServer::API::Posts do
     it "should respond with first TentServer::API::PER_PAGE posts if no params given" do
       with_constants "TentServer::API::PER_PAGE" => 1 do
         0.upto(TentServer::API::PER_PAGE+1).each { Fabricate(:post).save! }
-        posts = TentServer::Model::Post.all(:limit => TentServer::API::PER_PAGE)
         json_get '/posts'
-        expect(last_response.body).to eq(posts.to_json)
+        expect(JSON.parse(last_response.body).size).to eq(1)
       end
     end
 
@@ -196,10 +195,9 @@ describe TentServer::API::Posts do
     end
 
     it "should set feed length with params[:limit]" do
-      0.upto(2).each { Fabricate(:post).save! }
-      posts = TentServer::Model::Post.all(:limit => 1)
+      0.upto(2).each { Fabricate(:post, :public => true).save! }
       json_get '/posts?limit=1'
-      expect(last_response.body).to eq(posts.to_json)
+      expect(JSON.parse(last_response.body).size).to eq(1)
     end
 
     it "limit should never exceed TentServer::API::MAX_PER_PAGE" do
@@ -208,10 +206,6 @@ describe TentServer::API::Posts do
         json_get '/posts?limit=1'
         expect(last_response.body).to eq([].to_json)
       end
-    end
-
-    [:user, :server, :app].each do |type|
-      it "should return exclude posts current_#{type} does not have permission"
     end
   end
 
