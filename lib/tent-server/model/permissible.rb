@@ -8,7 +8,7 @@ module TentServer
       end
 
       module ClassMethods
-        def find_with_permissions(id, current_auth)
+        def query_with_permissions(current_auth)
           query = []
           query_bindings = []
 
@@ -29,60 +29,48 @@ module TentServer
           else
             query << "WHERE public = ?"
             query_bindings << true
-          end
-
-          query << "AND #{table_name}.id = ?"
-          query_bindings << id
-
-          query << "LIMIT 1"
-
-          records = find_by_sql([query.join(' '), *query_bindings])
-          records.first
-        end
-
-        def fetch_with_permissions(params, current_auth)
-          params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
-
-          query = []
-          query_bindings = []
-
-          query << "SELECT #{table_name}.* FROM #{table_name}"
-
-          if current_auth && current_auth.respond_to?(:permissible_foreign_key)
-            query << "LEFT OUTER JOIN permissions ON permissions.#{visibility_permissions_relationship_foreign_key} = #{table_name}.id"
-            query << "AND (permissions.#{current_auth.permissible_foreign_key} = ?"
-            query_bindings << current_auth.id
-            if current_auth.respond_to?(:groups) && current_auth.groups.to_a.any?
-              query << "OR permissions.group_id IN ?)"
-              query_bindings << current_auth.groups
-            else
-              query << ")"
-            end
-            query << "WHERE (public = ? OR permissions.#{visibility_permissions_relationship_foreign_key} = #{table_name}.id)"
-            query_bindings << true
-          else
-            query << "WHERE public = ?"
-            query_bindings << true
-          end
-
-          if params.since_id
-            query << "AND #{table_name}.id > ?"
-            query_bindings << params.since_id.to_i
-          end
-
-          if params.before_id
-            query << "AND #{table_name}.id < ?"
-            query_bindings << params.before_id.to_i
           end
 
           if block_given?
-            yield params, query, query_bindings
+            yield query, query_bindings
           end
+        end
 
-          query << "LIMIT ?"
-          query_bindings << [(params.limit ? params.limit.to_i : TentServer::API::PER_PAGE), TentServer::API::MAX_PER_PAGE].min
+        def find_with_permissions(id, current_auth)
+          query_with_permissions(current_auth) do |query, query_bindings|
+            query << "AND #{table_name}.id = ?"
+            query_bindings << id
 
-          find_by_sql([query.join(' '), *query_bindings])
+            query << "LIMIT 1"
+
+            records = find_by_sql([query.join(' '), *query_bindings])
+            records.first
+          end
+        end
+
+        def fetch_with_permissions(params, current_auth, &block)
+          params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
+
+          query_with_permissions(current_auth) do |query, query_bindings|
+            if params.since_id
+              query << "AND #{table_name}.id > ?"
+              query_bindings << params.since_id.to_i
+            end
+
+            if params.before_id
+              query << "AND #{table_name}.id < ?"
+              query_bindings << params.before_id.to_i
+            end
+
+            if block_given?
+              yield params, query, query_bindings
+            end
+
+            query << "LIMIT ?"
+            query_bindings << [(params.limit ? params.limit.to_i : TentServer::API::PER_PAGE), TentServer::API::MAX_PER_PAGE].min
+
+            find_by_sql([query.join(' '), *query_bindings])
+          end
         end
 
         protected
