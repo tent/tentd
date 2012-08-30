@@ -38,6 +38,15 @@ module TentServer
         end
       end
 
+      class Destroy < Middleware
+        def action(env)
+          if (group = Model::Group.get(env.params.group_id)) && group.destroy
+            env.response = ''
+          end
+          env
+        end
+      end
+
       get '/groups' do |b|
         b.use GetAll
       end
@@ -52,6 +61,10 @@ module TentServer
 
       post '/groups' do |b|
         b.use Create
+      end
+
+      delete '/groups/:group_id' do |b|
+        b.use Destroy
       end
     end
   end

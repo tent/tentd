@@ -47,4 +47,19 @@ describe TentServer::API::Groups do
       expect(last_response.body).to eq(TentServer::Model::Group.last.to_json)
     end
   end
+
+  describe 'DELETE /groups' do
+    it 'should destroy group' do
+      group = Fabricate(:group, :name => 'foo-bar-baz')
+      expect(lambda { delete "/groups/#{group.id}" }).
+        to change(TentServer::Model::Group, :count).by(-1)
+    end
+
+    it 'should returh 404 if group does not exist' do
+      Fabricate(:group, :name => 'baz')
+      expect(lambda { delete "/groups/#{TentServer::Model::Group.count * 100}" }).
+        to change(TentServer::Model::Group, :count).by(0)
+      expect(last_response.status).to eq(404)
+    end
+  end
 end
