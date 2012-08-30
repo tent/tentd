@@ -191,6 +191,9 @@ describe TentServer::API::Followings do
     let(:tent_profile) {
       %Q({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"#{entity_url}","servers":["#{entity_url}/tent"]}})
     }
+    let(:tent_profile_mismatch) {
+     %Q({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"https://mismatch.example.org","servers":["#{entity_url}/tent"]}})
+    }
     let(:follower) { Fabricate(:follower, :entity => URI(entity_url)) }
     let(:follow_response) { follower.to_json(:only => [:id, :mac_key_id, :mac_key, :mac_algorithm]) }
     let(:group) { Fabricate(:group, :name => 'family') }
@@ -217,6 +220,12 @@ describe TentServer::API::Followings do
       @http_stub_profile_success = lambda do
         http_stubs.get('/tent/profile') {
           [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile]
+        }
+      end
+
+      @http_stub_profile_mismatch = lambda do
+        http_stubs.get('/tent/profile') {
+          [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile_mismatch]
         }
       end
 
@@ -248,13 +257,22 @@ describe TentServer::API::Followings do
     end
 
     context 'when discovery fails' do
-      it 'should error' do
+      it 'should error 404 when no profile' do
         http_stubs.head('/') { [404, {}, 'Not Found'] }
         http_stubs.get('/') { [404, {}, 'Not Found'] }
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
         json_post '/followings', following_data, 'tent.entity' => tent_entity
         expect(last_response.status).to eq(404)
+      end
+
+      it 'should error 409 when entity returned does not match' do
+        @http_stub_head_success.call
+        @http_stub_profile_mismatch.call
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+        json_post '/followings', following_data, 'tent.entity' => tent_entity
+        expect(last_response.status).to eq(409)
       end
     end
 
