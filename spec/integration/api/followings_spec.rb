@@ -181,7 +181,117 @@ describe TentServer::API::Followings do
     end
   end
 
-  describe 'POST /followings/:id' do
+  describe 'POST /followings' do
+    let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
+    let(:tent_entity) { 'https://smith.example.com' } # me
+    let(:entity_url) { "https://sam.example.org" } # them
+    let(:link_header) {
+      %Q(<#{entity_url}/tent/profile>; rel="profile"; type="%s") % TentClient::PROFILE_MEDIA_TYPE
+    }
+    let(:tent_profile) {
+      %Q({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"#{entity_url}","servers":["#{entity_url}/tent"]}})
+    }
+    let(:follower) { Fabricate(:follower, :entity => URI(entity_url)) }
+    let(:follow_response) { follower.to_json(:only => [:id, :mac_key_id, :mac_key, :mac_algorithm]) }
+    let(:group) { Fabricate(:group, :name => 'family') }
+    let(:following_data) do
+      {
+        'entity' => entity_url,
+        'groups' => [{ :id => group.id.to_s }]
+      }
+    end
+
+    before do
+      @tent_profile = TentServer::Model::ProfileInfo.create(
+        :entity => tent_entity,
+        :type => TentServer::Model::ProfileInfo::TENT_PROFILE_TYPE_URI,
+        :content => { 
+          :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
+        }
+      )
+
+      @http_stub_head_success = lambda do
+        http_stubs.head('/') { [200, { 'Link' => link_header }, ''] }
+      end
+
+      @http_stub_profile_success = lambda do
+        http_stubs.get('/tent/profile') {
+          [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile]
+        }
+      end
+
+      @http_stub_follow_success = lambda do
+        http_stubs.post('/followers') { [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE}, follow_response] }
+      end
+
+      @http_stub_success = lambda do
+        @http_stub_head_success.call
+        @http_stub_profile_success.call
+        @http_stub_follow_success.call
+      end
+    end
+
+    it 'should perform head discovery on following' do
+      @http_stub_success.call
+      TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+      json_post '/followings', following_data, 'tent.entity' => tent_entity
+      http_stubs.verify_stubbed_calls
+    end
+
+    it 'should send follow request to following' do
+      @http_stub_success.call
+      TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+      json_post '/followings', following_data, 'tent.entity' => tent_entity
+      http_stubs.verify_stubbed_calls
+    end
+
+    context 'when discovery fails' do
+      it 'should error' do
+        http_stubs.head('/') { [404, {}, 'Not Found'] }
+        http_stubs.get('/') { [404, {}, 'Not Found'] }
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+        json_post '/followings', following_data, 'tent.entity' => tent_entity
+        expect(last_response.status).to eq(404)
+      end
+    end
+
+    context 'when follow request fails' do
+      it 'should error' do
+        @http_stub_head_success.call
+        @http_stub_profile_success.call
+        http_stubs.post('/followers') { [404, {}, 'Not Found'] }
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+        json_post '/followings', following_data, 'tent.entity' => tent_entity
+        expect(last_response.status).to eq(404)
+      end
+    end
+
+    context 'when discovery and follow requests success' do
+      before do
+        @http_stub_success.call
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+      end
+
+      it 'should create following' do
+        expect(lambda {
+          json_post '/followings', following_data, 'tent.entity' => tent_entity
+        }).to change(TentServer::Model::Following, :count).by(1)
+
+        following = TentServer::Model::Following.last
+        expect(following.entity.to_s).to eq("https://sam.example.org")
+        expect(following.groups).to eq([group.id.to_s])
+        expect(following.remote_id).to eq(follower.id.to_s)
+        expect(following.mac_key_id).to eq(follower.mac_key_id)
+        expect(following.mac_key).to eq(follower.mac_key)
+        expect(following.mac_algorithm).to eq(follower.mac_algorithm)
+
+        expect(last_response.body).to eq(following.to_json)
+      end
+    end
   end
 
   describe 'DELETE /followings/:id' do

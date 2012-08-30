@@ -7,6 +7,7 @@ module TentServer
       storage_names[:default] = 'followings'
 
       property :id, Serial
+      property :remote_id, String
       property :groups, Array
       property :entity, URI
       property :public, Boolean, :default => false
@@ -21,6 +22,16 @@ module TentServer
 
       has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
 
+      def self.create_from_params(params)
+        create(
+          :remote_id => params.id,
+          :entity => URI(params.entity),
+          :groups => params.groups.to_a.map { |g| g['id'] },
+          :mac_key_id => params.mac_key_id,
+          :mac_key => params.mac_key,
+          :mac_algorithm => params.mac_algorithm
+        )
+      end
     end
   end
 end
