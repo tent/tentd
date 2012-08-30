@@ -18,5 +18,6 @@ module TentServer
     mount Groups
     mount Profile
     mount Followers
+    mount Followings
   end
 end

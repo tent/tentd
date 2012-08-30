@@ -2,12 +2,14 @@ module TentServer
   module Model
     class Following
       include DataMapper::Resource
+      include Permissible
 
       storage_names[:default] = 'followings'
 
       property :id, Serial
       property :groups, Array
       property :entity, URI
+      property :public, Boolean, :default => false
       property :profile, Json
       property :licenses, Array
       property :mac_key_id, String
@@ -17,7 +19,7 @@ module TentServer
       property :created_at, DateTime
       property :updated_at, DateTime
 
-      has n, :permissions, 'TentServer::Model::Permission'
+      has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
 
     end
   end
