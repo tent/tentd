@@ -15,7 +15,9 @@ module TentServer
           client = ::TentClient.new
           profile = client.discover(env.params.data.entity).get_profile
           return [404, {}, 'Not Found'] unless profile
-          return [409, {}, 'Entity Mismatch'] if profile[Model::ProfileInfo::TENT_PROFILE_TYPE_URI]['entity'] != env.params.data.entity
+
+          profile = CoreProfileData.new(profile)
+          return [409, {}, 'Entity Mismatch'] unless profile.entity?(env.params.data.entity)
           env.profile = profile
           env
         end
