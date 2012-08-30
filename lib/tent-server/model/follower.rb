@@ -1,6 +1,5 @@
 require 'tent-server/core_ext/hash/slice'
 require 'securerandom'
-require 'hashie'
 
 module TentServer
   module Model

@@ -1,5 +1,4 @@
 require 'dm-ar-finders'
-require 'hashie'
 
 module TentServer
   module Model
