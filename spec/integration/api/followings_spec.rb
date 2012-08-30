@@ -375,5 +375,21 @@ describe TentServer::API::Followings do
   end
 
   describe 'DELETE /followings/:id' do
+    let!(:following) { Fabricate(:following) }
+
+    context 'when exists' do
+      it 'should delete following' do
+        expect(lambda { delete "/followings/#{following.id}" }).
+          to change(TentServer::Model::Following, :count).by(-1)
+      end
+    end
+
+    context 'when does not exist' do
+      it 'should return 404' do
+        expect(lambda { delete "/followings/#{TentServer::Model::Following.count * 100}" }).
+          to_not change(TentServer::Model::Following, :count)
+        expect(last_response.status).to eq(404)
+      end
+    end
   end
 end

@@ -54,6 +54,15 @@ module TentServer
         end
       end
 
+      class Destroy < Middleware
+        def action(env)
+          if (following = Model::Following.get(env.params.following_id)) && following.destroy
+            env.response = ''
+          end
+          env
+        end
+      end
+
       get '/following/:following_id' do |b|
         b.use GetOne
       end
@@ -66,6 +75,10 @@ module TentServer
         b.use Discover
         b.use Follow
         b.use Create
+      end
+
+      delete '/followings/:following_id' do |b|
+        b.use Destroy
       end
     end
   end
