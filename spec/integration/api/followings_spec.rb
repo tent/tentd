@@ -174,10 +174,72 @@ describe TentServer::API::Followings do
   end
 
   describe 'GET /followings/:id' do
-    context 'without current_auth' do
+    let(:current_auth) { nil }
+
+    without_permissions = proc do
+      it 'should return following if public' do
+        following = Fabricate(:following, :public => true)
+        json_get "/following/#{following.id}", nil, 'current_auth' => current_auth
+        expect(last_response.body).to eq(following.to_json)
+      end
+
+      it 'should return 404 unless public' do
+        following = Fabricate(:following, :public => false)
+        json_get "/following/#{following.id}", nil, 'current_auth' => current_auth
+        expect(last_response.status).to eq(404)
+      end
+
+      it 'should return 404 unless exists' do
+        following = Fabricate(:following, :public => true)
+        json_get "/following/#{TentServer::Model::Following.count * 100}", nil, 'current_auth' => current_auth
+        expect(last_response.status).to eq(404)
+      end
     end
 
+    with_permissions = proc do
+      context 'explicitly' do
+        it 'should return following' do
+          following = Fabricate(:following, :public => false)
+          TentServer::Model::Permission.create(
+            :following_id => following.id,
+            current_auth.permissible_foreign_key => current_auth.id
+          )
+          json_get "/following/#{following.id}", nil, 'current_auth' => current_auth
+          expect(last_response.body).to eq(following.to_json)
+        end
+      end
+
+      context 'via group' do
+        it 'should return following' do
+          group = Fabricate(:group, :name => 'foo')
+          current_auth.update(:groups => [group.id])
+          following = Fabricate(:following, :public => false, :groups => [group.id.to_s])
+          TentServer::Model::Permission.create(
+            :following_id => following.id,
+            :group_id => group.id
+          )
+          json_get "/following/#{following.id}", nil, 'current_auth' => current_auth
+          expect(last_response.body).to eq(following.to_json)
+        end
+      end
+    end
+
+    context 'without current_auth', &without_permissions
+
     context 'with current_auth' do
+      context 'when Follower' do
+        let(:current_auth) { Fabricate(:follower) }
+
+        context 'when permissible', &with_permissions
+        context 'when not permissible', &without_permissions
+      end
+
+      context 'when AppAuthorization' do
+        let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
+
+        context 'when permissible', &with_permissions
+        context 'when not permissible', &without_permissions
+      end
     end
   end
 

@@ -3,6 +3,13 @@ module TentServer
     class Followings
       include Router
 
+      class GetOne < Middleware
+        def action(env)
+          env.response = Model::Following.find_with_permissions(env.params.following_id, env.current_auth)
+          env
+        end
+      end
+
       class GetMany < Middleware
         def action(env)
           env.response = Model::Following.fetch_with_permissions(env.params, env.current_auth)
@@ -45,6 +52,10 @@ module TentServer
           env.response = Model::Following.create_from_params(env.params.data.merge(env.follow_data))
           env
         end
+      end
+
+      get '/following/:following_id' do |b|
+        b.use GetOne
       end
 
       get '/followings' do |b|
