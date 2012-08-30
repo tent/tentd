@@ -3,6 +3,7 @@ require 'tent-server/data_mapper_array_property'
 
 module TentServer
   module Model
+    require 'tent-server/model/permissible'
     require 'tent-server/model/post'
     require 'tent-server/model/follower'
     require 'tent-server/model/following'

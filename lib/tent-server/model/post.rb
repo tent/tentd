@@ -5,6 +5,7 @@ module TentServer
   module Model
     class Post
       include DataMapper::Resource
+      include Permissible
 
       storage_names[:default] = "posts"
 
@@ -19,38 +20,6 @@ module TentServer
       property :received_at, DateTime
 
       has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
-
-      def self.find_with_permissions(id, current_auth)
-        query = []
-        query_bindings = []
-
-        query << "SELECT posts.* FROM posts"
-
-        if current_auth && current_auth.respond_to?(:permissible_foreign_key)
-          query << "INNER JOIN permissions ON permissions.post_id = posts.id"
-          query << "AND (permissions.#{current_auth.permissible_foreign_key} = ?"
-          query_bindings << current_auth.id
-          if current_auth.respond_to?(:groups) && current_auth.groups.to_a.any?
-            query << "OR permissions.group_id IN ?)"
-            query_bindings << current_auth.groups
-          else
-            query << ")"
-          end
-        end
-
-        query << "WHERE posts.id = ?"
-        query_bindings << id
-
-        if !current_auth || !current_auth.respond_to?(:permissible_foreign_key)
-          query << "AND posts.public = ?"
-          query_bindings << true
-        end
-
-        posts = find_by_sql(
-          [query.join(' '), *query_bindings]
-        )
-        posts.first
-      end
 
       def self.fetch_with_permissions(params, current_auth)
         query = []
