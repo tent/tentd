@@ -69,11 +69,19 @@ describe TentServer::API::Apps do
 
   describe 'DELETE /apps/:id' do
     context 'app with :id exists' do
-      it 'should delete app'
+      it 'should delete app' do
+        app = Fabricate(:app)
+
+        expect(lambda { delete "/apps/#{app.id}" }).to change(TentServer::Model::App, :count).by(-1)
+        expect(last_response.status).to eq(200)
+      end
     end
 
     context 'app with :id does not exist' do
-      it 'should return 404'
+      it 'should return 404' do
+        delete "/apps/#{TentServer::Model::App.count + 100}"
+        expect(last_response.status).to eq(404)
+      end
     end
   end
 end

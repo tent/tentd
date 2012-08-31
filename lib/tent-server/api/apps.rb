@@ -26,6 +26,15 @@ module TentServer
         end
       end
 
+      class Destroy < Middleware
+        def action(env)
+          if (app = TentServer::Model::App.get(env.params.app_id)) && app.destroy
+            env.response = ''
+          end
+          env
+        end
+      end
+
       get '/apps/:app_id' do |b|
         b.use GetOne
       end
@@ -36,6 +45,10 @@ module TentServer
 
       post '/apps' do |b|
         b.use Create
+      end
+
+      delete '/apps/:app_id' do |b|
+        b.use Destroy
       end
     end
   end
