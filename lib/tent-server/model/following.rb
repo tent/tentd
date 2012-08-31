@@ -3,6 +3,7 @@ module TentServer
     class Following
       include DataMapper::Resource
       include Permissible
+      include RandomPublicUid
 
       storage_names[:default] = 'followings'
 
@@ -31,6 +32,12 @@ module TentServer
           :mac_key => params.mac_key,
           :mac_algorithm => params.mac_algorithm
         )
+      end
+
+      def as_json(options = {})
+        attributes = super
+        attributes[:id] = public_uid if attributes[:id]
+        attributes
       end
     end
   end

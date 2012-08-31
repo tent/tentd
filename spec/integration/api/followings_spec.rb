@@ -28,7 +28,7 @@ describe TentServer::API::Followings do
             [since_following, following].each { |f| @create_permission.call(f) }
           end
 
-          json_get "/followings?since_id=#{since_following.id}", nil, 'current_auth' => current_auth
+          json_get "/followings?since_id=#{since_following.public_uid}", nil, 'current_auth' => current_auth
           expect(last_response.body).to eq([following].to_json)
         end
       end
@@ -43,7 +43,7 @@ describe TentServer::API::Followings do
             [before_following, following].each { |f| @create_permission.call(f) }
           end
 
-          json_get "/followings?before_id=#{before_following.id}", nil, 'current_auth' => current_auth
+          json_get "/followings?before_id=#{before_following.public_uid}", nil, 'current_auth' => current_auth
           expect(last_response.body).to eq([following].to_json)
         end
       end
@@ -179,13 +179,13 @@ describe TentServer::API::Followings do
     without_permissions = proc do
       it 'should return following if public' do
         following = Fabricate(:following, :public => true)
-        json_get "/following/#{following.id}", nil, 'current_auth' => current_auth
+        json_get "/following/#{following.public_uid}", nil, 'current_auth' => current_auth
         expect(last_response.body).to eq(following.to_json)
       end
 
       it 'should return 404 unless public' do
         following = Fabricate(:following, :public => false)
-        json_get "/following/#{following.id}", nil, 'current_auth' => current_auth
+        json_get "/following/#{following.public_uid}", nil, 'current_auth' => current_auth
         expect(last_response.status).to eq(404)
       end
 
@@ -204,7 +204,7 @@ describe TentServer::API::Followings do
             :following_id => following.id,
             current_auth.permissible_foreign_key => current_auth.id
           )
-          json_get "/following/#{following.id}", nil, 'current_auth' => current_auth
+          json_get "/following/#{following.public_uid}", nil, 'current_auth' => current_auth
           expect(last_response.body).to eq(following.to_json)
         end
       end
@@ -218,7 +218,7 @@ describe TentServer::API::Followings do
             :following_id => following.id,
             :group_id => group.id
           )
-          json_get "/following/#{following.id}", nil, 'current_auth' => current_auth
+          json_get "/following/#{following.public_uid}", nil, 'current_auth' => current_auth
           expect(last_response.body).to eq(following.to_json)
         end
       end
@@ -379,7 +379,7 @@ describe TentServer::API::Followings do
 
     context 'when exists' do
       it 'should delete following' do
-        expect(lambda { delete "/followings/#{following.id}" }).
+        expect(lambda { delete "/followings/#{following.public_uid}" }).
           to change(TentServer::Model::Following, :count).by(-1)
       end
     end

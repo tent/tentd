@@ -3,6 +3,22 @@ module TentServer
     class Followings
       include Router
 
+      class GetActualId < Middleware
+        def action(env)
+          id_mapping = [:following_id, :since_id, :before_id].select { |key| env.params.has_key?(key) }.inject({}) { |memo, key|
+            memo[env.params[key]] = key
+            env.params[key] = nil
+            memo
+          }
+          followings = Model::Following.all(:public_uid => id_mapping.keys, :fields => [:id, :public_uid])
+          followings.each do |following|
+            key = id_mapping[following.public_uid]
+            env.params[key] = following.id
+          end
+          env
+        end
+      end
+
       class GetOne < Middleware
         def action(env)
           env.response = Model::Following.find_with_permissions(env.params.following_id, env.current_auth)
@@ -65,10 +81,12 @@ module TentServer
       end
 
       get '/following/:following_id' do |b|
+        b.use GetActualId
         b.use GetOne
       end
 
       get '/followings' do |b|
+        b.use GetActualId
         b.use GetMany
       end
 
@@ -79,6 +97,7 @@ module TentServer
       end
 
       delete '/followings/:following_id' do |b|
+        b.use GetActualId
         b.use Destroy
       end
     end
