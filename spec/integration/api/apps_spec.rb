@@ -18,11 +18,21 @@ describe TentServer::API::Apps do
 
   describe 'GET /apps/:id' do
     context 'app with :id exists' do
-      it 'should return app'
+      it 'should return app' do
+        app = Fabricate(:app)
+
+        json_get "/apps/#{app.id}"
+        expect(last_response.body).to eq(
+          app.to_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id])
+        )
+      end
     end
 
     context 'app with :id does not exist' do
-      it 'should return 404'
+      it 'should return 404' do
+        json_get "/apps/#{TentServer::Model::App.count + 100}"
+        expect(last_response.status).to eq(404)
+      end
     end
   end
 
