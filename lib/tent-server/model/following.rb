@@ -37,6 +37,7 @@ module TentServer
       def as_json(options = {})
         attributes = super
         attributes[:id] = public_uid if attributes[:id]
+        attributes.delete(:public_uid)
         attributes
       end
     end

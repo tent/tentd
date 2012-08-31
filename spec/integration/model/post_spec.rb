@@ -302,6 +302,7 @@ describe TentServer::Model::Post do
     it "should replace id with public_uid" do
       post = Fabricate(:post)
       expect(post.as_json[:id]).to eq(post.public_uid)
+      expect(post.as_json).to_not have_key(:public_uid)
     end
 
     it "should not add id to returned object if excluded" do

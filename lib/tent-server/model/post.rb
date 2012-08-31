@@ -8,8 +8,6 @@ module TentServer
       include Permissible
       include RandomPublicUid
 
-      self.raise_on_save_failure = true
-
       storage_names[:default] = "posts"
 
       property :id, Serial
@@ -49,6 +47,7 @@ module TentServer
       def as_json(options = {})
         attributes = super
         attributes[:id] = public_uid if attributes[:id]
+        attributes.delete(:public_uid)
         attributes
       end
     end

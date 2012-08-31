@@ -17,7 +17,6 @@ describe TentServer::API::Groups do
   describe 'GET /groups/:id' do
     it 'should find group with :id' do
       group = Fabricate(:group)
-      group.save!
       get "/groups/#{group.id}"
       expect(last_response.body).to eq(group.to_json)
     end
@@ -31,8 +30,8 @@ describe TentServer::API::Groups do
   describe 'PUT /groups/:id' do
     it 'should update group with :id' do
       group = Fabricate(:group, :name => 'foo-bar')
-      group.save!
       group.name = 'bar-baz'
+      group.save
       json_put "/groups/#{group.id}", group
       actual_group = TentServer::Model::Group.get(group.id)
       expect(actual_group.name).to eq(group.name)
@@ -42,9 +41,9 @@ describe TentServer::API::Groups do
 
   describe 'POST /groups' do
     it 'should create group' do
-      group = Fabricate(:group, :name => 'bacon-bacon')
-      json_post "/groups", group.as_json(:exclude => [:id])
-      expect(last_response.body).to eq(TentServer::Model::Group.last.to_json)
+      group = Fabricate.build(:group, :name => 'bacon-bacon')
+      expect(lambda { json_post "/groups", group.as_json(:exclude => [:id, :updated_at, :created_at]) }).
+        to change(TentServer::Model::Group, :count).by(1)
     end
   end
 
