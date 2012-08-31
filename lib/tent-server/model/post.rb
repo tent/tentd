@@ -47,6 +47,12 @@ module TentServer
         end
       end
 
+      def as_json(options = {})
+        attributes = super
+        attributes[:id] = public_uid if attributes[:id]
+        attributes
+      end
+
       private
 
       # catch unique public_uid validation and generate a new one
