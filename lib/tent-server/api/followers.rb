@@ -6,7 +6,7 @@ module TentServer
       class Discover < Middleware
         def action(env)
           client = ::TentClient.new
-          profile = client.discover(env.params[:data]['entity']).get_profile
+          profile, profile_url = client.discover(env.params[:data]['entity']).get_profile
           return [404, {}, 'Not Found'] unless profile
 
           profile = CoreProfileData.new(profile)

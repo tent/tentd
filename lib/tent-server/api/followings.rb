@@ -20,19 +20,20 @@ module TentServer
       class Discover < Middleware
         def action(env)
           client = ::TentClient.new
-          profile = client.discover(env.params.data.entity).get_profile
+          profile, profile_url = client.discover(env.params.data.entity).get_profile
           return [404, {}, 'Not Found'] unless profile
 
           profile = CoreProfileData.new(profile)
           return [409, {}, 'Entity Mismatch'] unless profile.entity?(env.params.data.entity)
           env.profile = profile
+          env.server_url = profile_url.sub(%r{/profile$}, '')
           env
         end
       end
 
       class Follow < Middleware
         def action(env)
-          client = ::TentClient.new(env.params.data.entity)
+          client = ::TentClient.new(env.server_url)
           res = client.follower.create(
             :entity => env['tent.entity'],
             :licenses => Model::ProfileInfo.tent_info(env['tent.entity']).content['licenses']
