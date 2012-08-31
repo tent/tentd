@@ -51,16 +51,6 @@ describe TentServer::API::Apps do
     end
   end
 
-  describe 'PATCH /apps/:id' do
-    context 'app with :id exists' do
-      it 'should update app with diff array'
-    end
-
-    context 'app with :id does not exist' do
-      it 'should return 404'
-    end
-  end
-
   describe 'PUT /apps/:id' do
     context 'app with :id exists' do
       it 'should update app' do

@@ -5,7 +5,7 @@ module TentServer
 
       class GetOne < Middleware
         def action(env)
-          if app = TentServer::Model::App.get(env.params.app_id)
+          if app = Model::App.get(env.params.app_id)
             env.response = app.as_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id])
           end
           env
@@ -14,21 +14,21 @@ module TentServer
 
       class GetAll < Middleware
         def action(env)
-          env.response = TentServer::Model::App.all
+          env.response = Model::App.all
           env
         end
       end
 
       class Create < Middleware
         def action(env)
-          env.response = TentServer::Model::App.create_from_params(env.params.data).as_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm])
+          env.response = Model::App.create_from_params(env.params.data).as_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm])
           env
         end
       end
 
       class Update < Middleware
         def action(env)
-          if app = TentServer::Model::App.update_from_params(env.params.app_id, env.params.data)
+          if app = Model::App.update_from_params(env.params.app_id, env.params.data)
             env.response = app.as_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id])
           end
           env
@@ -37,7 +37,7 @@ module TentServer
 
       class Destroy < Middleware
         def action(env)
-          if (app = TentServer::Model::App.get(env.params.app_id)) && app.destroy
+          if (app = Model::App.get(env.params.app_id)) && app.destroy
             env.response = ''
           end
           env
