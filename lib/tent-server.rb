@@ -7,4 +7,5 @@ module TentServer
   autoload :Model, 'tent-server/model'
   autoload :JsonPatch, 'tent-server/json_patch'
   autoload :TentVersion, 'tent-server/tent_version'
+  autoload :RandomUid, 'tent-server/random_uid'
 end

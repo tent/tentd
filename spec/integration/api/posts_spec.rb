@@ -6,11 +6,16 @@ describe TentServer::API::Posts do
   end
 
   describe 'GET /posts/:post_id' do
-    it "should find existing post" do
+    it "should find existing post by public_uid" do
       post = Fabricate(:post, :public => true)
-      post.save!
-      json_get "/posts/#{post.id}"
+      json_get "/posts/#{post.public_uid}"
       expect(last_response.body).to eq(post.to_json)
+    end
+
+    it "should not find existing post by actual id" do
+      post = Fabricate(:post, :public => true)
+      json_get "/posts/#{post.id}"
+      expect(last_response.status).to eq(404)
     end
 
     it "should be 404 if post_id doesn't exist" do
@@ -35,7 +40,7 @@ describe TentServer::API::Posts do
           end
 
           it 'should return post' do
-            json_get "/posts/#{post.id}", nil, 'current_auth' => current_auth
+            json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
             expect(last_response.status).to_not eq(404)
             expect(last_response.body).to eq(post.to_json)
           end
@@ -49,7 +54,7 @@ describe TentServer::API::Posts do
           end
 
           it 'should return post' do
-            json_get "/posts/#{post.id}", nil, 'current_auth' => current_auth
+            json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
             expect(last_response.status).to_not eq(404)
             expect(last_response.body).to eq(post.to_json)
           end
@@ -58,7 +63,7 @@ describe TentServer::API::Posts do
         context 'when does not have permission' do
           it 'should return 404' do
             post # create post
-            json_get "/posts/#{post.id}", nil, 'current_auth' => current_auth
+            json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
             expect(last_response.status).to eq(404)
           end
         end
@@ -120,7 +125,7 @@ describe TentServer::API::Posts do
       post = Fabricate(:post)
       post.save!
 
-      json_get "/posts?since_id=#{since_post.id}"
+      json_get "/posts?since_id=#{since_post.public_uid}"
       expect(last_response.body).to eq([post].to_json)
     end
 
@@ -131,7 +136,7 @@ describe TentServer::API::Posts do
       before_post = Fabricate(:post)
       before_post.save!
 
-      json_get "/posts?before_id=#{before_post.id}"
+      json_get "/posts?before_id=#{before_post.public_uid}"
       expect(last_response.body).to eq([post].to_json)
     end
 
@@ -143,7 +148,7 @@ describe TentServer::API::Posts do
       before_post = Fabricate(:post)
       before_post.save!
 
-      json_get "/posts?before_id=#{before_post.id}&since_id=#{since_post.id}"
+      json_get "/posts?before_id=#{before_post.public_uid}&since_id=#{since_post.public_uid}"
       expect(last_response.body).to eq([post].to_json)
     end
 

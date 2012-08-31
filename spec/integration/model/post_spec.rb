@@ -297,5 +297,19 @@ describe TentServer::Model::Post do
       expect(actual_value).to eq(v)
     end
   end
+
+  it "should generate public_id on create" do
+    post = Fabricate.build(:post)
+    expect(post.save).to be_true
+    expect(post.public_uid).to_not be_nil
+  end
+
+  it "should ensure public_id is unique" do
+    first_post = Fabricate(:post)
+    post = Fabricate.build(:post, :public_uid => first_post.public_uid)
+    post.save
+    expect(post).to be_saved
+    expect(post.public_uid).to_not eq(first_post.public_uid)
+  end
 end
 

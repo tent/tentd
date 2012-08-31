@@ -1,14 +1,19 @@
 require 'dm-ar-finders'
+require 'securerandom'
 
 module TentServer
   module Model
     class Post
       include DataMapper::Resource
       include Permissible
+      extend RandomUid
+
+      self.raise_on_save_failure = true
 
       storage_names[:default] = "posts"
 
       property :id, Serial
+      property :public_uid, String, :unique => true, :default => lambda { |*args| random_uid }
       property :entity, URI
       property :scope, Enum[:public, :limited, :direct], :default => :direct
       property :public, Boolean, :default => false
@@ -39,6 +44,33 @@ module TentServer
               query_bindings << params.post_types
             end
           end
+        end
+      end
+
+      private
+
+      # catch unique public_uid validation and generate a new one
+      def assert_save_successful(*args)
+        super
+      rescue DataMapper::SaveFailureError => e
+        if errors[:public_uid].any?
+          self.public_uid = self.class.random_uid
+          save
+        else
+          raise e
+        end
+      end
+
+      # catch db unique constraint on public_uid and generate a new one
+      def _persist
+        super
+      rescue DataObjects::IntegrityError => e
+        valid?
+        if errors[:public_uid].any?
+          self.public_uid = self.class.random_uid
+          save
+        else
+          raise e
         end
       end
     end

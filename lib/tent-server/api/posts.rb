@@ -3,9 +3,36 @@ module TentServer
     class Posts
       include Router
 
+      class GetActualId < Middleware
+        def action(env)
+          if env.params.post_id
+            if post = Model::Post.first(:public_uid => env.params.post_id, :fields => [:id])
+              env.params.post_id = post.id
+            else
+              env.params.post_id = nil
+            end
+          end
+          if env.params.since_id
+            if post = Model::Post.first(:public_uid => env.params.since_id, :fields => [:id])
+              env.params.since_id = post.id
+            else
+              env.params.since_id = nil
+            end
+          end
+          if env.params.before_id
+            if post = Model::Post.first(:public_uid => env.params.before_id, :fields => [:id])
+              env.params.before_id = post.id
+            else
+              env.params.before_id = nil
+            end
+          end
+          env
+        end
+      end
+
       class GetOne < Middleware
         def action(env)
-          post = Model::Post.find_with_permissions(env.params[:post_id], env.current_auth)
+          post = Model::Post.find_with_permissions(env.params.post_id, env.current_auth)
           if post
             env['response'] = post
           end
@@ -30,10 +57,12 @@ module TentServer
       end
 
       get '/posts/:post_id' do |b|
+        b.use GetActualId
         b.use GetOne
       end
 
       get '/posts' do |b|
+        b.use GetActualId
         b.use GetFeed
       end
 
