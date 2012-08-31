@@ -3,6 +3,17 @@ module TentServer
     class Followers
       include Router
 
+      class GetActualId < Middleware
+        def action(env)
+          if env.params.follower_id && (follower = Model::Follower.first(:public_uid => env.params.follower_id, :fields => [:id]))
+            env.params.follower_id = follower.id
+          else
+            env.params.follower_id = nil
+          end
+          env
+        end
+      end
+
       class Discover < Middleware
         def action(env)
           client = ::TentClient.new
@@ -63,6 +74,7 @@ module TentServer
       end
 
       get '/followers/:follower_id' do |b|
+        b.use GetActualId
         b.use GetOne
       end
 
@@ -71,10 +83,12 @@ module TentServer
       end
 
       put '/followers/:follower_id' do |b|
+        b.use GetActualId
         b.use Update
       end
 
       delete '/followers/:follower_id' do |b|
+        b.use GetActualId
         b.use Destroy
       end
     end

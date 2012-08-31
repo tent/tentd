@@ -364,7 +364,7 @@ describe TentServer::API::Followings do
         following = TentServer::Model::Following.last
         expect(following.entity.to_s).to eq("https://sam.example.org")
         expect(following.groups).to eq([group.id.to_s])
-        expect(following.remote_id).to eq(follower.id.to_s)
+        expect(following.remote_id).to eq(follower.public_uid.to_s)
         expect(following.mac_key_id).to eq(follower.mac_key_id)
         expect(following.mac_key).to eq(follower.mac_key)
         expect(following.mac_algorithm).to eq(follower.mac_algorithm)

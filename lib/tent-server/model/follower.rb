@@ -6,6 +6,7 @@ module TentServer
     class Follower
       include DataMapper::Resource
       include Permissible
+      include RandomPublicUid
 
       storage_names[:default] = 'followers'
 
@@ -53,6 +54,12 @@ module TentServer
 
       def permissible_foreign_key
         :follower_access_id
+      end
+
+      def as_json(options = {})
+        attributes = super
+        attributes[:id] = public_uid if attributes[:id]
+        attributes
       end
     end
   end
