@@ -12,6 +12,7 @@ module TentServer
     autoload :AuthenticationLookup, 'tent-server/api/authentication_lookup'
     autoload :AuthenticationVerification, 'tent-server/api/authentication_verification'
     autoload :AuthenticationFinalize, 'tent-server/api/authentication_finalize'
+    autoload :Authorization, 'tent-server/api/authorization'
     autoload :Router, 'tent-server/api/router'
     autoload :Middleware, 'tent-server/api/middleware'
     include Router

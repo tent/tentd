@@ -69,6 +69,7 @@ module TentServer
           builder.use(AuthenticationLookup)
           builder.use(AuthenticationVerification)
           builder.use(AuthenticationFinalize)
+          builder.use(Authorization)
           builder.use(ExtractParams, path, params)
           block.call(builder)
 
