@@ -28,12 +28,6 @@ module TentServer
       def self.create_from_params(params)
         create(params.slice(:name, :description, :url, :icon, :scopes))
       end
-
-      def as_json(options = {})
-        super({
-          :only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm]
-        }.merge(options))
-      end
     end
   end
 end

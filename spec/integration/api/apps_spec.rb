@@ -6,7 +6,14 @@ describe TentServer::API::Apps do
   end
 
   describe 'GET /apps' do
-    it 'should return list of apps'
+    it 'should return list of apps' do
+      Fabricate(:app)
+
+      json_get '/apps'
+      expect(last_response.body).to eq(
+        TentServer::Model::App.all.map { |app| app.as_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta, :updated_at, :created_at]) }.to_json
+      )
+    end
   end
 
   describe 'GET /apps/:id' do
@@ -21,17 +28,7 @@ describe TentServer::API::Apps do
 
   describe 'POST /apps' do
     it 'should create app' do
-      data = {
-        "name" => "MicroBlogger",
-        "description" => "Manages your status posts",
-        "url" => "https://microbloggerapp.example.com",
-        "icon" => "https://microbloggerapp.example.com/icon.png",
-        "redirect_uris" => ["https://microbloggerapp.example.com/auth/callback?foo=bar"],
-        "scopes" => {
-          "read_posts" => "Can read your posts",
-          "create_posts" => "Can create posts on your behalf"
-        }
-      }
+      data = Fabricate.build(:app).as_json(:only => [:name, :description, :url, :icon, :redirect_uris, :scopes])
 
       expect(lambda { json_post '/apps', data }).to change(TentServer::Model::App, :count).by(1)
 
