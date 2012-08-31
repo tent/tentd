@@ -41,7 +41,7 @@ module TentServer
       def self.included(base)
         base.extend(ClassMethods)
         base.class_eval do
-          property :public_uid, String, :unique => true, :default => lambda { |*args| random_uid }
+          property :public_uid, String, :required => true, :unique => true, :default => lambda { |*args| random_uid }
           self.raise_on_save_failure = true
         end
       end
