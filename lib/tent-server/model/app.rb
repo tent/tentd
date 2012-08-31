@@ -26,7 +26,14 @@ module TentServer
       has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
 
       def self.create_from_params(params)
-        create(params.slice(:name, :description, :url, :icon, :scopes))
+        create(params.slice(:name, :description, :url, :icon, :redirect_uris, :scopes))
+      end
+
+      def self.update_from_params(id, params)
+        app = get(id)
+        return unless app
+        app.update(params.slice(:name, :description, :url, :icon, :redirect_uris, :scopes))
+        app
       end
     end
   end

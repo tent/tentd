@@ -26,6 +26,15 @@ module TentServer
         end
       end
 
+      class Update < Middleware
+        def action(env)
+          if app = TentServer::Model::App.update_from_params(env.params.app_id, env.params.data)
+            env.response = app.as_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id])
+          end
+          env
+        end
+      end
+
       class Destroy < Middleware
         def action(env)
           if (app = TentServer::Model::App.get(env.params.app_id)) && app.destroy
@@ -45,6 +54,10 @@ module TentServer
 
       post '/apps' do |b|
         b.use Create
+      end
+
+      put '/apps/:app_id' do |b|
+        b.use Update
       end
 
       delete '/apps/:app_id' do |b|

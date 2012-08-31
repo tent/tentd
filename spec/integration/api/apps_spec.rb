@@ -30,7 +30,7 @@ describe TentServer::API::Apps do
 
     context 'app with :id does not exist' do
       it 'should return 404' do
-        json_get "/apps/#{TentServer::Model::App.count + 100}"
+        json_get "/apps/#{(TentServer::Model::App.count + 1) * 100}"
         expect(last_response.status).to eq(404)
       end
     end
@@ -43,6 +43,10 @@ describe TentServer::API::Apps do
       expect(lambda { json_post '/apps', data }).to change(TentServer::Model::App, :count).by(1)
 
       app = TentServer::Model::App.last
+      expect(last_response.status).to eq(200)
+      data.each_pair do |key, val|
+        expect(app.send(key)).to eq(val)
+      end
       expect(last_response.body).to eq(app.to_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm]))
     end
   end
@@ -59,11 +63,29 @@ describe TentServer::API::Apps do
 
   describe 'PUT /apps/:id' do
     context 'app with :id exists' do
-      it 'should update app'
+      it 'should update app' do
+        app = Fabricate(:app)
+        data = app.as_json(:only => [:name, :url, :icon, :redirect_uris, :scopes])
+        data[:name] = "Yet Another MicroBlog App"
+        data[:scopes] = {
+          "read_posts" => "Can read your posts"
+        }
+
+        json_put "/apps/#{app.id}", data
+        expect(last_response.status).to eq(200)
+        app.reload
+        data.each_pair do |key, val|
+          expect(app.send(key)).to eq(val)
+        end
+        expect(last_response.body).to eq(app.to_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id]))
+      end
     end
 
     context 'app with :id does not exist' do
-      it 'should return 404'
+      it 'should return 404' do
+        json_put "/apps/#{(TentServer::Model::App.count + 1) * 100}"
+        expect(last_response.status).to eq(404)
+      end
     end
   end
 
@@ -79,7 +101,7 @@ describe TentServer::API::Apps do
 
     context 'app with :id does not exist' do
       it 'should return 404' do
-        delete "/apps/#{TentServer::Model::App.count + 100}"
+        delete "/apps/#{(TentServer::Model::App.count + 1) * 100}"
         expect(last_response.status).to eq(404)
       end
     end
