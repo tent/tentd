@@ -5,26 +5,15 @@ module TentServer
 
       class GetActualId < Middleware
         def action(env)
-          if env.params.post_id
-            if post = Model::Post.first(:public_uid => env.params.post_id, :fields => [:id])
-              env.params.post_id = post.id
-            else
-              env.params.post_id = nil
-            end
-          end
-          if env.params.since_id
-            if post = Model::Post.first(:public_uid => env.params.since_id, :fields => [:id])
-              env.params.since_id = post.id
-            else
-              env.params.since_id = nil
-            end
-          end
-          if env.params.before_id
-            if post = Model::Post.first(:public_uid => env.params.before_id, :fields => [:id])
-              env.params.before_id = post.id
-            else
-              env.params.before_id = nil
-            end
+          id_mapping = [:post_id, :since_id, :before_id].select { |key| env.params.has_key?(key) }.inject({}) { |memo, key|
+            memo[env.params[key]] = key
+            env.params[key] = nil
+            memo
+          }
+          posts = Model::Post.all(:public_uid => id_mapping.keys, :fields => [:id, :public_uid])
+          posts.each do |post|
+            key = id_mapping[post.public_uid]
+            env.params[key] = post.id
           end
           env
         end
