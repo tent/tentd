@@ -5,10 +5,10 @@ module TentServer
   module Model
     class App
       include DataMapper::Resource
+      include RandomUid
 
       storage_names[:default] = 'apps'
 
-      property :id, Serial
       property :name, String
       property :description, Text
       property :url, URI

@@ -40,6 +40,7 @@ describe TentServer::API::Apps do
     it 'should create app' do
       data = Fabricate.build(:app).as_json(:only => [:name, :description, :url, :icon, :redirect_uris, :scopes])
 
+      TentServer::Model::App.all.destroy
       expect(lambda { json_post '/apps', data }).to change(TentServer::Model::App, :count).by(1)
 
       app = TentServer::Model::App.last
