@@ -2,6 +2,7 @@ module TentServer
   class API
     PER_PAGE = 50
     MAX_PER_PAGE = 200
+    autoload :Apps, 'tent-server/api/apps'
     autoload :Posts, 'tent-server/api/posts'
     autoload :Groups, 'tent-server/api/groups'
     autoload :Profile, 'tent-server/api/profile'
@@ -15,6 +16,7 @@ module TentServer
     autoload :Middleware, 'tent-server/api/middleware'
     include Router
 
+    mount Apps
     mount Posts
     mount Groups
     mount Profile
