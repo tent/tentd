@@ -24,6 +24,7 @@ module TentServer
     module Router
       autoload :ExtractParams, 'tent-server/api/router/extract_params'
       autoload :SerializeResponse, 'tent-server/api/router/serialize_response'
+      autoload :CachingHeaders, 'tent-server/api/router/caching_headers'
 
       def self.included(base)
         base.extend(ClassMethods)
@@ -72,6 +73,7 @@ module TentServer
           builder.use(ExtractParams, path, params)
           builder.use(Authorization)
           block.call(builder)
+          builder.use(CachingHeaders)
 
           routes.add_route(builder.to_app, :request_method => verb, :path_info => path)
           routes.rehash
