@@ -199,7 +199,8 @@ describe TentServer::API::Followers do
   end
 
   describe 'PUT /followers/:id' do
-    authorized = proc do
+    blacklist = whitelist = []
+    authorized = proc do |*args|
       it 'should update follower licenses' do
         data = {
           :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
@@ -215,19 +216,31 @@ describe TentServer::API::Followers do
             :entity => URI("https://chunky-bacon.example.com"),
             :profile => { :entity => URI("https:://chunky-bacon.example.com") },
             :type => :following,
+            :public => true,
+            :groups => ['group-id', 'group-id-2'],
             :mac_key_id => '12345',
             :mac_key => '12312',
             :mac_algorithm => 'sdfjhsd',
-            :mac_timestamp_delta => '124123'
+            :mac_timestamp_delta => 124123
           }
         end
-        [:entity, :profile, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each do |property|
+        (blacklist || []).each do |property|
           it "should not update #{property}" do
             original_value = follower.send(property)
             data = { property => @data[property] }
-            json_put "/followers/#{follower.public_uid}", data
+            json_put "/followers/#{follower.public_uid}", data, env
             follower.reload
             expect(follower.send(property)).to eq(original_value)
+          end
+        end
+        (whitelist || []).each do |property|
+          it "should update #{property}" do
+            original_value = follower.send(property)
+            data = { property => @data[property] }
+            json_put "/followers/#{follower.public_uid}", data, env
+            follower.reload
+            actual_value = follower.send(property)
+            expect(actual_value.to_json).to eq(@data[property].to_json)
           end
         end
       end
@@ -250,6 +263,8 @@ describe TentServer::API::Followers do
 
     context 'when authorized via scope' do
       before { authorize!(:write_followers) }
+      blacklist = [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
+      whitelist = [:entity, :profile, :public, :groups]
       context &authorized
 
       context 'when no follower exists with :id' do
@@ -258,10 +273,19 @@ describe TentServer::API::Followers do
           expect(last_response.status).to eq(404)
         end
       end
+
+      context 'when write_secrets scope authorized' do
+        before { authorize!(:write_followers, :write_secrets) }
+        blacklist = []
+        whitelist = [:entity, :profile, :public, :groups, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
+        context &authorized
+      end
     end
 
     context 'when authorized via identity' do
       before { env['current_auth'] = follower }
+      blacklist = [:entity, :profile, :public, :groups, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
+      whitelist = []
       context &authorized
 
       context 'when no follower exists with :id' do

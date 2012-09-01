@@ -89,7 +89,7 @@ module TentServer
 
       class Update < Middleware
         def action(env)
-          Model::Follower.update_follower(env.params[:follower_id], env.params[:data])
+          Model::Follower.update_follower(env.params[:follower_id], env.params[:data], env.authorized_scopes)
           env
         end
       end

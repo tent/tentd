@@ -39,10 +39,18 @@ module TentServer
         follower
       end
 
-      def self.update_follower(id, data)
+      def self.update_follower(id, data, authorized_scopes = [])
         follower = get(id)
         return unless follower
-        follower.update(data.slice('licenses'))
+        whitelist = ['licenses']
+        if authorized_scopes.include?(:write_followers)
+          whitelist.concat(['entity', 'profile', 'public', 'groups'])
+
+          if authorized_scopes.include?(:write_secrets)
+            whitelist.concat(['mac_key_id', 'mac_key', 'mac_algorithm', 'mac_timestamp_delta'])
+          end
+        end
+        follower.update(data.slice(*whitelist))
         if data['types']
           if follower.notification_subscriptions.any?
             follower.notification_subscriptions.find(:type.not => [data['types']]).each(&:destroy)
