@@ -22,6 +22,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency 'data_mapper'
   gem.add_runtime_dependency 'dm-ar-finders'
   gem.add_runtime_dependency 'dm-constraints'
+  gem.add_runtime_dependency 'dm-postgres-adapter'
   gem.add_runtime_dependency 'tent-client'
 
   gem.add_development_dependency 'rack-test'
