@@ -4,4 +4,4 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'rack-test', :git => 'https://github.com/brynary/rack-test.git'
-gem 'tent-client', :git => 'git@git:tent-client.git'
+gem 'tent-client', :git => 'git@git:tent-client.git', :branch => 'master'
