@@ -35,6 +35,17 @@ module TentServer
         app.update(params.slice(:name, :description, :url, :icon, :redirect_uris, :scopes))
         app
       end
+
+      def as_json(options = {})
+        authorized_scopes = options.delete(:authorized_scopes).to_a
+        attributes = super(options)
+        blacklist = [:created_at, :updated_at]
+        unless authorized_scopes.include?(:read_secrets)
+          blacklist << [:mac_key, :mac_timestamp_delta]
+        end
+        blacklist.flatten.each { |key| attributes.delete(key) }
+        attributes
+      end
     end
   end
 end

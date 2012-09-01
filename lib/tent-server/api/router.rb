@@ -69,8 +69,8 @@ module TentServer
           builder.use(AuthenticationLookup)
           builder.use(AuthenticationVerification)
           builder.use(AuthenticationFinalize)
-          builder.use(Authorization)
           builder.use(ExtractParams, path, params)
+          builder.use(Authorization)
           block.call(builder)
 
           routes.add_route(builder.to_app, :request_method => verb, :path_info => path)

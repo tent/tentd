@@ -5,8 +5,10 @@ module TentServer
 
       class AuthorizeReadOne < Middleware
         def action(env)
-          unless env.params.app_id && env.current_auth && env.current_auth.kind_of?(Model::AppAuthorization) &&
+          if env.params.app_id && env.current_auth && env.current_auth.kind_of?(Model::AppAuthorization) &&
                  env.current_auth.app_id == env.params.app_id
+            (env.authorized_scopes ||= []) << :read_secrets if env.params.read_secrets.to_s == 'true'
+          else
             authorize_env!(env, :read_apps)
           end
           env
@@ -22,8 +24,10 @@ module TentServer
 
       class AuthorizeWriteOne < Middleware
         def action(env)
-          unless env.params.app_id && env.current_auth && env.current_auth.kind_of?(Model::AppAuthorization) &&
+          if env.params.app_id && env.current_auth && env.current_auth.kind_of?(Model::AppAuthorization) &&
                  env.current_auth.app_id == env.params.app_id
+            (env.authorized_scopes ||= []) << :read_secrets if env.params.read_secrets.to_s == 'true'
+          else
             authorize_env!(env, :write_apps)
           end
           env
@@ -33,7 +37,7 @@ module TentServer
       class GetOne < Middleware
         def action(env)
           if app = Model::App.get(env.params.app_id)
-            env.response = app.as_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id])
+            env.response = app.as_json(:authorized_scopes => env.authorized_scopes)
           end
           env
         end
@@ -41,14 +45,16 @@ module TentServer
 
       class GetAll < Middleware
         def action(env)
-          env.response = Model::App.all
+          env.response = Model::App.all.map { |app|
+            attrs = app.as_json(:authorized_scopes => env.authorized_scopes)
+          }
           env
         end
       end
 
       class Create < Middleware
         def action(env)
-          env.response = Model::App.create_from_params(env.params.data).as_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm])
+          env.response = Model::App.create_from_params(env.params.data).as_json(:authorized_scopes => env.authorized_scopes)
           env
         end
       end
@@ -56,7 +62,7 @@ module TentServer
       class Update < Middleware
         def action(env)
           if app = Model::App.update_from_params(env.params.app_id, env.params.data)
-            env.response = app.as_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id])
+            env.response = app.as_json(:authorized_scopes => env.authorized_scopes)
           end
           env
         end
