@@ -31,9 +31,13 @@ module TentServer
       # permissions describing what they have access too
       has n, :access_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_access_id ], :constraint => :destroy
 
-      def self.create_follower(data)
-        follower = create(data.slice('entity', 'licenses', 'profile'))
-        data['types'].each do |type_url|
+      def self.create_follower(data, authorized_scopes = [])
+        if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
+          follower = create(data.slice(:entity, :groups, :public, :profile, :licenses, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
+        else
+          follower = create(data.slice('entity', 'licenses', 'profile'))
+        end
+        data.types.each do |type_url|
           follower.notification_subscriptions.create(:type => URI(type_url))
         end
         follower

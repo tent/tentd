@@ -26,9 +26,9 @@ describe TentServer::API::Followers do
 
   let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
   let(:follower) { Fabricate(:follower) }
+  let(:follower_entity_url) { "https://alex.example.org" }
 
   describe 'POST /followers' do
-    let(:follower_entity_url) { "https://alex.example.org" }
     let(:follower_data) do
       {
         "entity" => follower_entity_url,
@@ -95,6 +95,58 @@ describe TentServer::API::Followers do
           to change(TentServer::Model::NotificationSubscription, :count).by(2)
         expect(last_response.status).to eq(200)
         expect(TentServer::Model::NotificationSubscription.last.view).to eq('meta')
+      end
+    end
+  end
+
+  describe 'POST /followers with write_followers scope authorized' do
+    before {
+      authorize!(:write_followers)
+      TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+    }
+
+    let(:follower_data) do
+      follower = Fabricate(:follower)
+      follower.destroy
+      {
+        "entity" => follower_entity_url,
+        "groups" => follower.groups,
+        "profile" => { "info_type_uri" => { "bacon" => "chunky" } },
+        "licenses" => follower.licenses,
+        "mac_key_id" => follower.mac_key_id,
+        "mac_key" => follower.mac_key,
+        "mac_algorithm" => follower.mac_algorithm,
+        "mac_timestamp_delta" => follower.mac_timestamp_delta,
+        "types" => ["https://tent.io/types/posts/status/v0.1.x#full", "https://tent.io/types/posts/photo/v0.1.x#meta"]
+      }
+    end
+
+    context 'when write_secrets scope authorized' do
+      before { authorize!(:write_followers, :write_secrets) }
+
+      it 'should create follower without discovery' do
+        expect(lambda { json_post '/followers', follower_data, env }).
+          to change(TentServer::Model::Follower, :count).by(1)
+        expect(last_response.status).to eq(200)
+      end
+
+      it 'should create notification subscription for each type given' do
+        expect(lambda { json_post '/followers', follower_data, env }).
+          to change(TentServer::Model::NotificationSubscription, :count).by(2)
+        expect(TentServer::Model::NotificationSubscription.last.view).to eq('meta')
+        expect(last_response.status).to eq(200)
+      end
+    end
+
+    context 'when write_secrets scope not authorized' do
+      it 'should respond 403' do
+        expect(lambda { json_post '/followers', follower_data, env }).
+          to_not change(TentServer::Model::Follower, :count)
+
+        expect(lambda { json_post '/followers', follower_data, env }).
+          to_not change(TentServer::Model::NotificationSubscription, :count)
+
+        expect(last_response.status).to eq(403)
       end
     end
   end

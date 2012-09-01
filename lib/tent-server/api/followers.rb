@@ -44,6 +44,7 @@ module TentServer
 
       class Discover < Middleware
         def action(env)
+          return env if env.authorized_scopes.include?(:write_followers)
           client = ::TentClient.new
           profile, profile_url = client.discover(env.params[:data]['entity']).get_profile
           return [404, {}, 'Not Found'] unless profile
@@ -57,8 +58,23 @@ module TentServer
 
       class Create < Middleware
         def action(env)
+          return env if env.authorized_scopes.include?(:write_followers)
           if follower = Model::Follower.create_follower(env.params[:data].merge('profile' => env['profile']))
             env['response'] = follower.as_json(:only => [:id, :mac_key_id, :mac_key, :mac_algorithm])
+          end
+          env
+        end
+      end
+
+      class Import < Middleware
+        def action(env)
+          return env unless env.authorized_scopes.include?(:write_followers)
+          if env.authorized_scopes.include?(:write_secrets)
+            if follower = Model::Follower.create_follower(env.params.data, env.authorized_scopes)
+              env.response = ''
+            end
+          else
+            raise Unauthorized
           end
           env
         end
@@ -122,6 +138,7 @@ module TentServer
       post '/followers' do |b|
         b.use Discover
         b.use Create
+        b.use Import
       end
 
       get '/followers/:follower_id' do |b|
