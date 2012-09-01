@@ -54,6 +54,84 @@ describe TentServer::Model::Follower do
     end
   end
 
+  describe 'fetch_all(params)' do
+    let(:params) { Hash.new }
+
+    it 'should return all followers' do
+      public_follower = Fabricate(:follower, :public => true)
+      private_follower = Fabricate(:follower, :public => false)
+
+      max_count = TentServer::Model::Follower.count
+      with_constants "TentServer::API::MAX_PER_PAGE" => max_count, "TentServer::API::PER_PAGE" => max_count do
+        res = described_class.fetch_all(params)
+        expect(res).to include(public_follower)
+        expect(res).to include(private_follower)
+      end
+    end
+
+    context 'with params' do
+      context '[:since_id]' do
+        it 'should only return followers with id > :since_id' do
+          since_follower = Fabricate(:follower, :public => false)
+          follower = Fabricate(:follower, :public => false)
+
+          params['since_id'] = since_follower.id
+
+          res = described_class.fetch_all(params)
+          expect(res).to eq([follower])
+        end
+      end
+
+      context '[:before_id]' do
+        it 'should only return followers with id < :since_id' do
+          TentServer::Model::Follower.all.destroy
+          follower = Fabricate(:follower, :public => false)
+          before_follower = Fabricate(:follower, :public => false)
+
+          params['before_id'] = before_follower.id
+
+          res = described_class.fetch_all(params)
+          expect(res).to eq([follower])
+        end
+      end
+
+      context '[:limit]' do
+        it 'should only return :limit number of followers' do
+          limit = 1
+          0.upto(limit) { Fabricate(:follower, :public => false) }
+
+          params['limit'] = limit
+
+          res = described_class.fetch_all(params)
+          expect(res.size).to eq(limit)
+        end
+
+        it 'should never return more than TentServer::API::MAX_PER_PAGE followers' do
+          limit = 1
+          Fabricate(:follower, :public => false)
+
+          params['limit'] = limit
+
+          with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
+            res = described_class.fetch_all(params)
+            expect(res.size).to eq(0)
+          end
+        end
+      end
+
+      context 'without [:limit]' do
+        it 'should never return more than TentServer::API::MAX_PER_PAGE followers' do
+          Fabricate(:follower, :public => false)
+
+          with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
+            res = described_class.fetch_all(params)
+            expect(res.size).to eq(0)
+          end
+        end
+      end
+    end
+  end
+
   describe 'fetch_with_permissions(params, current_auth)' do
     let(:params) { Hash.new }
     let(:authorize_folower) { false }

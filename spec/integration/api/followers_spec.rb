@@ -100,11 +100,29 @@ describe TentServer::API::Followers do
   end
 
   describe 'GET /followers' do
-    it 'should return a list of followers' do
-      TentServer::Model::Follower.all.destroy!
-      followers = 2.times.map { Fabricate(:follower, :public => true) }
-      json_get '/followers'
-      expect(last_response.body).to eq(followers.to_json)
+    authorized_permissible = proc do
+      it 'should return a list of followers' do
+        TentServer::Model::Follower.all.destroy!
+        followers = 2.times.map { Fabricate(:follower, :public => true) }
+        json_get '/followers', params, env
+        expect(last_response.body).to eq(followers.to_json)
+      end
+    end
+
+    authorized_full = proc do
+      it 'should return a list of followers' do
+        TentServer::Model::Follower.all.destroy!
+        followers = 2.times.map { Fabricate(:follower, :public => false) }
+        json_get '/followers', params, env
+        expect(last_response.body).to eq(followers.to_json)
+      end
+    end
+
+    context 'when not authorized', &authorized_permissible
+
+    context 'when authorized via scope' do
+      before { authorize!(:read_followers) }
+      context &authorized_full
     end
   end
 

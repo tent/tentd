@@ -25,6 +25,13 @@ module TentServer
         end
       end
 
+      class AuthorizeReadMany < Middleware
+        def action(env)
+          env.full_read_authorized = authorize_env?(env, :read_followers)
+          env
+        end
+      end
+
       class AuthorizeWriteOne < Middleware
         def action(env)
           unless env.params.follower_id && env.current_auth && env.current_auth.kind_of?(Model::Follower) &&
@@ -82,7 +89,11 @@ module TentServer
 
       class GetMany < Middleware
         def action(env)
-          env['response'] = Model::Follower.fetch_with_permissions(env.params, env.current_auth)
+          if env.full_read_authorized
+            env['response'] = Model::Follower.fetch_all(env.params)
+          else
+            env['response'] = Model::Follower.fetch_with_permissions(env.params, env.current_auth)
+          end
           env
         end
       end
@@ -115,6 +126,7 @@ module TentServer
       end
 
       get '/followers' do |b|
+        b.use AuthorizeReadMany
         b.use GetMany
       end
 

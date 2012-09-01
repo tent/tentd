@@ -48,6 +48,39 @@ module TentServer
           end
         end
 
+        def fetch_all(params)
+          params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
+
+          query = []
+          query_conditions = []
+          query_bindings = []
+
+          query << "SELECT #{table_name}.* FROM #{table_name}"
+          if params.since_id
+            query_conditions << "#{table_name}.id > ?"
+            query_bindings << params.since_id.to_i
+          end
+
+          if params.before_id
+            query_conditions << "#{table_name}.id < ?"
+            query_bindings << params.before_id.to_i
+          end
+
+          if query_conditions.any?
+            query << "WHERE #{query_conditions.shift}"
+            query << query_conditions.join(' AND ')
+          end
+
+          if block_given?
+            yield params, query, query_bindings
+          end
+
+          query << "LIMIT ?"
+          query_bindings << [(params.limit ? params.limit.to_i : TentServer::API::PER_PAGE), TentServer::API::MAX_PER_PAGE].min
+
+          find_by_sql([query.join(' '), *query_bindings])
+        end
+
         def fetch_with_permissions(params, current_auth, &block)
           params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
 
