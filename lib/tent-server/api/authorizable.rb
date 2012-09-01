@@ -8,9 +8,13 @@ module TentServer
       end
 
       def authorize_env!(env, scope)
-        unless env.authorized_scopes.to_a.include?(scope)
+        unless authorize_env?(env, scope)
           raise Unauthorized
         end
+      end
+
+      def authorize_env?(env, scope)
+        env.authorized_scopes.to_a.include?(scope)
       end
     end
   end

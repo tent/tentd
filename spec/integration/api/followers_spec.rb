@@ -109,15 +109,71 @@ describe TentServer::API::Followers do
   end
 
   describe 'GET /followers/:id' do
-    it 'should respond with follower json' do
-      json_get "/followers/#{follower.public_uid}"
-      expect(last_response.body).to eq(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_algorithm]).to_json)
+    authorized = proc do
+      it 'should respond with follower json' do
+        json_get "/followers/#{follower.public_uid}", params, env
+        expect(last_response.status).to eq(200)
+        expect(last_response.body).to eq(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_algorithm]).to_json)
+      end
     end
 
-    it 'should respond with 404 if no follower exists with :id' do
-      invalid_id = TentServer::Model::Follower.count * 100
-      json_get "/followers/#{invalid_id}"
-      expect(last_response.status).to eq(404)
+    context 'when authorized via scope' do
+      before { authorize!(:read_followers) }
+      context &authorized
+
+      context 'when follower private' do
+        before { follower.update(:public => false) }
+        context &authorized
+      end
+
+      context 'when no follower exists with :id' do
+        it 'should respond with 404' do
+          json_get "/followers/invalid-id", params, env
+          expect(last_response.status).to eq(404)
+        end
+      end
+    end
+
+    context 'when authorized via identity' do
+      before { env['current_auth'] = follower }
+      context &authorized
+
+      context 'when follower private' do
+        before { follower.update(:public => false) }
+        context &authorized
+      end
+
+      context 'when no follower exists with :id' do
+        it 'should respond 403' do
+          json_get '/followers/invalid-id', params, env
+          expect(last_response.status).to eq(403)
+        end
+      end
+    end
+
+    context 'when not authorized' do
+      context 'when follower public' do
+        it 'should respond with follower json' do
+          json_get "/followers/#{follower.public_uid}", params, env
+          expect(last_response.status).to eq(200)
+          expect(last_response.body).to eq(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type]).to_json)
+        end
+      end
+
+      context 'when follower private' do
+        before { follower.update(:public => false) }
+        it 'should respond 403' do
+          json_get "/followers/#{follower.id}", params, env
+          expect(last_response.status).to eq(403)
+        end
+      end
+
+      context 'when no follower exists with :id' do
+        it 'should respond 403' do
+          json_get "/followers/invalid-id", params, env
+          expect(last_response.status).to eq(403)
+        end
+      end
     end
   end
 
@@ -173,7 +229,7 @@ describe TentServer::API::Followers do
 
     context 'when authorized via scope' do
       before { authorize!(:write_followers) }
-      context '', &authorized
+      context &authorized
 
       context 'when no follower exists with :id' do
         it 'should respond 404' do
@@ -185,7 +241,7 @@ describe TentServer::API::Followers do
 
     context 'when authorized via identity' do
       before { env['current_auth'] = follower }
-      context '', &authorized
+      context &authorized
 
       context 'when no follower exists with :id' do
         it 'should respond 403' do
@@ -216,7 +272,7 @@ describe TentServer::API::Followers do
     context 'when authorized via scope' do
       before { authorize!(:write_followers) }
 
-      context '', &authorized
+      context &authorized
 
       it 'should respond with 404 if no follower exists with :id' do
         delete "/followers/invalid-id", params, env
@@ -227,7 +283,7 @@ describe TentServer::API::Followers do
     context 'when authorized via identity' do
       before { env['current_auth'] = follower }
 
-      context '', &authorized
+      context &authorized
 
       it 'should respond with 403 if no follower exists with :id' do
         delete "/followers/invalid-id", params, env

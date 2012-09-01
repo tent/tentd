@@ -14,6 +14,17 @@ module TentServer
         end
       end
 
+      class AuthorizeReadOne < Middleware
+        def action(env)
+          if env.params.follower_id && env.current_auth && env.current_auth.kind_of?(Model::Follower) &&
+                 env.current_auth.id == env.params.follower_id
+            env.single_read_authorized = true
+          end
+          env.full_read_authorized = authorize_env?(env, :read_followers)
+          env
+        end
+      end
+
       class AuthorizeWriteOne < Middleware
         def action(env)
           unless env.params.follower_id && env.current_auth && env.current_auth.kind_of?(Model::Follower) &&
@@ -48,8 +59,18 @@ module TentServer
 
       class GetOne < Middleware
         def action(env)
-          if follower = Model::Follower.find_with_permissions(env.params.follower_id, env.current_auth)
+          if env.full_read_authorized || env.single_read_authorized
+            follower = Model::Follower.find(env.params.follower_id)
+          else
+            follower = Model::Follower.find_with_permissions(env.params.follower_id, env.current_auth)
+          end
+
+          if follower && (env.full_read_authorized || env.single_read_authorized)
             env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_algorithm])
+          elsif follower && follower.public?
+            env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses])
+          elsif !env.full_read_authorized
+            raise Unauthorized
           end
           env
         end
@@ -85,6 +106,7 @@ module TentServer
 
       get '/followers/:follower_id' do |b|
         b.use GetActualId
+        b.use AuthorizeReadOne
         b.use GetOne
       end
 
