@@ -3,6 +3,8 @@ require 'hashie'
 module TentServer
   class API
     class Middleware
+      include Authorizable
+
       def initialize(app)
         @app = app
       end
@@ -11,6 +13,8 @@ module TentServer
         env = Hashie::Mash.new(env) unless env.kind_of?(Hashie::Mash)
         response = action(env)
         response.kind_of?(Hash) ? @app.call(response) : response
+      rescue Unauthorized
+        [403, {}, 'Unauthorized']
       end
     end
   end

@@ -34,7 +34,12 @@ module TentServer
           end
 
           if env['HTTP_CONTENT_TYPE'] =~ /\bjson\Z/
-            params['data'] = JSON.parse(env['rack.input'].read)
+            begin
+              params['data'] = JSON.parse(env['rack.input'].read)
+            rescue JSON::ParserError
+              params['data'] = nil
+            end
+
             env['rack.input'].rewind
           end
 
