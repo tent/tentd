@@ -41,6 +41,7 @@ module TentServer
 
       def self.update_follower(id, data)
         follower = get(id)
+        return unless follower
         follower.update(data.slice('licenses'))
         if data['types']
           if follower.notification_subscriptions.any?

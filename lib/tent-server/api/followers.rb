@@ -94,6 +94,7 @@ module TentServer
 
       put '/followers/:follower_id' do |b|
         b.use GetActualId
+        b.use AuthorizeWriteOne
         b.use Update
       end
 

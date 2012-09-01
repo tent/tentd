@@ -122,51 +122,77 @@ describe TentServer::API::Followers do
   end
 
   describe 'PUT /followers/:id' do
-    it 'should update follower licenses' do
-      data = {
-        :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
-      }
-      json_put "/followers/#{follower.public_uid}", data
-      follower.reload
-      expect(follower.licenses).to eq(data[:licenses])
+    authorized = proc do
+      it 'should update follower licenses' do
+        data = {
+          :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
+        }
+        json_put "/followers/#{follower.public_uid}", data, env
+        follower.reload
+        expect(follower.licenses).to eq(data[:licenses])
+      end
+
+      context '' do
+        before(:all) do
+          @data = {
+            :entity => URI("https://chunky-bacon.example.com"),
+            :profile => { :entity => URI("https:://chunky-bacon.example.com") },
+            :type => :following,
+            :mac_key_id => '12345',
+            :mac_key => '12312',
+            :mac_algorithm => 'sdfjhsd',
+            :mac_timestamp_delta => '124123'
+          }
+        end
+        [:entity, :profile, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each do |property|
+          it "should not update #{property}" do
+            original_value = follower.send(property)
+            data = { property => @data[property] }
+            json_put "/followers/#{follower.public_uid}", data
+            follower.reload
+            expect(follower.send(property)).to eq(original_value)
+          end
+        end
+      end
+
+      it 'should update follower type notifications' do
+        data = {
+          :types => follower.notification_subscriptions.map {|ns| ns.type.to_s}.concat(["https://tent.io/types/post/video/v0.1.x#meta"])
+        }
+        expect( lambda { json_put "/followers/#{follower.public_uid}", data, env } ).
+          to change(TentServer::Model::NotificationSubscription, :count).by (1)
+
+        follower.reload
+        data = {
+          :types => follower.notification_subscriptions.map {|ns| ns.type.to_s}[0..-2]
+        }
+        expect( lambda { json_put "/followers/#{follower.public_uid}", data, env } ).
+          to change(TentServer::Model::NotificationSubscription, :count).by (-1)
+      end
     end
 
-    context '' do
-      before(:all) do
-        @data = {
-          :entity => URI("https://chunky-bacon.example.com"),
-          :profile => { :entity => URI("https:://chunky-bacon.example.com") },
-          :type => :following,
-          :mac_key_id => '12345',
-          :mac_key => '12312',
-          :mac_algorithm => 'sdfjhsd',
-          :mac_timestamp_delta => '124123'
-        }
-      end
-      [:entity, :profile, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each do |property|
-        it "should not update #{property}" do
-          original_value = follower.send(property)
-          data = { property => @data[property] }
-          json_put "/followers/#{follower.public_uid}", data
-          follower.reload
-          expect(follower.send(property)).to eq(original_value)
+    context 'when authorized via scope' do
+      before { authorize!(:write_followers) }
+      context '', &authorized
+
+      context 'when no follower exists with :id' do
+        it 'should respond 404' do
+          json_put '/followers/invalid-id', params, env
+          expect(last_response.status).to eq(404)
         end
       end
     end
 
-    it 'should update follower type notifications' do
-      data = {
-        :types => follower.notification_subscriptions.map {|ns| ns.type.to_s}.concat(["https://tent.io/types/post/video/v0.1.x#meta"])
-      }
-      expect( lambda { json_put "/followers/#{follower.public_uid}", data } ).
-        to change(TentServer::Model::NotificationSubscription, :count).by (1)
+    context 'when authorized via identity' do
+      before { env['current_auth'] = follower }
+      context '', &authorized
 
-      follower.reload
-      data = {
-        :types => follower.notification_subscriptions.map {|ns| ns.type.to_s}[0..-2]
-      }
-      expect( lambda { json_put "/followers/#{follower.public_uid}", data } ).
-        to change(TentServer::Model::NotificationSubscription, :count).by (-1)
+      context 'when no follower exists with :id' do
+        it 'should respond 403' do
+          json_put '/followers/invalid-id', params, env
+          expect(last_response.status).to eq(403)
+        end
+      end
     end
   end
 

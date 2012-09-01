@@ -156,12 +156,15 @@ describe TentServer::Model::Follower do
 
     public_expectations = proc do
       it 'should only return public followers' do
-        public_follower = Fabricate(:follower, :public => true)
-        private_follower = Fabricate(:follower, :public => false)
+        max_results = TentServer::Model::Follower.count + 100
+        with_constants "TentServer::API::MAX_PER_PAGE" => max_results, "TentServer::API::PER_PAGE" => max_results do
+          public_follower = Fabricate(:follower, :public => true)
+          private_follower = Fabricate(:follower, :public => false)
 
-        response = described_class.fetch_with_permissions(params, current_auth)
-        expect(response).to include(public_follower)
-        expect(response).to_not include(private_follower)
+          response = described_class.fetch_with_permissions(params, current_auth)
+          expect(response).to include(public_follower)
+          expect(response).to_not include(private_follower)
+        end
       end
 
       context 'with params', &with_params
