@@ -14,6 +14,16 @@ module TentServer
         end
       end
 
+      class AuthorizeWriteOne < Middleware
+        def action(env)
+          unless env.params.follower_id && env.current_auth && env.current_auth.kind_of?(Model::Follower) &&
+                 env.current_auth.id == env.params.follower_id
+            authorize_env!(env, :write_followers)
+          end
+          env
+        end
+      end
+
       class Discover < Middleware
         def action(env)
           client = ::TentClient.new
@@ -89,6 +99,7 @@ module TentServer
 
       delete '/followers/:follower_id' do |b|
         b.use GetActualId
+        b.use AuthorizeWriteOne
         b.use Destroy
       end
     end

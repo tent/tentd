@@ -13,6 +13,17 @@ describe TentServer::API::Followers do
     %Q({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"#{entity_url}","servers":["#{entity_url}/tent"]}})
   end
 
+  def authorize!(*scopes)
+    env['current_auth'] = stub(
+      :kind_of? => true,
+      :id => nil,
+      :scopes => scopes
+    )
+  end
+
+  let(:env) { Hash.new }
+  let(:params) { Hash.new }
+
   let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
   let(:follower) { Fabricate(:follower) }
 
@@ -160,15 +171,44 @@ describe TentServer::API::Followers do
   end
 
   describe 'DELETE /followers/:id' do
-    it 'should delete follower' do
-      follower # create follower
-      expect(lambda { delete "/followers/#{follower.public_uid}" }).to change(TentServer::Model::Follower, :count).by(-1)
-      expect(last_response.status).to eq(200)
+
+    authorized = proc do
+      it 'should delete follower' do
+        follower # create follower
+        expect(lambda { delete "/followers/#{follower.public_uid}", params, env }).to change(TentServer::Model::Follower, :count).by(-1)
+        expect(last_response.status).to eq(200)
+      end
     end
 
-    it 'should respond with 404 if no follower exists with :id' do
-      delete "/followers/invalid-id"
-      expect(last_response.status).to eq(404)
+    not_authorized = proc do
+      it 'should respond 403' do
+        delete "/followers/invalid-id", params, env
+        expect(last_response.status).to eq(403)
+      end
     end
+
+    context 'when authorized via scope' do
+      before { authorize!(:write_followers) }
+
+      context '', &authorized
+
+      it 'should respond with 404 if no follower exists with :id' do
+        delete "/followers/invalid-id", params, env
+        expect(last_response.status).to eq(404)
+      end
+    end
+
+    context 'when authorized via identity' do
+      before { env['current_auth'] = follower }
+
+      context '', &authorized
+
+      it 'should respond with 403 if no follower exists with :id' do
+        delete "/followers/invalid-id", params, env
+        expect(last_response.status).to eq(403)
+      end
+    end
+
+    context 'when not authorized', &not_authorized
   end
 end
