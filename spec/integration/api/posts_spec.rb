@@ -255,11 +255,21 @@ describe TentServer::API::Posts do
   end
 
   describe 'POST /posts' do
-    it "should create post" do
-      post = Fabricate(:post)
-      post_attributes = post.as_json(:exclude => [:id])
-      expect(lambda { json_post "/posts", post_attributes }).to change(TentServer::Model::Post, :count).by(1)
-      expect(last_response.body).to eq(TentServer::Model::Post.last.to_json)
+    context 'with write_posts scope authorized' do
+      before { authorize!(:write_posts) }
+      it "should create post" do
+        post = Fabricate(:post)
+        post_attributes = post.as_json(:exclude => [:id])
+        expect(lambda { json_post "/posts", post_attributes, env }).to change(TentServer::Model::Post, :count).by(1)
+        expect(last_response.body).to eq(TentServer::Model::Post.last.to_json)
+      end
+    end
+
+    context 'without write_posts scope authorized' do
+      it 'should respond 403' do
+        expect(lambda { json_post "/posts", {}, env }).to_not change(TentServer::Model::Post, :count)
+        expect(last_response.status).to eq(403)
+      end
     end
   end
 end

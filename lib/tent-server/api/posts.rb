@@ -46,6 +46,7 @@ module TentServer
 
       class Create < Middleware
         def action(env)
+          authorize_env!(env, :write_posts)
           post_attributes = env.params[:data]
           post = Model::Post.create!(post_attributes)
           env['response'] = post
