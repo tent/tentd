@@ -21,7 +21,11 @@ module TentServer
 
       class GetOne < Middleware
         def action(env)
-          post = Model::Post.find_with_permissions(env.params.post_id, env.current_auth)
+          if authorize_env?(env, :read_posts)
+            post = Model::Post.get(env.params.post_id)
+          else
+            post = Model::Post.find_with_permissions(env.params.post_id, env.current_auth)
+          end
           if post
             env['response'] = post
           end

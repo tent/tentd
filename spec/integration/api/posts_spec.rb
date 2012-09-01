@@ -5,81 +5,116 @@ describe TentServer::API::Posts do
     TentServer::API.new
   end
 
+  def authorize!(*scopes)
+    env['current_auth'] = stub(
+      :kind_of? => true,
+      :id => nil,
+      :scopes => scopes
+    )
+  end
+
+  let(:env) { Hash.new }
+  let(:params) { Hash.new }
+
   describe 'GET /posts/:post_id' do
-    it "should find existing post by public_uid" do
-      post = Fabricate(:post, :public => true)
-      json_get "/posts/#{post.public_uid}"
-      expect(last_response.body).to eq(post.to_json)
-    end
+    using_permissions = proc do
+      it "should find existing post by public_uid" do
+        post = Fabricate(:post, :public => true)
+        json_get "/posts/#{post.public_uid}"
+        expect(last_response.body).to eq(post.to_json)
+      end
 
-    it "should not find existing post by actual id" do
-      post = Fabricate(:post, :public => true)
-      json_get "/posts/#{post.id}"
-      expect(last_response.status).to eq(404)
-    end
+      it "should not find existing post by actual id" do
+        post = Fabricate(:post, :public => true)
+        json_get "/posts/#{post.id}"
+        expect(last_response.status).to eq(404)
+      end
 
-    it "should be 404 if post_id doesn't exist" do
-      TentServer::Model::Post.all.destroy!
-      json_get "/posts/1"
-      expect(last_response.status).to eq(404)
-    end
+      it "should be 404 if post_id doesn't exist" do
+        TentServer::Model::Post.all.destroy!
+        json_get "/posts/1"
+        expect(last_response.status).to eq(404)
+      end
 
-    shared_examples "current_auth" do
-      context 'when post is not public' do
-        let(:group) { Fabricate(:group, :name => 'friends') }
-        let(:post) { Fabricate(:post, :public => false) }
+      shared_examples "current_auth" do
+        context 'when post is not public' do
+          let(:group) { Fabricate(:group, :name => 'friends') }
+          let(:post) { Fabricate(:post, :public => false) }
 
-        context 'when has explicit permission' do
-          before do
-            case current_auth
-            when TentServer::Model::Follower
-              current_auth.access_permissions.create(:post_id => post.id)
-            else
-              current_auth.permissions.create(:post_id => post.id)
+          context 'when has explicit permission' do
+            before do
+              case current_auth
+              when TentServer::Model::Follower
+                current_auth.access_permissions.create(:post_id => post.id)
+              else
+                current_auth.permissions.create(:post_id => post.id)
+              end
+            end
+
+            it 'should return post' do
+              json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
+              expect(last_response.status).to_not eq(404)
+              expect(last_response.body).to eq(post.to_json)
             end
           end
 
-          it 'should return post' do
-            json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
-            expect(last_response.status).to_not eq(404)
-            expect(last_response.body).to eq(post.to_json)
-          end
-        end
+          context 'when has permission via groups' do
+            before do
+              post.permissions.create(:group_id => group.id)
+              current_auth.groups = [group.id]
+              current_auth.save
+            end
 
-        context 'when has permission via groups' do
-          before do
-            post.permissions.create(:group_id => group.id)
-            current_auth.groups = [group.id]
-            current_auth.save
+            it 'should return post' do
+              json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
+              expect(last_response.status).to_not eq(404)
+              expect(last_response.body).to eq(post.to_json)
+            end
           end
 
-          it 'should return post' do
-            json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
-            expect(last_response.status).to_not eq(404)
-            expect(last_response.body).to eq(post.to_json)
-          end
-        end
-
-        context 'when does not have permission' do
-          it 'should return 404' do
-            post # create post
-            json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
-            expect(last_response.status).to eq(404)
+          context 'when does not have permission' do
+            it 'should return 404' do
+              post # create post
+              json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
+              expect(last_response.status).to eq(404)
+            end
           end
         end
       end
+
+      context 'when Follower' do
+        let(:current_auth) { Fabricate(:follower) }
+
+        it_behaves_like "current_auth"
+      end
+
+      context 'when AppAuthorization' do
+        let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
+
+        it_behaves_like "current_auth"
+      end
     end
 
-    context 'when Follower' do
-      let(:current_auth) { Fabricate(:follower) }
+    context 'without authorization', &using_permissions
 
-      it_behaves_like "current_auth"
-    end
+    context 'with read_posts scope authorized' do
+      before { authorize!(:read_posts) }
 
-    context 'when AppAuthorization' do
-      let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
+      context 'when post exists' do
+        it 'should return post' do
+          post = Fabricate(:post, :public => false)
+          json_get "/posts/#{post.public_uid}", params, env
+          expect(last_response.status).to eq(200)
+          expect(last_response.body).to eq(post.to_json)
+        end
+      end
 
-      it_behaves_like "current_auth"
+      context 'when no post exists with :id' do
+        it 'should respond 404' do
+          json_get "/posts/invalid-id", params, env
+          expect(last_response.status).to eq(404)
+        end
+      end
     end
   end
 
