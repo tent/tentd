@@ -66,13 +66,12 @@ module TentServer
             query_bindings << params.before_id.to_i
           end
 
-          if query_conditions.any?
-            query << "WHERE #{query_conditions.shift}"
-            query << query_conditions.join(' AND ')
+          if block_given?
+            yield params, query_conditions, query_bindings
           end
 
-          if block_given?
-            yield params, query, query_bindings
+          if query_conditions.any?
+            query << "WHERE #{query_conditions.join(' AND ')}"
           end
 
           query << "LIMIT ?"

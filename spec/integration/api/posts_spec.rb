@@ -126,119 +126,131 @@ describe TentServer::API::Posts do
   # - before_time
   # - limit
   describe 'GET /posts' do
-    it "should respond with first TentServer::API::PER_PAGE posts if no params given" do
-      with_constants "TentServer::API::PER_PAGE" => 1 do
-        0.upto(TentServer::API::PER_PAGE+1).each { Fabricate(:post).save! }
-        json_get '/posts'
+    let(:post_public?) { true }
+    with_params = proc do
+      it "should respond with first TentServer::API::PER_PAGE posts if no params given" do
+        with_constants "TentServer::API::PER_PAGE" => 1 do
+          0.upto(TentServer::API::PER_PAGE+1).each { Fabricate(:post, :public => post_public?).save! }
+          json_get '/posts', params, env
+          expect(JSON.parse(last_response.body).size).to eq(1)
+        end
+      end
+
+      it "should filter by params[:post_types]" do
+        picture_type_uri = URI("https://tent.io/types/posts/picture")
+        blog_type_uri = URI("https://tent.io/types/posts/blog")
+
+        picture_post = Fabricate(:post, :public => post_public?)
+        picture_post.type = picture_type_uri
+        picture_post.save!
+        non_picture_post = Fabricate(:post, :public => post_public?)
+        non_picture_post.save!
+        blog_post = Fabricate(:post, :public => post_public?)
+        blog_post.type = blog_type_uri
+        blog_post.save!
+
+        posts = TentServer::Model::Post.all(:type => [picture_type_uri, blog_type_uri])
+        post_types = [picture_post, blog_post].map { |p| URI.escape(p.type.to_s, "://") }
+
+        json_get "/posts?post_types=#{post_types.join(',')}", params, env
+        expect(last_response.body).to eq(posts.to_json)
+      end
+
+      it "should filter by params[:since_id]" do
+        since_post = Fabricate(:post, :public => post_public?)
+        since_post.save!
+        post = Fabricate(:post, :public => post_public?)
+        post.save!
+
+        json_get "/posts?since_id=#{since_post.public_uid}", params, env
+        expect(last_response.body).to eq([post].to_json)
+      end
+
+      it "should filter by params[:before_id]" do
+        TentServer::Model::Post.all.destroy!
+        post = Fabricate(:post, :public => post_public?)
+        post.save!
+        before_post = Fabricate(:post, :public => post_public?)
+        before_post.save!
+
+        json_get "/posts?before_id=#{before_post.public_uid}", params, env
+        expect(last_response.body).to eq([post].to_json)
+      end
+
+      it "should filter by both params[:since_id] and params[:before_id]" do
+        since_post = Fabricate(:post, :public => post_public?)
+        since_post.save!
+        post = Fabricate(:post, :public => post_public?)
+        post.save!
+        before_post = Fabricate(:post, :public => post_public?)
+        before_post.save!
+
+        json_get "/posts?before_id=#{before_post.public_uid}&since_id=#{since_post.public_uid}", params, env
+        expect(last_response.body).to eq([post].to_json)
+      end
+
+      it "should filter by params[:since_time]" do
+        since_post = Fabricate(:post, :public => post_public?)
+        since_post.published_at = Time.at(Time.now.to_i + 86400) # 1.day.from_now
+        since_post.save!
+        post = Fabricate(:post, :public => post_public?)
+        post.published_at = Time.at(Time.now.to_i + (86400 * 2)) # 2.days.from_now
+        post.save!
+
+        json_get "/posts?since_time=#{since_post.published_at.to_time.to_i}", params, env
+        expect(last_response.body).to eq([post].to_json)
+      end
+
+      it "should filter by params[:before_time]" do
+        post = Fabricate(:post, :public => post_public?)
+        post.published_at = Time.at(Time.now.to_i - (86400 * 2)) # 2.days.ago
+        post.save!
+        before_post = Fabricate(:post, :public => post_public?)
+        before_post.published_at = Time.at(Time.now.to_i - 86400) # 1.day.ago
+        before_post.save!
+
+        json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}", params, env
+        expect(last_response.body).to eq([post].to_json)
+      end
+
+      it "should filter by both params[:before_time] and params[:since_time]" do
+        now = Time.at(Time.now.to_i - (86400 * 6)) # 6.days.ago
+        since_post = Fabricate(:post, :public => post_public?)
+        since_post.published_at = Time.at(now.to_i - (86400 * 3)) # 3.days.ago
+        since_post.save!
+        post = Fabricate(:post, :public => post_public?)
+        post.published_at = Time.at(now.to_i - (86400 * 2)) # 2.days.ago
+        post.save!
+        before_post = Fabricate(:post, :public => post_public?)
+        before_post.published_at = Time.at(now.to_i - 86400) # 1.day.ago
+        before_post.save!
+
+        json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}&since_time=#{since_post.published_at.to_time.to_i}", params, env
+        expect(last_response.body).to eq([post].to_json)
+      end
+
+      it "should set feed length with params[:limit]" do
+        0.upto(2).each { Fabricate(:post, :public => post_public?).save! }
+        json_get '/posts?limit=1', params, env
         expect(JSON.parse(last_response.body).size).to eq(1)
       end
-    end
 
-    it "should filter by params[:post_types]" do
-      picture_type_uri = URI("https://tent.io/types/posts/picture")
-      blog_type_uri = URI("https://tent.io/types/posts/blog")
-
-      picture_post = Fabricate(:post)
-      picture_post.type = picture_type_uri
-      picture_post.save!
-      non_picture_post = Fabricate(:post)
-      non_picture_post.save!
-      blog_post = Fabricate(:post)
-      blog_post.type = blog_type_uri
-      blog_post.save!
-
-      posts = TentServer::Model::Post.all(:type => [picture_type_uri, blog_type_uri])
-      post_types = [picture_post, blog_post].map { |p| URI.escape(p.type.to_s, "://") }
-
-      json_get "/posts?post_types=#{post_types.join(',')}"
-      expect(last_response.body).to eq(posts.to_json)
-    end
-
-    it "should filter by params[:since_id]" do
-      since_post = Fabricate(:post)
-      since_post.save!
-      post = Fabricate(:post)
-      post.save!
-
-      json_get "/posts?since_id=#{since_post.public_uid}"
-      expect(last_response.body).to eq([post].to_json)
-    end
-
-    it "should filter by params[:before_id]" do
-      TentServer::Model::Post.all.destroy!
-      post = Fabricate(:post)
-      post.save!
-      before_post = Fabricate(:post)
-      before_post.save!
-
-      json_get "/posts?before_id=#{before_post.public_uid}"
-      expect(last_response.body).to eq([post].to_json)
-    end
-
-    it "should filter by both params[:since_id] and params[:before_id]" do
-      since_post = Fabricate(:post)
-      since_post.save!
-      post = Fabricate(:post)
-      post.save!
-      before_post = Fabricate(:post)
-      before_post.save!
-
-      json_get "/posts?before_id=#{before_post.public_uid}&since_id=#{since_post.public_uid}"
-      expect(last_response.body).to eq([post].to_json)
-    end
-
-    it "should filter by params[:since_time]" do
-      since_post = Fabricate(:post)
-      since_post.published_at = Time.at(Time.now.to_i + 86400) # 1.day.from_now
-      since_post.save!
-      post = Fabricate(:post)
-      post.published_at = Time.at(Time.now.to_i + (86400 * 2)) # 2.days.from_now
-      post.save!
-
-      json_get "/posts?since_time=#{since_post.published_at.to_time.to_i}"
-      expect(last_response.body).to eq([post].to_json)
-    end
-
-    it "should filter by params[:before_time]" do
-      post = Fabricate(:post)
-      post.published_at = Time.at(Time.now.to_i - (86400 * 2)) # 2.days.ago
-      post.save!
-      before_post = Fabricate(:post)
-      before_post.published_at = Time.at(Time.now.to_i - 86400) # 1.day.ago
-      before_post.save!
-
-      json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}"
-      expect(last_response.body).to eq([post].to_json)
-    end
-
-    it "should filter by both params[:before_time] and params[:since_time]" do
-      now = Time.at(Time.now.to_i - (86400 * 6)) # 6.days.ago
-      since_post = Fabricate(:post)
-      since_post.published_at = Time.at(now.to_i - (86400 * 3)) # 3.days.ago
-      since_post.save!
-      post = Fabricate(:post)
-      post.published_at = Time.at(now.to_i - (86400 * 2)) # 2.days.ago
-      post.save!
-      before_post = Fabricate(:post)
-      before_post.published_at = Time.at(now.to_i - 86400) # 1.day.ago
-      before_post.save!
-
-      json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}&since_time=#{since_post.published_at.to_time.to_i}"
-      expect(last_response.body).to eq([post].to_json)
-    end
-
-    it "should set feed length with params[:limit]" do
-      0.upto(2).each { Fabricate(:post, :public => true).save! }
-      json_get '/posts?limit=1'
-      expect(JSON.parse(last_response.body).size).to eq(1)
-    end
-
-    it "limit should never exceed TentServer::API::MAX_PER_PAGE" do
-      with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
-        0.upto(2).each { Fabricate(:post).save! }
-        json_get '/posts?limit=1'
-        expect(last_response.body).to eq([].to_json)
+      it "limit should never exceed TentServer::API::MAX_PER_PAGE" do
+        with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
+          0.upto(2).each { Fabricate(:post, :public => post_public?).save! }
+          json_get '/posts?limit=1', params, env
+          expect(last_response.body).to eq([].to_json)
+        end
       end
+    end
+
+    context 'without authorization', &with_params
+
+    context 'with read_posts scope authorized' do
+      before { authorize!(:read_posts) }
+      let(:post_public?) { false }
+
+      context &with_params
     end
   end
 

@@ -35,7 +35,11 @@ module TentServer
 
       class GetFeed < Middleware
         def action(env)
-          env['response'] = Model::Post.fetch_with_permissions(env.params, env.current_auth)
+          if authorize_env?(env, :read_posts)
+            env['response'] = Model::Post.fetch_all(env.params)
+          else
+            env['response'] = Model::Post.fetch_with_permissions(env.params, env.current_auth)
+          end
           env
         end
       end
