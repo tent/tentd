@@ -74,7 +74,7 @@ module TentServer
 
           if follower && (env.full_read_authorized || env.single_read_authorized)
             if authorize_env?(env, :read_secrets)
-              env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
+              env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta], :authorized_scopes => env.authorized_scopes)
             else
               env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_algorithm])
             end
@@ -90,9 +90,14 @@ module TentServer
       class GetMany < Middleware
         def action(env)
           if env.full_read_authorized
-            env['response'] = Model::Follower.fetch_all(env.params)
+            followers = Model::Follower.fetch_all(env.params)
           else
-            env['response'] = Model::Follower.fetch_with_permissions(env.params, env.current_auth)
+            followers = Model::Follower.fetch_with_permissions(env.params, env.current_auth)
+          end
+          if followers
+            env['response'] = followers.map { |f|
+              f.as_json(:authorized_scopes => env.authorized_scopes)
+            }
           end
           env
         end

@@ -66,10 +66,23 @@ module TentServer
       end
 
       def as_json(options = {})
-        attributes = super
+        authorized_scopes = options.delete(:authorized_scopes)
+        attributes = super(options)
         attributes[:id] = public_uid if attributes[:id]
         attributes.delete(:public_uid)
-        attributes
+
+        if authorized_scopes
+          whitelist = [:id, :entity, :profile, :licenses]
+          if authorized_scopes.include?(:read_followers)
+            whitelist.concat([:public, :groups, :mac_key_id, :mac_algorithm])
+            if authorized_scopes.include?(:read_secrets)
+              whitelist.concat([:mac_key, :mac_algorithm, :mac_timestamp_delta])
+            end
+          end
+          attributes.slice(*whitelist)
+        else
+          attributes
+        end
       end
     end
   end

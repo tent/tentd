@@ -82,12 +82,12 @@ describe TentServer::API::Followers do
           to change(TentServer::Model::Follower, :count).by(1)
         expect(last_response.status).to eq(200)
         follow = TentServer::Model::Follower.last
-        expect(last_response.body).to eq({
+        expect(JSON.parse(last_response.body)).to eq({
           "id" => follow.public_uid,
           "mac_key_id" => follow.mac_key_id,
           "mac_key" => follow.mac_key,
           "mac_algorithm" => follow.mac_algorithm
-        }.to_json)
+        })
       end
 
       it 'should create notification subscription for each type given' do
@@ -105,16 +105,20 @@ describe TentServer::API::Followers do
         TentServer::Model::Follower.all.destroy!
         followers = 2.times.map { Fabricate(:follower, :public => true) }
         json_get '/followers', params, env
-        expect(last_response.body).to eq(followers.to_json)
+        expect(last_response.body).to eq(followers.map { |f|
+            f.as_json(:only => [:id, :entity, :profile, :licenses])
+        }.to_json)
       end
     end
 
     authorized_full = proc do
-      it 'should return a list of followers' do
+      it 'should return a list of followers without mac keys' do
         TentServer::Model::Follower.all.destroy!
         followers = 2.times.map { Fabricate(:follower, :public => false) }
         json_get '/followers', params, env
-        expect(last_response.body).to eq(followers.to_json)
+        expect(last_response.body).to eq(followers.map { |f|
+            f.as_json(:only => [:id, :entity, :public, :profile, :groups, :licenses, :mac_key_id, :mac_algorithm], :authorized_scopes => [:read_followers])
+        }.to_json)
       end
     end
 
@@ -123,6 +127,22 @@ describe TentServer::API::Followers do
     context 'when authorized via scope' do
       before { authorize!(:read_followers) }
       context &authorized_full
+
+      context 'when read_secrets authorized' do
+        before { authorize!(:read_followers, :read_secrets) }
+        context 'when read_secrets param set to true' do
+          it 'should return a list of followers with mac keys' do
+            TentServer::Model::Follower.all.destroy!
+            followers = 2.times.map { Fabricate(:follower, :public => false) }
+            json_get '/followers', params, env
+            expect(last_response.body).to eq(followers.map { |f|
+                f.as_json(:only => [:id, :entity, :public, :profile, :groups, :licenses, :mac_key_id, :mac_algorithm], :authorized_scopes => [:read_secrets, :read_followers])
+            }.to_json)
+          end
+        end
+
+        context 'when read_secrets param not set', &authorized_full
+      end
     end
   end
 
@@ -153,7 +173,11 @@ describe TentServer::API::Followers do
           it 'should respond with follower json with mac_key' do
             json_get "/followers/#{follower.public_uid}", params, env
             expect(last_response.status).to eq(200)
-            expect(last_response.body).to eq(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta], :authorized_scopes => [:read_secrets]).to_json)
+            actual = JSON.parse(last_response.body)
+            expected = follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
+            expected.each_pair do |key, val|
+              expect(actual[key.to_s].to_json).to eq(val.to_json)
+            end
           end
         end
 
