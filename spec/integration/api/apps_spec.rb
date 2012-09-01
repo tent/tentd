@@ -35,6 +35,18 @@ describe TentServer::API::Apps do
         json_get '/apps', nil, env
         expect(last_response.status).to eq(403)
       end
+
+      context 'when pretending to be authorized' do
+        let(:_app) { Fabricate(:app) }
+        before do
+          env['current_auth'] = Fabricate(:app_authorization, :app => _app)
+        end
+
+        it 'should respond 403' do
+          json_get "/apps?app_id=#{ _app.id }", nil, env
+          expect(last_response.status).to eq(403)
+        end
+      end
     end
   end
 
