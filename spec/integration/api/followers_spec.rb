@@ -126,6 +126,22 @@ describe TentServer::API::Followers do
         context &authorized
       end
 
+      context 'when read_secrets scope authorized' do
+        before { authorize!(:read_followers, :read_secrets) }
+
+        context 'with read_secrets param' do
+          before { params['read_secrets'] = true }
+
+          it 'should respond with follower json with mac_key' do
+            json_get "/followers/#{follower.public_uid}", params, env
+            expect(last_response.status).to eq(200)
+            expect(last_response.body).to eq(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta], :authorized_scopes => [:read_secrets]).to_json)
+          end
+        end
+
+        context 'without read_secrets param', &authorized
+      end
+
       context 'when no follower exists with :id' do
         it 'should respond with 404' do
           json_get "/followers/invalid-id", params, env
@@ -140,6 +156,11 @@ describe TentServer::API::Followers do
 
       context 'when follower private' do
         before { follower.update(:public => false) }
+        context &authorized
+      end
+
+      context 'with read_secrets param' do
+        before { params['read_secrets'] = true }
         context &authorized
       end
 

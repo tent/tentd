@@ -66,7 +66,11 @@ module TentServer
           end
 
           if follower && (env.full_read_authorized || env.single_read_authorized)
-            env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_algorithm])
+            if authorize_env?(env, :read_secrets)
+              env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
+            else
+              env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_algorithm])
+            end
           elsif follower && follower.public?
             env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses])
           elsif !env.full_read_authorized
