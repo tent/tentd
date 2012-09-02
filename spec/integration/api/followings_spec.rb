@@ -5,9 +5,20 @@ describe TentServer::API::Followings do
     TentServer::API.new
   end
 
+  def authorize!(*scopes)
+    env['current_auth'] = stub(
+      :kind_of? => true,
+      :id => nil,
+      :scopes => scopes
+    )
+  end
+
+  let(:env) { Hash.new }
+  let(:params) { Hash.new }
+
   describe 'GET /followings' do
-    let(:current_auth) { nil }
     let(:create_permissions?) { false }
+    let(:current_auth) { env['current_auth'] }
 
     before do
       @create_permission = lambda do |following|
@@ -28,7 +39,7 @@ describe TentServer::API::Followings do
             [since_following, following].each { |f| @create_permission.call(f) }
           end
 
-          json_get "/followings?since_id=#{since_following.public_uid}", nil, 'current_auth' => current_auth
+          json_get "/followings?since_id=#{since_following.public_uid}", params, env
           expect(last_response.body).to eq([following].to_json)
         end
       end
@@ -43,7 +54,7 @@ describe TentServer::API::Followings do
             [before_following, following].each { |f| @create_permission.call(f) }
           end
 
-          json_get "/followings?before_id=#{before_following.public_uid}", nil, 'current_auth' => current_auth
+          json_get "/followings?before_id=#{before_following.public_uid}", params, env
           expect(last_response.body).to eq([following].to_json)
         end
       end
@@ -57,7 +68,7 @@ describe TentServer::API::Followings do
             followings.each { |f| @create_permission.call(f) }
           end
 
-          json_get "/followings?limit=#{limit}", nil, 'current_auth' => current_auth
+          json_get "/followings?limit=#{limit}", params, env
           expect(JSON.parse(last_response.body).size).to eq(limit)
         end
 
@@ -71,7 +82,7 @@ describe TentServer::API::Followings do
                 @create_permission.call(following)
               end
 
-              json_get "/followings?limit=#{limit}", nil, 'current_auth' => current_auth
+              json_get "/followings?limit=#{limit}", params, env
               expect(JSON.parse(last_response.body).size).to eq(0)
             end
           end
@@ -87,7 +98,7 @@ describe TentServer::API::Followings do
               @create_permission.call(following)
             end
 
-            json_get "/followings", nil, 'current_auth' => current_auth
+            json_get "/followings", params, env
             expect(JSON.parse(last_response.body).size).to eq(0)
           end
         end
@@ -100,7 +111,7 @@ describe TentServer::API::Followings do
         public_following = Fabricate(:following, :public => true)
         private_following = Fabricate(:following, :public => false)
 
-        json_get '/followings', nil, 'current_auth' => current_auth
+        json_get '/followings', params, env
         expect(last_response.status).to eq(200)
         body = JSON.parse(last_response.body)
         expect(body).to include(JSON.parse(public_following.to_json))
@@ -122,7 +133,7 @@ describe TentServer::API::Followings do
           it 'should return permissible and public followings' do
             @create_permission.call(private_permissible_following)
 
-            json_get '/followings', nil, 'current_auth' => current_auth
+            json_get '/followings', params, env
             body = JSON.parse(last_response.body)
             expect(body).to include(JSON.parse(public_following.to_json))
             expect(body).to include(JSON.parse(private_permissible_following.to_json))
@@ -138,7 +149,7 @@ describe TentServer::API::Followings do
               :group_public_uid => group.public_uid
             )
 
-            json_get '/followings', nil, 'current_auth' => current_auth
+            json_get '/followings', params, env
             body = JSON.parse(last_response.body)
             expect(body).to include(JSON.parse(public_following.to_json))
             expect(body).to include(JSON.parse(private_permissible_following.to_json))
@@ -152,47 +163,67 @@ describe TentServer::API::Followings do
       context 'when not permissible', &without_permissions
     end
 
-    context 'without current_auth', &without_permissions
+    context 'without read_followings scope authorized' do
+      context 'without current_auth', &without_permissions
 
-    context 'with current_auth' do
-      context 'when Follower' do
-        let(:current_auth) { Fabricate(:follower) }
+      context 'with current_auth' do
+        context 'when Follower' do
+          before{ env['current_auth'] = Fabricate(:follower) }
 
-        context 'without permissions', &without_permissions
+          context 'without permissions', &without_permissions
 
-        context 'with permissions', &with_permissions
+          context 'with permissions', &with_permissions
+        end
+
+        context 'when AppAuthorization' do
+          before { env['current_auth'] = Fabricate(:app_authorization, :app => Fabricate(:app)) }
+
+          context 'without permissions', &without_permissions
+
+          context 'with permissions', &with_permissions
+        end
+      end
+    end
+
+    context 'with read_followings scope authorized' do
+      before { authorize!(:read_followings) }
+
+      it 'should return all followings' do
+        Fabricate(:following, :public => true)
+        Fabricate(:following, :public => false)
+        count = TentServer::Model::Following.count
+        with_constants "TentServer::API::MAX_PER_PAGE" => count do
+          json_get '/followings', params, env
+          expect(last_response.status).to eq(200)
+          body = JSON.parse(last_response.body)
+          expect(body.size).to eq(count)
+        end
       end
 
-      context 'when AppAuthorization' do
-        let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
-
-        context 'without permissions', &without_permissions
-
-        context 'with permissions', &with_permissions
-      end
+      context 'with params', &with_params
     end
   end
 
   describe 'GET /followings/:id' do
-    let(:current_auth) { nil }
+    let(:current_auth) { env['current_auth'] }
 
     without_permissions = proc do
       it 'should return following if public' do
         following = Fabricate(:following, :public => true)
-        json_get "/following/#{following.public_uid}", nil, 'current_auth' => current_auth
+        json_get "/following/#{following.public_uid}", params, env
         expect(last_response.body).to eq(following.to_json)
       end
 
       it 'should return 404 unless public' do
         following = Fabricate(:following, :public => false)
-        json_get "/following/#{following.public_uid}", nil, 'current_auth' => current_auth
-        expect(last_response.status).to eq(404)
+        json_get "/following/#{following.public_uid}", params, env
+        expect(last_response.status).to eq(403)
       end
 
       it 'should return 404 unless exists' do
         following = Fabricate(:following, :public => true)
-        json_get "/following/#{TentServer::Model::Following.count * 100}", nil, 'current_auth' => current_auth
-        expect(last_response.status).to eq(404)
+        json_get "/following/invalid-id", params, env
+        expect(last_response.status).to eq(403)
       end
     end
 
@@ -204,7 +235,7 @@ describe TentServer::API::Followings do
             :following_id => following.id,
             current_auth.permissible_foreign_key => current_auth.id
           )
-          json_get "/following/#{following.public_uid}", nil, 'current_auth' => current_auth
+          json_get "/following/#{following.public_uid}", params, env
           expect(last_response.body).to eq(following.to_json)
         end
       end
@@ -218,27 +249,52 @@ describe TentServer::API::Followings do
             :following_id => following.id,
             :group_public_uid => group.public_uid
           )
-          json_get "/following/#{following.public_uid}", nil, 'current_auth' => current_auth
+          json_get "/following/#{following.public_uid}", params, env
           expect(last_response.body).to eq(following.to_json)
         end
       end
     end
 
-    context 'without current_auth', &without_permissions
+    context 'when read_followings scope not authorized' do
+      context 'without current_auth', &without_permissions
 
-    context 'with current_auth' do
-      context 'when Follower' do
-        let(:current_auth) { Fabricate(:follower) }
+      context 'with current_auth' do
+        context 'when Follower' do
+          before { env['current_auth'] = Fabricate(:follower) }
 
-        context 'when permissible', &with_permissions
-        context 'when not permissible', &without_permissions
+          context 'when permissible', &with_permissions
+          context 'when not permissible', &without_permissions
+        end
+
+        context 'when AppAuthorization' do
+          before { env['current_auth'] = Fabricate(:app_authorization, :app => Fabricate(:app)) }
+
+          context 'when permissible', &with_permissions
+          context 'when not permissible', &without_permissions
+        end
+      end
+    end
+
+    context 'when read_followings scope authorized' do
+      before { authorize!(:read_followings) }
+
+      it 'should return private following' do
+        following = Fabricate(:following, :public => false)
+        json_get "/following/#{following.public_uid}", params, env
+        expect(last_response.status).to eq(200)
+        expect(last_response.body).to eq(following.to_json)
       end
 
-      context 'when AppAuthorization' do
-        let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
+      it 'should return public following' do
+        following = Fabricate(:following, :public => true)
+        json_get "/following/#{following.public_uid}", params, env
+        expect(last_response.status).to eq(200)
+        expect(last_response.body).to eq(following.to_json)
+      end
 
-        context 'when permissible', &with_permissions
-        context 'when not permissible', &without_permissions
+      it 'should return 404 if no following with :id exists' do
+        json_get '/followings/invalid-id', params, env
+        expect(last_response.status).to eq(404)
       end
     end
   end
@@ -266,110 +322,126 @@ describe TentServer::API::Followings do
       }
     end
 
-    before do
-      @tent_profile = TentServer::Model::ProfileInfo.create(
-        :entity => tent_entity,
-        :type => TentServer::Model::ProfileInfo::TENT_PROFILE_TYPE_URI,
-        :content => { 
-          :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
-        }
-      )
-
-      @http_stub_head_success = lambda do
-        http_stubs.head('/') { [200, { 'Link' => link_header }, ''] }
-      end
-
-      @http_stub_profile_success = lambda do
-        http_stubs.get('/tent/profile') {
-          [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile]
-        }
-      end
-
-      @http_stub_profile_mismatch = lambda do
-        http_stubs.get('/tent/profile') {
-          [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile_mismatch]
-        }
-      end
-
-      @http_stub_follow_success = lambda do
-        http_stubs.post('/followers') { [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE}, follow_response] }
-      end
-
-      @http_stub_success = lambda do
-        @http_stub_head_success.call
-        @http_stub_profile_success.call
-        @http_stub_follow_success.call
-      end
-    end
-
-    it 'should perform head discovery on following' do
-      @http_stub_success.call
-      TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
-
-      json_post '/followings', following_data, 'tent.entity' => tent_entity
-      http_stubs.verify_stubbed_calls
-    end
-
-    it 'should send follow request to following' do
-      @http_stub_success.call
-      TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
-
-      json_post '/followings', following_data, 'tent.entity' => tent_entity
-      http_stubs.verify_stubbed_calls
-    end
-
-    context 'when discovery fails' do
-      it 'should error 404 when no profile' do
-        http_stubs.head('/') { [404, {}, 'Not Found'] }
-        http_stubs.get('/') { [404, {}, 'Not Found'] }
-        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
-
-        json_post '/followings', following_data, 'tent.entity' => tent_entity
-        expect(last_response.status).to eq(404)
-      end
-
-      it 'should error 409 when entity returned does not match' do
-        @http_stub_head_success.call
-        @http_stub_profile_mismatch.call
-        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
-
-        json_post '/followings', following_data, 'tent.entity' => tent_entity
-        expect(last_response.status).to eq(409)
-      end
-    end
-
-    context 'when follow request fails' do
-      it 'should error' do
-        @http_stub_head_success.call
-        @http_stub_profile_success.call
-        http_stubs.post('/followers') { [404, {}, 'Not Found'] }
-        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
-
-        json_post '/followings', following_data, 'tent.entity' => tent_entity
-        expect(last_response.status).to eq(404)
-      end
-    end
-
-    context 'when discovery and follow requests success' do
+    context 'when write_followings scope authorized' do
       before do
+        @tent_profile = TentServer::Model::ProfileInfo.create(
+          :entity => tent_entity,
+          :type => TentServer::Model::ProfileInfo::TENT_PROFILE_TYPE_URI,
+          :content => { 
+            :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
+          }
+        )
+
+        @http_stub_head_success = lambda do
+          http_stubs.head('/') { [200, { 'Link' => link_header }, ''] }
+        end
+
+        @http_stub_profile_success = lambda do
+          http_stubs.get('/tent/profile') {
+            [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile]
+          }
+        end
+
+        @http_stub_profile_mismatch = lambda do
+          http_stubs.get('/tent/profile') {
+            [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile_mismatch]
+          }
+        end
+
+        @http_stub_follow_success = lambda do
+          http_stubs.post('/followers') { [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE}, follow_response] }
+        end
+
+        @http_stub_success = lambda do
+          @http_stub_head_success.call
+          @http_stub_profile_success.call
+          @http_stub_follow_success.call
+        end
+
+        authorize!(:write_followings)
+        env['tent.entity'] = tent_entity
+      end
+
+      it 'should perform head discovery on following' do
         @http_stub_success.call
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+        json_post '/followings', following_data, env
+        http_stubs.verify_stubbed_calls
       end
 
-      it 'should create following' do
-        expect(lambda {
-          json_post '/followings', following_data, 'tent.entity' => tent_entity
-        }).to change(TentServer::Model::Following, :count).by(1)
+      it 'should send follow request to following' do
+        @http_stub_success.call
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
-        following = TentServer::Model::Following.last
-        expect(following.entity.to_s).to eq("https://sam.example.org")
-        expect(following.groups).to eq([group.public_uid.to_s])
-        expect(following.remote_id).to eq(follower.public_uid.to_s)
-        expect(following.mac_key_id).to eq(follower.mac_key_id)
-        expect(following.mac_key).to eq(follower.mac_key)
-        expect(following.mac_algorithm).to eq(follower.mac_algorithm)
+        json_post '/followings', following_data, env
+        http_stubs.verify_stubbed_calls
+      end
 
-        expect(last_response.body).to eq(following.to_json)
+      context 'when discovery fails' do
+        it 'should error 404 when no profile' do
+          http_stubs.head('/') { [404, {}, 'Not Found'] }
+          http_stubs.get('/') { [404, {}, 'Not Found'] }
+          TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+          json_post '/followings', following_data, env
+          expect(last_response.status).to eq(404)
+        end
+
+        it 'should error 409 when entity returned does not match' do
+          @http_stub_head_success.call
+          @http_stub_profile_mismatch.call
+          TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+          json_post '/followings', following_data, env
+          expect(last_response.status).to eq(409)
+        end
+      end
+
+      context 'when follow request fails' do
+        it 'should error' do
+          @http_stub_head_success.call
+          @http_stub_profile_success.call
+          http_stubs.post('/followers') { [404, {}, 'Not Found'] }
+          TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+          json_post '/followings', following_data, env
+          expect(last_response.status).to eq(404)
+        end
+      end
+
+      context 'when discovery and follow requests success' do
+        before do
+          @http_stub_success.call
+          TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+        end
+
+        it 'should create following' do
+          expect(lambda {
+            json_post '/followings', following_data, env
+          }).to change(TentServer::Model::Following, :count).by(1)
+
+          following = TentServer::Model::Following.last
+          expect(following.entity.to_s).to eq("https://sam.example.org")
+          expect(following.groups).to eq([group.public_uid.to_s])
+          expect(following.remote_id).to eq(follower.public_uid.to_s)
+          expect(following.mac_key_id).to eq(follower.mac_key_id)
+          expect(following.mac_key).to eq(follower.mac_key)
+          expect(following.mac_algorithm).to eq(follower.mac_algorithm)
+
+          expect(last_response.body).to eq(following.to_json)
+        end
+      end
+    end
+
+    context 'when write_followings scope unauthorized' do
+      before {
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+      }
+
+      it 'should return 403' do
+        json_post '/followings', params, env
+        expect(last_response.status).to eq(403)
       end
     end
   end
@@ -377,18 +449,30 @@ describe TentServer::API::Followings do
   describe 'DELETE /followings/:id' do
     let!(:following) { Fabricate(:following) }
 
-    context 'when exists' do
-      it 'should delete following' do
-        expect(lambda { delete "/followings/#{following.public_uid}" }).
-          to change(TentServer::Model::Following, :count).by(-1)
+    context 'when write_followings scope authorized' do
+      before { authorize!(:write_followings) }
+
+      context 'when exists' do
+        it 'should delete following' do
+          expect(lambda { delete "/followings/#{following.public_uid}", params, env }).
+            to change(TentServer::Model::Following, :count).by(-1)
+        end
+      end
+
+      context 'when does not exist' do
+        it 'should return 404' do
+          expect(lambda { delete "/followings/invalid-id", params, env }).
+            to_not change(TentServer::Model::Following, :count)
+          expect(last_response.status).to eq(404)
+        end
       end
     end
 
-    context 'when does not exist' do
-      it 'should return 404' do
-        expect(lambda { delete "/followings/#{TentServer::Model::Following.count * 100}" }).
+    context 'when write_followings scope unauthorized' do
+      it 'should return 403' do
+        expect(lambda { delete "/followings/invalid-id", params, env }).
           to_not change(TentServer::Model::Following, :count)
-        expect(last_response.status).to eq(404)
+        expect(last_response.status).to eq(403)
       end
     end
   end

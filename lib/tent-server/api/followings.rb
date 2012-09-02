@@ -19,16 +19,36 @@ module TentServer
         end
       end
 
+      class AuthorizeWrite < Middleware
+        def action(env)
+          authorize_env!(env, :write_followings)
+          env
+        end
+      end
+
       class GetOne < Middleware
         def action(env)
-          env.response = Model::Following.find_with_permissions(env.params.following_id, env.current_auth)
+          if authorize_env?(env, :read_followings)
+            env.response = Model::Following.get(env.params.following_id)
+          else
+            following = Model::Following.find_with_permissions(env.params.following_id, env.current_auth)
+            if following
+              env.response = following
+            else
+              raise Unauthorized
+            end
+          end
           env
         end
       end
 
       class GetMany < Middleware
         def action(env)
-          env.response = Model::Following.fetch_with_permissions(env.params, env.current_auth)
+          if authorize_env?(env, :read_followings)
+            env.response = Model::Following.fetch_all(env.params)
+          else
+            env.response = Model::Following.fetch_with_permissions(env.params, env.current_auth)
+          end
           env
         end
       end
@@ -91,12 +111,14 @@ module TentServer
       end
 
       post '/followings' do |b|
+        b.use AuthorizeWrite
         b.use Discover
         b.use Follow
         b.use Create
       end
 
       delete '/followings/:following_id' do |b|
+        b.use AuthorizeWrite
         b.use GetActualId
         b.use Destroy
       end
