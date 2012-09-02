@@ -295,6 +295,7 @@ describe TentServer::API::Posts do
     it 'should get an attachment' do
       get "/posts/#{post.public_uid}/attachments/#{attachment.name}", {}, 'HTTP_ACCEPT' => attachment.type
       expect(last_response.status).to eq(200)
+      expect(last_response.headers['Content-Type']).to eq(attachment.type)
       expect(last_response.body).to eq(attachment.data)
     end
 

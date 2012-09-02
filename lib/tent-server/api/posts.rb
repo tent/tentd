@@ -71,7 +71,12 @@ module TentServer
           return env unless env.response
           type = env['HTTP_ACCEPT'].split(/;|,/).first if env['HTTP_ACCEPT']
           attachment = env.response.attachments.first(:type => type, :name => env.params.attachment_name, :fields => [:data])
-          env.response = attachment ? attachment.data : nil
+          if attachment
+            env.response = attachment.data
+            env['response.type'] = type
+          else
+            env.response = nil
+          end
           env
         end
       end
