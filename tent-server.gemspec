@@ -17,17 +17,17 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
 
-  gem.add_runtime_dependency 'rack-mount'
+  gem.add_runtime_dependency 'rack-mount', '~> 0.8.3'
   gem.add_runtime_dependency 'hashie'
-  gem.add_runtime_dependency 'data_mapper'
-  gem.add_runtime_dependency 'dm-ar-finders'
-  gem.add_runtime_dependency 'dm-constraints'
-  gem.add_runtime_dependency 'dm-postgres-adapter'
+  gem.add_runtime_dependency 'data_mapper', '~> 1.2.0'
+  gem.add_runtime_dependency 'dm-ar-finders', '~> 1.2.0'
+  gem.add_runtime_dependency 'dm-constraints', '~> 1.2.0'
+  gem.add_runtime_dependency 'dm-postgres-adapter', '~> 1.2.0'
   gem.add_runtime_dependency 'tent-client'
 
-  gem.add_development_dependency 'rack-test'
-  gem.add_development_dependency 'rspec'
-  gem.add_development_dependency 'bundler'
+  gem.add_development_dependency 'rack-test', '~> 0.6.1'
+  gem.add_development_dependency 'rspec', '~> 2.11'
+  gem.add_development_dependency 'bundler', '~> 1.2'
   gem.add_development_dependency 'rake'
   gem.add_development_dependency 'guard-rspec'
   gem.add_development_dependency 'mocha'
