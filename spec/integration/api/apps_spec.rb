@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'tent-server/core_ext/hash/slice'
 
 describe TentServer::API::Apps do
   def app
@@ -26,9 +27,14 @@ describe TentServer::API::Apps do
 
           json_get '/apps', params, env
           expect(last_response.status).to eq(200)
-          expect(last_response.body).to eq(
-            TentServer::Model::App.all.map { |app| app.as_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta], :authorized_scopes => [:read_secrets]) }.to_json
-          )
+
+          body = JSON.parse(last_response.body)
+          body.each { |actual|
+            app = TentServer::Model::App.first(:public_uid => actual['id'])
+            [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each { |key|
+              expect(actual[key.to_s].to_json).to eq(app.send(key).to_json)
+            }
+          }
         end
       end
 
@@ -38,9 +44,13 @@ describe TentServer::API::Apps do
 
           json_get '/apps', params, env
           expect(last_response.status).to eq(200)
-          expect(last_response.body).to eq(
-            TentServer::Model::App.all.map { |app| app.as_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_algorithm]) }.to_json
-          )
+          body = JSON.parse(last_response.body)
+          body.each { |actual|
+            app = TentServer::Model::App.first(:public_uid => actual['id'])
+            [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_algorithm].each { |key|
+              expect(actual[key.to_s].to_json).to eq(app.send(key).to_json)
+            }
+          }
         end
       end
 
@@ -70,7 +80,7 @@ describe TentServer::API::Apps do
         end
 
         it 'should respond 403' do
-          json_get "/apps?app_id=#{ _app.id }", params, env
+          json_get "/apps?app_id=#{ _app.public_uid }", params, env
           expect(last_response.status).to eq(403)
         end
       end
@@ -82,11 +92,13 @@ describe TentServer::API::Apps do
       it 'should return app without mac_key' do
         app = _app
 
-        json_get "/apps/#{app.id}", params, env
+        json_get "/apps/#{app.public_uid}", params, env
         expect(last_response.status).to eq(200)
-        expect(last_response.body).to eq(
-          app.to_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_algorithm])
-        )
+        body = JSON.parse(last_response.body)
+        [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_algorithm].each { |key|
+          expect(body[key.to_s].to_json).to eq(app.send(key).to_json)
+        }
+        expect(body['id']).to eq(app.public_uid)
       end
     end
 
@@ -103,11 +115,13 @@ describe TentServer::API::Apps do
 
             it 'should return app with mac_key' do
               app = _app
-              json_get "/apps/#{app.id}", params, env
+              json_get "/apps/#{app.public_uid}", params, env
               expect(last_response.status).to eq(200)
-              expect(last_response.body).to eq(
-                app.to_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_timestamp_delta, :mac_algorithm], :authorized_scopes => [:read_secrets])
-              )
+              body = JSON.parse(last_response.body)
+              [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_timestamp_delta, :mac_algorithm].each { |key|
+                expect(body[key.to_s].to_json).to eq(app.send(key).to_json)
+              }
+              expect(body['id']).to eq(app.public_uid)
             end
           end
 
@@ -136,11 +150,12 @@ describe TentServer::API::Apps do
           before { params['read_secrets'] = true }
           it 'should return app with mac_key' do
             app = _app
-            json_get "/apps/#{app.id}", params, env
-            expect(last_response.status).to eq(200)
-            expect(last_response.body).to eq(
-              app.to_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_timestamp_delta, :mac_algorithm], :authorized_scopes => [:read_secrets])
-            )
+            json_get "/apps/#{app.public_uid}", params, env
+            body = JSON.parse(last_response.body)
+            [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_timestamp_delta, :mac_algorithm].each { |key|
+              expect(body[key.to_s].to_json).to eq(app.send(key).to_json)
+            }
+            expect(body['id']).to eq(app.public_uid)
           end
         end
 
@@ -172,10 +187,13 @@ describe TentServer::API::Apps do
 
       app = TentServer::Model::App.last
       expect(last_response.status).to eq(200)
-      data.each_pair do |key, val|
+      data.slice(:name, :description, :url, :icon, :redirect_uris, :scopes).each_pair do |key, val|
         expect(app.send(key)).to eq(val)
       end
-      expect(last_response.body).to eq(app.to_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm]))
+      body = JSON.parse(last_response.body)
+      [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm].each { |key|
+        expect(body[key.to_s].to_json).to eq(app.send(key).to_json)
+      }
     end
   end
 
@@ -190,13 +208,14 @@ describe TentServer::API::Apps do
             "read_posts" => "Can read your posts"
           }
 
-          json_put "/apps/#{app.id}", data, env
+          json_put "/apps/#{app.public_uid}", data, env
           expect(last_response.status).to eq(200)
           app.reload
-          data.each_pair do |key, val|
-            expect(app.send(key)).to eq(val)
+          body = JSON.parse(last_response.body)
+          data.slice(:name, :scopes, :url, :icon, :redirect_uris).each_pair do |key, val|
+            expect(app.send(key).to_json).to eq(val.to_json)
+            expect(body[key.to_s].to_json).to eq(val.to_json)
           end
-          expect(last_response.body).to eq(app.to_json(:only => [:id, :name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_algorithm]))
         end
       end
     end
@@ -248,7 +267,7 @@ describe TentServer::API::Apps do
           expect(app).to be_saved
 
           expect(lambda {
-            delete "/apps/#{app.id}", params, env
+            delete "/apps/#{app.public_uid}", params, env
             expect(last_response.status).to eq(200)
           }).to change(TentServer::Model::App, :count).by(-1)
         end

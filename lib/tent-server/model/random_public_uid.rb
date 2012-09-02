@@ -1,42 +1,5 @@
 module TentServer
   module Model
-    module RandomUid
-      def self.included(base)
-        base.extend(RandomPublicUid::ClassMethods)
-        base.class_eval do
-          property :id, String, :unique => true, :key => true, :default => lambda { |*args| random_uid }
-          self.raise_on_save_failure = true
-        end
-      end
-
-      private
-
-      # catch unique id validation and generate a new one
-      def assert_save_successful(*args)
-        super
-      rescue DataMapper::SaveFailureError => e
-        if errors[:id].any?
-          self.id = self.class.random_uid
-          save
-        else
-          raise e
-        end
-      end
-
-      # catch db unique constraint on id and generate a new one
-      def _persist
-        super
-      rescue DataObjects::IntegrityError
-        valid?
-        if errors[:id].any?
-          self.id = self.class.random_uid
-          save
-        else
-          raise
-        end
-      end
-    end
-
     module RandomPublicUid
       def self.included(base)
         base.extend(ClassMethods)

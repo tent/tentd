@@ -3,6 +3,19 @@ module TentServer
     class Apps
       include Router
 
+      class GetActualId < Middleware
+        def action(env)
+          if env.params.app_id
+            if app = Model::App.first(:public_uid => env.params.app_id)
+              env.params.app_id = app.id
+            else
+              env.params.app_id = nil
+            end
+          end
+          env
+        end
+      end
+
       class AuthorizeReadOne < Middleware
         def action(env)
           if env.params.app_id && env.current_auth && env.current_auth.kind_of?(Model::AppAuthorization) &&
@@ -54,7 +67,7 @@ module TentServer
 
       class Create < Middleware
         def action(env)
-          env.response = Model::App.create_from_params(env.params.data).as_json(:authorized_scopes => env.authorized_scopes)
+          env.response = Model::App.create_from_params(env.params.data).as_json
           env
         end
       end
@@ -78,6 +91,7 @@ module TentServer
       end
 
       get '/apps/:app_id' do |b|
+        b.use GetActualId
         b.use AuthorizeReadOne
         b.use GetOne
       end
@@ -92,11 +106,13 @@ module TentServer
       end
 
       put '/apps/:app_id' do |b|
+        b.use GetActualId
         b.use AuthorizeWriteOne
         b.use Update
       end
 
       delete '/apps/:app_id' do |b|
+        b.use GetActualId
         b.use AuthorizeWriteOne
         b.use Destroy
       end
