@@ -607,4 +607,23 @@ describe TentServer::API::Followings do
       end
     end
   end
+
+  describe 'GET /followings/:id/*' do
+    let(:following) { Fabricate(:following) }
+    let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
+    before { authorize!(:read_followings) }
+
+    it 'should proxy the request to the following server' do
+      http_stubs.get('/profile') { |env|
+        expect(env[:request_headers]['Authorization']).to match(/#{following.mac_key_id}/)
+        [200, { 'Content-Type' => 'application/json' }, '{}']
+      }
+      TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+      json_get("/followings/#{following.public_uid}/profile", {}, env)
+      expect(last_response.status).to eq(200)
+      expect(last_response.body).to eq('{}')
+      expect(last_response.headers['Content-Type']).to eq('application/json')
+      http_stubs.verify_stubbed_calls
+    end
+  end
 end

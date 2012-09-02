@@ -26,7 +26,11 @@ module TentServer
       end
 
       def entity?(entity)
-        self[version_key]['entity'] == entity
+        self[version_key][:entity] == entity
+      end
+
+      def servers
+        self[version_key][:servers]
       end
     end
   end

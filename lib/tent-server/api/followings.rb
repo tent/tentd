@@ -30,6 +30,7 @@ module TentServer
         def action(env)
           if authorize_env?(env, :read_followings)
             if following = Model::Following.get(env.params.following_id)
+              env.following = following
               env.response = following.as_json(:authorized_scopes => env.authorized_scopes)
             end
           else
@@ -114,6 +115,33 @@ module TentServer
         end
       end
 
+      class ProxyRequest < Middleware
+        def action(env)
+          following = env.following
+          client = TentClient.new(following.core_profile.servers.first,
+                                  following.attributes.slice(:mac_key_id, :mac_key, :mac_algorithm).merge(:skip_serialization => true))
+          env.params.delete(:following_id)
+          path = env.params.delete(:proxy_path)
+          res = client.http.get(path, env.params, whitelisted_headers(env))
+          [res.status, res.headers, res.body]
+        end
+
+        def whitelisted_headers(env)
+          %w(Accept If-Modified-Since).inject({}) do |h,k|
+            h[k] = env['HTTP_' + k.gsub('-', '_').upcase]; h
+          end
+        end
+      end
+
+      class RewriteProxyCaptureParams < Middleware
+        def action(env)
+          matches = env.params.delete(:captures)
+          env.params.following_id = matches.first
+          env.params.proxy_path = '/' + matches.last
+          env
+        end
+      end
+
       get '/followings/:following_id' do |b|
         b.use GetActualId
         b.use GetOne
@@ -122,6 +150,13 @@ module TentServer
       get '/followings' do |b|
         b.use GetActualId
         b.use GetMany
+      end
+
+      get %r{/followings/(\w+)/(.+)} do |b|
+        b.use RewriteProxyCaptureParams
+        b.use GetActualId
+        b.use GetOne
+        b.use ProxyRequest
       end
 
       post '/followings' do |b|

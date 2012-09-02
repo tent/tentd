@@ -36,6 +36,10 @@ module TentServer
         )
       end
 
+      def core_profile
+        API::CoreProfileData.new(profile)
+      end
+
       def update_from_params(params, authorized_scopes = [])
         whitelist = [:remote_id, :entity, :groups, :public, :licenses, :profile]
         if authorized_scopes.include?(:write_secrets)

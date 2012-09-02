@@ -29,7 +29,7 @@ module TentServer
           params = env['request'].params.dup
 
           if values.any?
-            params.merge!('splat' => [], 'captures' => values)
+            params.merge!('captures' => values)
             keys.zip(values) { |k,v| Array === params[k] ? params[k] << v : params[k] = v if v }
           end
 

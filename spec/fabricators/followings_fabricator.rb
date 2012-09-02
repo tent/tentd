@@ -6,4 +6,9 @@ Fabricator(:following, :class_name => "TentServer::Model::Following") do
   mac_key { SecureRandom.hex(16) }
   mac_algorithm 'hmac-sha-256'
   mac_timestamp_delta Time.now.to_i
+  profile { |f|
+    { 'https://tent.io/types/info/core/v0.1.0' =>
+      { :entity => f[:entity], :licenses => f[:licenses], :servers => ["https://example.com"] }
+    }.to_json
+  }
 end
