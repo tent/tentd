@@ -188,7 +188,7 @@ describe TentServer::API::Followings do
     context 'with read_followings scope authorized' do
       before { authorize!(:read_followings) }
 
-      it 'should return all followings' do
+      it 'should return all followings without mac keys' do
         Fabricate(:following, :public => true)
         Fabricate(:following, :public => false)
         count = TentServer::Model::Following.count
@@ -197,6 +197,35 @@ describe TentServer::API::Followings do
           expect(last_response.status).to eq(200)
           body = JSON.parse(last_response.body)
           expect(body.size).to eq(count)
+          body.each do |actual|
+            following = TentServer::Model::Following.first(:public_uid => actual['id'])
+            [:remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
+              expect(actual[key.to_s].to_json).to eq(following.send(key).to_json)
+            }
+            [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each { |key|
+              expect(actual[key.to_s]).to be_nil
+            }
+          end
+        end
+      end
+
+      context 'with read_secrets scope authorized' do
+        before {
+          authorize!(:read_followings, :read_secrets)
+          params['read_secrets'] = true
+        }
+
+        it 'should return all followings with mac keys' do
+          Fabricate(:following, :public => false)
+          json_get '/followings', params, env
+          expect(last_response.status).to eq(200)
+          body = JSON.parse(last_response.body)
+          body.each do |actual|
+            following = TentServer::Model::Following.first(:public_uid => actual['id'])
+            [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta, :remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
+              expect(actual[key.to_s].to_json).to eq(following.send(key).to_json)
+            }
+          end
         end
       end
 
@@ -278,18 +307,50 @@ describe TentServer::API::Followings do
     context 'when read_followings scope authorized' do
       before { authorize!(:read_followings) }
 
-      it 'should return private following' do
+      it 'should return private following without mac keys' do
         following = Fabricate(:following, :public => false)
         json_get "/following/#{following.public_uid}", params, env
         expect(last_response.status).to eq(200)
-        expect(last_response.body).to eq(following.to_json)
+        body = JSON.parse(last_response.body)
+        [:remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
+          expect(body[key.to_s].to_json).to eq(following.send(key).to_json)
+        }
+        [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each { |key|
+          expect(body[key.to_s]).to be_nil
+        }
+        expect(body['id']).to eq(following.public_uid)
       end
 
-      it 'should return public following' do
+      it 'should return public following without mac keys' do
         following = Fabricate(:following, :public => true)
         json_get "/following/#{following.public_uid}", params, env
         expect(last_response.status).to eq(200)
-        expect(last_response.body).to eq(following.to_json)
+        body = JSON.parse(last_response.body)
+        [:remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
+          expect(body[key.to_s].to_json).to eq(following.send(key).to_json)
+        }
+        [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each { |key|
+          expect(body[key.to_s]).to be_nil
+        }
+        expect(body['id']).to eq(following.public_uid)
+      end
+
+      context 'when read_secrets scope authorized' do
+        before {
+          authorize!(:read_followings, :read_secrets)
+          params['read_secrets'] = true
+        }
+
+        it 'should return following with mac keys' do
+          following = Fabricate(:following, :public => true)
+          json_get "/following/#{following.public_uid}", params, env
+          expect(last_response.status).to eq(200)
+          body = JSON.parse(last_response.body)
+          [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta, :remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
+            expect(body[key.to_s].to_json).to eq(following.send(key).to_json)
+          }
+          expect(body['id']).to eq(following.public_uid)
+        end
       end
 
       it 'should return 404 if no following with :id exists' do
@@ -441,6 +502,76 @@ describe TentServer::API::Followings do
 
       it 'should return 403' do
         json_post '/followings', params, env
+        expect(last_response.status).to eq(403)
+      end
+    end
+  end
+
+  describe 'PUT /followings/:id' do
+    let!(:following) { Fabricate(:following) }
+
+    context 'when write_followings scope authorized' do
+      before { authorize!(:write_followings) }
+      let(:following) { Fabricate(:following, :public => false) }
+      let(:data) do
+        data = following.as_json
+        data[:groups] = ['group-id-1', 'group-id-2']
+        data[:entity] = "https://entity-name.example.org"
+        data[:public] = true
+        data[:profile] = { 'type-uri' => { 'foo' => 'bar' } }
+        data[:licenses] = ['https://license.example.org']
+        data[:mac_key_id] = SecureRandom.hex(4)
+        data[:mac_key] = SecureRandom.hex(16)
+        data[:mac_algorithm] = 'hmac-sha-1'
+        data[:mac_timestamp_delta] = Time.now.to_i
+        data
+      end
+
+      it 'should update following' do
+        json_put "/followings/#{following.public_uid}", data, env
+        expect(last_response.status).to eq(200)
+
+        whitelist = [:groups, :entity, :public, :profile, :licenses]
+        blacklist = [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
+
+        following.reload
+        whitelist.each { |key|
+          expect(following.send(key).to_json).to eq(data[key].to_json)
+        }
+
+        blacklist.each { |key|
+          expect(following.send(key).to_json).to_not eq(data[key].to_json)
+        }
+      end
+
+      context 'when write_secrets scope authorized' do
+        before {
+          authorize!(:write_followings, :write_secrets)
+        }
+
+        it 'should update following mac key' do
+          json_put "/followings/#{following.public_uid}", data, env
+          expect(last_response.status).to eq(200)
+
+          whitelist = [:groups, :entity, :public, :profile, :licenses]
+          whitelist.concat [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
+
+          following.reload
+          whitelist.each { |key|
+            expect(following.send(key).to_json).to eq(data[key].to_json)
+          }
+        end
+      end
+
+      it 'should return 404 unless following with :id exists' do
+        json_put '/followings/invalid-id', params, env
+        expect(last_response.status).to eq(404)
+      end
+    end
+
+    context 'when write_followings scope not authorized' do
+      it 'should return 403' do
+        json_put '/followings/following-id', params, env
         expect(last_response.status).to eq(403)
       end
     end

@@ -29,11 +29,13 @@ module TentServer
       class GetOne < Middleware
         def action(env)
           if authorize_env?(env, :read_followings)
-            env.response = Model::Following.get(env.params.following_id)
+            if following = Model::Following.get(env.params.following_id)
+              env.response = following.as_json(:authorized_scopes => env.authorized_scopes)
+            end
           else
             following = Model::Following.find_with_permissions(env.params.following_id, env.current_auth)
             if following
-              env.response = following
+              env.response = following.as_json
             else
               raise Unauthorized
             end
@@ -45,7 +47,9 @@ module TentServer
       class GetMany < Middleware
         def action(env)
           if authorize_env?(env, :read_followings)
-            env.response = Model::Following.fetch_all(env.params)
+            env.response = Model::Following.fetch_all(env.params).map { |following|
+              following.as_json(:authorized_scopes => env.authorized_scopes)
+            }
           else
             env.response = Model::Following.fetch_with_permissions(env.params, env.current_auth)
           end
@@ -91,6 +95,16 @@ module TentServer
         end
       end
 
+      class Update < Middleware
+        def action(env)
+          if following = Model::Following.get(env.params.following_id)
+            following.update_from_params(env.params.data, env.authorized_scopes)
+            env.response = following.as_json(:authorized_scopes => env.authorized_scopes)
+          end
+          env
+        end
+      end
+
       class Destroy < Middleware
         def action(env)
           if (following = Model::Following.get(env.params.following_id)) && following.destroy
@@ -115,6 +129,12 @@ module TentServer
         b.use Discover
         b.use Follow
         b.use Create
+      end
+
+      put '/followings/:following_id' do |b|
+        b.use AuthorizeWrite
+        b.use GetActualId
+        b.use Update
       end
 
       delete '/followings/:following_id' do |b|

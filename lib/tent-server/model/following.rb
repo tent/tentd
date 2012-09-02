@@ -1,3 +1,5 @@
+require 'tent-server/core_ext/hash/slice'
+
 module TentServer
   module Model
     class Following
@@ -34,10 +36,25 @@ module TentServer
         )
       end
 
+      def update_from_params(params, authorized_scopes = [])
+        whitelist = [:remote_id, :entity, :groups, :public, :licenses, :profile]
+        if authorized_scopes.include?(:write_secrets)
+          whitelist.concat([:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
+        end
+        attributes = params.slice(*whitelist)
+        update(attributes)
+      end
+
       def as_json(options = {})
-        attributes = super
+        authorized_scopes = options.delete(:authorized_scopes).to_a
+        attributes = super(options)
         attributes[:id] = public_uid if attributes[:id]
         attributes.delete(:public_uid)
+        blacklist = [:created_at, :updated_at]
+        unless authorized_scopes.include?(:read_followings) && authorized_scopes.include?(:read_secrets)
+          blacklist.concat([:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
+        end
+        blacklist.each { |key| attributes.delete(key) }
         attributes
       end
     end
