@@ -1,5 +1,6 @@
 require 'data_mapper'
-require 'tent-server/data_mapper_array_property'
+require 'tent-server/datamapper/array_property'
+require 'tent-server/datamapper/binary_string_property'
 
 module TentServer
   module Model

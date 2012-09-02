@@ -22,7 +22,7 @@ module TentServer
       property :updated_at, DateTime
 
       has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
-      has n, :post_attachments, 'TentServer::Model::PostAttachment', :constraint => :destroy
+      has n, :attachments, 'TentServer::Model::PostAttachment', :constraint => :destroy
 
       def self.fetch_all(params)
         super do |params, query_conditions, query_bindings|

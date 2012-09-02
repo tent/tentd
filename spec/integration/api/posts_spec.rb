@@ -287,4 +287,25 @@ describe TentServer::API::Posts do
       end
     end
   end
+
+  describe 'GET /posts/:post_id/attachments/:attachment_name' do
+    let(:post) { Fabricate(:post) }
+    let(:attachment) { Fabricate(:post_attachment, :post => post) }
+
+    it 'should get an attachment' do
+      get "/posts/#{post.public_uid}/attachments/#{attachment.name}", {}, 'HTTP_ACCEPT' => attachment.type
+      expect(last_response.status).to eq(200)
+      expect(last_response.body).to eq(attachment.data)
+    end
+
+    it "should 404 if the attachment doesn't exist" do
+      get "/posts/#{post.public_uid}/attachments/asdf"
+      expect(last_response.status).to eq(404)
+    end
+
+    it "should 404 if the post doesn't exist" do
+      get "/posts/asdf/attachments/asdf"
+      expect(last_response.status).to eq(404)
+    end
+  end
 end

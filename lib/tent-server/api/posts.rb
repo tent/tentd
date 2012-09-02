@@ -58,10 +58,20 @@ module TentServer
         def action(env)
           return env unless env.params.attachments.kind_of?(Array)
           env.params.attachments.each do |attachment|
-            Model::PostAttachment.create(:post => env['response'], :type => attachment.type,
+            Model::PostAttachment.create(:post => env.response, :type => attachment.type,
                                          :category => attachment.name, :name => attachment.filename,
-                                         :data => attachment.tempfile.read)
+                                         :data => attachment.tempfile.read, :size => attachment.tempfile.size)
           end
+          env
+        end
+      end
+
+      class GetAttachment < Middleware
+        def action(env)
+          return env unless env.response
+          type = env['HTTP_ACCEPT'].split(/;|,/).first if env['HTTP_ACCEPT']
+          attachment = env.response.attachments.first(:type => type, :name => env.params.attachment_name, :fields => [:data])
+          env.response = attachment ? attachment.data : nil
           env
         end
       end
@@ -71,9 +81,11 @@ module TentServer
         b.use GetOne
       end
 
-      #get '/posts/:post_id/attachments/:filename' do
-        #b.use GetAttachment
-      #end
+      get '/posts/:post_id/attachments/:attachment_name' do |b|
+        b.use GetActualId
+        b.use GetOne
+        b.use GetAttachment
+      end
 
       get '/posts' do |b|
         b.use GetActualId
