@@ -1,14 +1,15 @@
-Fabricator(:profile_info, :class_name => 'TentServer::Model::ProfileInfo') do
-  transient :tent
-  entity URI("https://johnsmith.example.org")
-  type do |attrs|
+Fabricator(:profile_info, :class_name => 'TentServer::Model::ProfileInfo') do |f|
+  f.transient :tent
+  f.entity URI("https://johnsmith.example.org")
+  f.public true
+  f.type do |attrs|
     if attrs[:tent]
       URI("https://tent.io")
     else
       URI("https://tent.io/types/info-types/basic-info")
     end
   end
-  content do |attrs|
+  f.content do |attrs|
     if attrs[:tent]
       {
         "licenses" => [

@@ -5,126 +5,276 @@ describe TentServer::API::Profile do
     TentServer::API.new
   end
 
-  describe 'GET /profile' do
-    it 'should find profile of server' do
-      TentServer::Model::ProfileInfo.all.destroy
+  let(:entity) { 'https://smith.example.org' }
+  let(:env) { { 'tent.entity' => entity } }
+  let(:params) { Hash.new }
 
-      profile_infos = []
-      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"), :tent => true)
-      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"))
-      profile_infos.each(&:save!)
-
-      json_get '/profile', nil, 'tent.entity' => 'smith.example.com'
-      expect(last_response.body).to eq({
-        "#{ profile_infos.first.type }" => profile_infos.first.content,
-        "#{ profile_infos.last.type }" => profile_infos.last.content
-      }.to_json)
-    end
+  let(:authorized_info_types) { [] }
+  let(:authorized_scopes) { [] }
+  let(:app_authorization) do
+    Fabricate(
+      :app_authorization,
+      :app => Fabricate(:app),
+      :profile_info_types => authorized_info_types,
+      :scopes => authorized_scopes
+    )
   end
 
-  describe 'PUT /profile' do
-    it 'should replace profile with given JSON' do
-      profile_infos = []
-      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"), :tent => true)
-      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"))
-      profile_infos.each(&:save!)
+  let(:basic_info_type) { "https://tent.io/types/info/basic" }
+  let(:basic_info_content) do
+    {
+      "name" => "John Smith",
+      "age" => 21
+    }
+  end
 
-      data = {
-        "https://tent.io" => {
-          "licenses" => ["http://creativecommons.org/licenses/by-nc-sa/3.0/"],
-          "entity" => 'https://backup-johnsmith.example.com',
-          "servers" => ['https://backup-johnsmith.example.com', 'https://smith.example.org']
-        },
-        "https://tent.io/types/info-types/basic-info" => {
-          "name" => "Smith",
-          "age" => 30
-        }
-      }
+  let(:work_history_type) { "https://tent.io/types/info/work-history" }
+  let(:work_history_content) do
+    {
+      "employers" => ["Foo Corp"]
+    }
+  end
 
-      json_put '/profile', data, 'tent.entity' => 'smith.example.com'
-      profile_infos = TentServer::Model::ProfileInfo.all(:entity => URI('https://smith.example.com'))
-      expect(profile_infos.count).to eq(2)
-      expect(last_response.body).to eq({
-        "#{profile_infos.first.type}" => profile_infos.first.content,
-        "#{ profile_infos.last.type }" => profile_infos.last.content
-      }.to_json)
+  def url_encode_type(type)
+    URI.encode(type, ":/")
+  end
+
+  def create_info(type, content, options = {})
+    Fabricate(:profile_info, :public => options[:public], :entity => entity, :type => type, :content => content)
+  end
+
+  describe 'GET /profile' do
+    context 'when read_profile scope authorized' do
+      let(:authorized_scopes) { [:read_profile] }
+      before { env['current_auth'] = app_authorization }
+
+      context 'when authorized for all info types' do
+        let(:authorized_info_types) { ['all'] }
+
+        it 'should return all info types' do
+          TentServer::Model::ProfileInfo.all.destroy
+
+          profile_infos = []
+          profile_infos << Fabricate(:profile_info, :public => false, :entity => URI(entity), :tent => true)
+          profile_infos << Fabricate(:profile_info, :public => false, :entity => URI(entity))
+
+          json_get '/profile', params, env
+          expect(last_response.body).to eq({
+            "#{ profile_infos.first.type }" => profile_infos.first.content,
+            "#{ profile_infos.last.type }" => profile_infos.last.content
+          }.to_json)
+        end
+      end
+
+      context 'when authorized for specific info types' do
+        let(:authorized_info_types) { ['https://tent.io/types/info/basic-info'] }
+
+        it 'should only return authorized info types' do
+          TentServer::Model::ProfileInfo.all.destroy
+
+          profile_infos = []
+          profile_infos << Fabricate(:profile_info, :public => false, :entity => URI(entity), :type => "https://tent.io/types/info/basic-info")
+          profile_infos << Fabricate(:profile_info, :public => false, :entity => URI(entity))
+
+          json_get '/profile', params, env
+          expect(last_response.body).to eq({
+            "#{ profile_infos.first.type }" => profile_infos.first.content
+          }.to_json)
+        end
+      end
+    end
+
+    context 'when read_profile scope unauthorized' do
+      it 'should only return public profile into types' do
+        TentServer::Model::ProfileInfo.all.destroy
+
+        profile_infos = []
+        profile_infos << Fabricate(:profile_info, :public => true, :entity => URI(entity), :tent => true)
+        profile_infos << Fabricate(:profile_info, :public => false, :entity => URI(entity))
+
+        json_get '/profile', params, env
+        expect(last_response.body).to eq({
+          "#{ profile_infos.first.type }" => profile_infos.first.content
+        }.to_json)
+      end
     end
   end
 
   describe 'PUT /profile/:type_url' do
-    it 'should add/replace info type with given JSON' do
-      TentServer::Model::ProfileInfo.all.destroy
+    before { env['current_auth'] = app_authorization }
 
-      profile_infos = []
-      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"), :tent => true)
-      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"))
-      profile_infos.each(&:save!)
+    context 'when authorized' do
+      let(:authorized_scopes) { [:write_profile] }
 
-      data = {
-        "name" => "Smith",
-        "age" => 35,
-        "city" => "Toronto"
-      }
+      can_update_basic_info_type = proc do
+        it 'should update info type' do
+          info = create_info(basic_info_type, basic_info_content, :public => false)
 
+          data = {
+            "name" => "John Doe"
+          }
 
-      type_uri = URI('https://tent.io/types/info-types/basic-info')
-      json_put "/profile/#{URI.escape(type_uri.to_s, ':/')}", data, 'tent.entity' => 'smith.example.com'
+          json_put "/profile/#{url_encode_type(basic_info_type)}", data, env
 
-      profile_hash = TentServer::Model::ProfileInfo.build_for_entity('smith.example.com')
-      expect(last_response.body).to eq(profile_hash.to_json)
-      expect(TentServer::Model::ProfileInfo.all(:type => type_uri).first.as_json(:only => :content)).to eq(
-        :content => data
-      )
+          expect(info.reload.content).to eq(data)
+          expect(last_response.status).to eq(200)
+        end
+
+        it 'should create unless exists' do
+          TentServer::Model::ProfileInfo.all.destroy
+
+          data = {
+            "name" => "John Doe"
+          }
+
+          expect(lambda {
+            json_put "/profile/#{url_encode_type(basic_info_type)}", data, env
+          }).to change(TentServer::Model::ProfileInfo, :count).by(1)
+
+          info = TentServer::Model::ProfileInfo.last
+          expect(info.content).to eq(data)
+          expect(last_response.status).to eq(200)
+        end
+      end
+
+      context 'when all info types authorized' do
+        let(:authorized_info_types) { ['all'] }
+
+        context '', &can_update_basic_info_type
+      end
+
+      context 'when specific info types authorized' do
+        context 'when :type_url authorized info type' do
+          let(:authorized_info_types) { [basic_info_type] }
+
+          context '', &can_update_basic_info_type
+        end
+
+        context 'when :type_url not authoried info type' do
+          it 'should return 403' do
+            json_put "/profile/#{url_encode_type(basic_info_type)}", params, env
+            expect(last_response.status).to eq(403)
+          end
+        end
+      end
+    end
+
+    context 'when not authorized' do
+      it 'should return 403' do
+        json_put "/profile/#{url_encode_type(basic_info_type)}", params, env
+        expect(last_response.status).to eq(403)
+      end
     end
   end
 
   describe 'PATCH /profile' do
-    it 'should update profile with given JSON diff array' do
-      profile_infos = []
-      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"), :tent => true)
-      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"))
-      profile_infos.each(&:save!)
+    before { env['current_auth'] = app_authorization }
 
-      diff_array = [
-        { "add" => "https:~1~1tent.io~1types~1info-types~1basic-info/city", "value" => "New York" },
-        { "remove" => "https:~1~1tent.io/servers/1" }
-      ]
-
-      new_profile_hash = {
-        "https://tent.io" => {
-          "licenses" => ["http://creativecommons.org/licenses/by-nc-sa/3.0/", "http://www.gnu.org/copyleft/gpl.html"],
-          "entity" => "https://smith.example.com",
-          "servers" => ["https://smith.example.com"]
-        },
-        "https://tent.io/types/info-types/basic-info" => {
-          "name" => "John Smith",
-          "age" => 25,
-          "city" => "New York"
-        }
-      }
-
-      json_patch '/profile', diff_array, 'tent.entity' => 'smith.example.com'
-      expect(last_response.body).to eq(new_profile_hash.to_json)
-      expect(::TentServer::Model::ProfileInfo.build_for_entity('smith.example.com')).to eq(new_profile_hash)
+    def diff_encode_type(type)
+      type.gsub(/~/, '~0').gsub(/\//, '~1')
     end
 
-    it 'should not update profile if diff test fails' do
-      profile_infos = []
-      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"), :tent => true)
-      profile_infos << Fabricate(:profile_info, :entity => URI("https://smith.example.com"))
-      profile_infos.each(&:save!)
+    context 'when authorized' do
+      let(:authorized_scopes) { [:write_profile] }
 
-      profile_hash = ::TentServer::Model::ProfileInfo.build_for_entity('smith.example.com')
+      can_update_basic_info_type = proc do
+        it 'should update basic info with diff' do
+          TentServer::Model::ProfileInfo.all.destroy
 
-      diff_array = [
-        { "add" => "https:~1~1tent.io~1types~1info-types~1basic-info/city", "value" => "New York" },
-        { "test" => "https:~1~1tent.io~1types~1info-types~1basic-info/age", "value" => 45 },
-        { "remove" => "https:~1~1tent.io/servers/1" }
-      ]
+          info = create_info(basic_info_type, basic_info_content, :public => false)
 
-      json_patch '/profile', diff_array, 'tent.entity' => 'smith.example.com'
-      expect(last_response.status).to eq(422)
-      expect(last_response.body).to eq(profile_hash.to_json)
+          diff = [
+            { "add" => "#{diff_encode_type(basic_info_type)}/city", "value" => "New York" },
+            { "remove" => "#{diff_encode_type(basic_info_type)}/age" },
+            { "replace" => "#{diff_encode_type(basic_info_type)}/name", "value" => "Alex Smith" }
+          ]
+
+          expected_data = {
+            "city" => "New York",
+            "name" => "Alex Smith",
+          }
+
+          json_patch "/profile", diff, env
+
+          expect(last_response.status).to eq(200)
+          expect(info.reload.content).to eq(expected_data)
+        end
+
+        it 'should return 422 if diff tests fail' do
+          TentServer::Model::ProfileInfo.all.destroy
+
+          info = create_info(basic_info_type, basic_info_content, :public => false)
+
+          diff = [
+            { "add" => "#{diff_encode_type(basic_info_type)}/city", "value" => "New York" },
+            { "remove" => "#{diff_encode_type(basic_info_type)}/age" },
+            { "replace" => "#{diff_encode_type(basic_info_type)}/name", "value" => "Alex Smith" },
+            { "test" => "#{diff_encode_type(basic_info_type)}/age", "value" => 40 },
+          ]
+
+          expected_data = info.content
+
+          json_patch "/profile", diff, env
+
+          expect(last_response.status).to eq(422)
+          expect(info.reload.content).to eq(expected_data)
+        end
+      end
+
+      context 'when all info types authorized' do
+        let(:authorized_info_types) { ['all'] }
+
+        context '', &can_update_basic_info_type
+        
+        it 'should update any info' do
+          TentServer::Model::ProfileInfo.all.destroy
+
+          info = create_info(basic_info_type, basic_info_content, :public => false)
+
+          diff = [
+            { "add" => "#{diff_encode_type(basic_info_type)}/city", "value" => "New York" },
+            { "remove" => "#{diff_encode_type(basic_info_type)}/age" },
+            { "replace" => "#{diff_encode_type(basic_info_type)}/name", "value" => "Alex Smith" },
+            { "add" => "#{diff_encode_type(work_history_type)}/employers", "value" => ["Foo Corp"] },
+            { "move" => "#{diff_encode_type(basic_info_type)}/name", "to" => "#{diff_encode_type(work_history_type)}/name" },
+            { "add" => "#{diff_encode_type(work_history_type)}/employers/1", "value" => "Bar Corp" },
+            { "add" => "#{diff_encode_type(work_history_type)}/city", "value" => "London" }
+          ]
+
+          expected_basic_data = {
+            "city" => "New York",
+          }
+
+          expected_work_data = {
+            "name" => "Alex Smith",
+            "employers" => ["Foo Corp", "Bar Corp"],
+            "city" => "London"
+          }
+
+          expect(lambda {
+            json_patch "/profile", diff, env
+          }).to change(TentServer::Model::ProfileInfo, :count).by(1)
+
+          expect(last_response.status).to eq(200)
+          expect(info.reload.content).to eq(expected_basic_data)
+
+          work_info = TentServer::Model::ProfileInfo.last
+          expect(work_info.content).to eq(expected_work_data)
+        end
+      end
+
+      context 'when specific info types authorized' do
+        let(:authorized_info_types) { [basic_info_type] }
+
+        context '', &can_update_basic_info_type
+      end
+    end
+
+    context 'when not authorized' do
+      it 'should return 403' do
+        json_patch '/profile', params, env
+        expect(last_response.status).to eq(403)
+      end
     end
   end
 end

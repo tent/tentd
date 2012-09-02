@@ -78,6 +78,7 @@ module TentServer
           return true if obj.kind_of?(Hash) && i == keys.size-1 && obj.has_key?(key)
 
           return false if obj[key].nil?
+
           return true if ![Hash, Array].include?(obj[key].class)
 
           i += 1

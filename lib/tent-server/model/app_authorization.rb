@@ -11,7 +11,7 @@ module TentServer
       property :scopes, Array
       property :groups, Array
       property :post_types, Array
-      property :profile_info_types, Array
+      property :profile_info_types, Array, :default => [], :lazy => false
       property :scopes, Array, :default => []
       property :token_code, String
       property :mac_key_id, String, :default => lambda { |*args| 'u:' + SecureRandom.hex(4) }, :unique => true
@@ -20,7 +20,8 @@ module TentServer
       property :mac_timestamp_delta, Integer
       property :token_type, String
       property :authorized, Boolean
-      timestamps :at
+      property :created_at, DateTime
+      property :updated_at, DateTime
 
       belongs_to :app, 'TentServer::Model::App'
       has n, :notification_subscriptions, 'TentServer::Model::NotificationSubscription', :constraint => :destroy
