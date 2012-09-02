@@ -3,6 +3,20 @@ module TentServer
     class Groups
       include Router
 
+      class AuthorizeRead < Middleware
+        def action(env)
+          authorize_env!(env, :read_groups)
+          env
+        end
+      end
+
+      class AuthorizeWrite < Middleware
+        def action(env)
+          authorize_env!(env, :write_groups)
+          env
+        end
+      end
+
       class GetActualId < Middleware
         def action(env)
           if env.params.group_id
@@ -60,24 +74,29 @@ module TentServer
       end
 
       get '/groups' do |b|
+        b.use AuthorizeRead
         b.use GetAll
       end
 
       get '/groups/:group_id' do |b|
+        b.use AuthorizeRead
         b.use GetActualId
         b.use GetOne
       end
 
       put '/groups/:group_id' do |b|
+        b.use AuthorizeWrite
         b.use GetActualId
         b.use Update
       end
 
       post '/groups' do |b|
+        b.use AuthorizeWrite
         b.use Create
       end
 
       delete '/groups/:group_id' do |b|
+        b.use AuthorizeWrite
         b.use GetActualId
         b.use Destroy
       end
