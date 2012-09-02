@@ -2,6 +2,8 @@ module TentServer
   class API
     PER_PAGE = 50
     MAX_PER_PAGE = 200
+    MEDIA_TYPE = 'application/vnd.tent.v0+json'
+
     autoload :Apps, 'tent-server/api/apps'
     autoload :Posts, 'tent-server/api/posts'
     autoload :Groups, 'tent-server/api/groups'

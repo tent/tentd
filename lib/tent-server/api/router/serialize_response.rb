@@ -7,7 +7,7 @@ module TentServer
         def call(env)
           response = env.response
           status = env['response.status'] || (response ? 200 : 404)
-          headers = { 'Content-Type' => 'application/json' }
+          headers = { 'Content-Type' => MEDIA_TYPE }
           [status, headers, response.to_json]
         end
       end

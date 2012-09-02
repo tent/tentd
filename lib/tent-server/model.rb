@@ -6,6 +6,7 @@ module TentServer
     require 'tent-server/model/permissible'
     require 'tent-server/model/random_public_uid'
     require 'tent-server/model/post'
+    require 'tent-server/model/post_attachment'
     require 'tent-server/model/follower'
     require 'tent-server/model/following'
     require 'tent-server/model/app'
