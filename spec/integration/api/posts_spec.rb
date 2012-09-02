@@ -18,23 +18,27 @@ describe TentServer::API::Posts do
 
   describe 'GET /posts/:post_id' do
     using_permissions = proc do
-      it "should find existing post by public_uid" do
-        post = Fabricate(:post, :public => true)
-        json_get "/posts/#{post.public_uid}"
-        expect(last_response.body).to eq(post.to_json)
+      not_authenticated = proc do
+        it "should find existing post by public_uid" do
+          post = Fabricate(:post, :public => true)
+          json_get "/posts/#{post.public_uid}"
+          expect(last_response.body).to eq(post.to_json)
+        end
+
+        it "should not find existing post by actual id" do
+          post = Fabricate(:post, :public => true)
+          json_get "/posts/#{post.id}"
+          expect(last_response.status).to eq(404)
+        end
+
+        it "should be 404 if post_id doesn't exist" do
+          TentServer::Model::Post.all.destroy!
+          json_get "/posts/1"
+          expect(last_response.status).to eq(404)
+        end
       end
 
-      it "should not find existing post by actual id" do
-        post = Fabricate(:post, :public => true)
-        json_get "/posts/#{post.id}"
-        expect(last_response.status).to eq(404)
-      end
-
-      it "should be 404 if post_id doesn't exist" do
-        TentServer::Model::Post.all.destroy!
-        json_get "/posts/1"
-        expect(last_response.status).to eq(404)
-      end
+      context &not_authenticated
 
       shared_examples "current_auth" do
         context 'when post is not public' do
@@ -91,7 +95,7 @@ describe TentServer::API::Posts do
       context 'when AppAuthorization' do
         let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
 
-        it_behaves_like "current_auth"
+        context &not_authenticated
       end
     end
 

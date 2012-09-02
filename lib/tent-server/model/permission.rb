@@ -10,8 +10,6 @@ module TentServer
       belongs_to :following, 'TentServer::Model::Following', :required => false
       belongs_to :follower_visibility, 'TentServer::Model::Follower', :required => false
       belongs_to :follower_access, 'TentServer::Model::Follower', :required => false
-      belongs_to :app, 'TentServer::Model::App', :required => false
-      belongs_to :app_authorization, 'TentServer::Model::AppAuthorization', :required => false
 
       property :id, Serial
       property :visible, Boolean

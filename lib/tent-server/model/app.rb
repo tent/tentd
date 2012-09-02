@@ -24,7 +24,6 @@ module TentServer
       property :updated_at, DateTime
 
       has n, :authorizations, 'TentServer::Model::AppAuthorization', :constraint => :destroy
-      has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
 
       def self.create_from_params(params)
         create(params.slice(:name, :description, :url, :icon, :redirect_uris, :scopes))

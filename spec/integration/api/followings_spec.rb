@@ -178,9 +178,7 @@ describe TentServer::API::Followings do
         context 'when AppAuthorization' do
           before { env['current_auth'] = Fabricate(:app_authorization, :app => Fabricate(:app)) }
 
-          context 'without permissions', &without_permissions
-
-          context 'with permissions', &with_permissions
+          context &without_permissions
         end
       end
     end
@@ -298,8 +296,7 @@ describe TentServer::API::Followings do
         context 'when AppAuthorization' do
           before { env['current_auth'] = Fabricate(:app_authorization, :app => Fabricate(:app)) }
 
-          context 'when permissible', &with_permissions
-          context 'when not permissible', &without_permissions
+          context &without_permissions
         end
       end
     end

@@ -8,12 +8,10 @@ describe TentServer::Model::Post do
 
       context 'when has permission via explicit' do
         before do
-          case current_auth
-          when TentServer::Model::Follower
-            current_auth.access_permissions.create(:post_id => post.id)
-          else
-            current_auth.permissions.create(:post_id => post.id)
-          end
+          TentServer::Model::Permission.create(
+            :post_id => post.id,
+            current_auth.permissible_foreign_key => current_auth.id
+          )
         end
 
         it 'should return post' do
@@ -46,12 +44,6 @@ describe TentServer::Model::Post do
 
     context 'when Follower' do
       let(:current_auth) { Fabricate(:follower, :groups => []) }
-
-      it_behaves_like 'current_auth param'
-    end
-
-    context 'when AppAuthorization' do
-      let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
 
       it_behaves_like 'current_auth param'
     end
@@ -266,11 +258,6 @@ describe TentServer::Model::Post do
 
       context 'when Follower' do
         let(:current_auth) { Fabricate(:follower) }
-        context '', &current_auth_stuff
-      end
-
-      context 'when AppAuthorization' do
-        let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
         context '', &current_auth_stuff
       end
     end

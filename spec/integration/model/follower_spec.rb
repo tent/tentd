@@ -45,12 +45,6 @@ describe TentServer::Model::Follower do
 
         context '', &current_auth_expectations
       end
-
-      context 'when AppAuthorization' do
-        let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
-
-        context '', &current_auth_expectations
-      end
     end
   end
 
@@ -286,12 +280,6 @@ describe TentServer::Model::Follower do
     context 'with current_auth' do
       context 'when Follower' do
         let(:current_auth) { Fabricate(:follower) }
-
-        context '', &current_auth_expectations
-      end
-
-      context 'when AppAuthorization' do
-        let(:current_auth) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
 
         context '', &current_auth_expectations
       end
