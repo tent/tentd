@@ -1,4 +1,3 @@
-require 'dm-ar-finders'
 require 'securerandom'
 
 module TentServer
@@ -72,6 +71,7 @@ module TentServer
         attributes = super
         attributes[:id] = public_uid if attributes[:id]
         attributes.delete(:public_uid)
+        attributes[:attachments] = attachments.all.map { |a| a.as_json }
         attributes
       end
     end

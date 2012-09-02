@@ -62,6 +62,7 @@ module TentServer
                                          :category => attachment.name, :name => attachment.filename,
                                          :data => attachment.tempfile.read, :size => attachment.tempfile.size)
           end
+          env.response.reload
           env
         end
       end

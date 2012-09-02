@@ -14,6 +14,10 @@ module TentServer
       timestamps :at
 
       belongs_to :post, 'TentServer::Model::Post'
+
+      def as_json(options = {})
+        super({ :exclude => [:id, :data, :post_id, :created_at, :updated_at] }.merge(options))
+      end
     end
   end
 end
