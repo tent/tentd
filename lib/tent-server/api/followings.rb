@@ -114,7 +114,7 @@ module TentServer
         end
       end
 
-      get '/following/:following_id' do |b|
+      get '/followings/:following_id' do |b|
         b.use GetActualId
         b.use GetOne
       end

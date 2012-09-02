@@ -239,19 +239,19 @@ describe TentServer::API::Followings do
     without_permissions = proc do
       it 'should return following if public' do
         following = Fabricate(:following, :public => true)
-        json_get "/following/#{following.public_uid}", params, env
+        json_get "/followings/#{following.public_uid}", params, env
         expect(last_response.body).to eq(following.to_json)
       end
 
       it 'should return 404 unless public' do
         following = Fabricate(:following, :public => false)
-        json_get "/following/#{following.public_uid}", params, env
+        json_get "/followings/#{following.public_uid}", params, env
         expect(last_response.status).to eq(403)
       end
 
       it 'should return 404 unless exists' do
         following = Fabricate(:following, :public => true)
-        json_get "/following/invalid-id", params, env
+        json_get "/followings/invalid-id", params, env
         expect(last_response.status).to eq(403)
       end
     end
@@ -264,7 +264,7 @@ describe TentServer::API::Followings do
             :following_id => following.id,
             current_auth.permissible_foreign_key => current_auth.id
           )
-          json_get "/following/#{following.public_uid}", params, env
+          json_get "/followings/#{following.public_uid}", params, env
           expect(last_response.body).to eq(following.to_json)
         end
       end
@@ -278,7 +278,7 @@ describe TentServer::API::Followings do
             :following_id => following.id,
             :group_public_uid => group.public_uid
           )
-          json_get "/following/#{following.public_uid}", params, env
+          json_get "/followings/#{following.public_uid}", params, env
           expect(last_response.body).to eq(following.to_json)
         end
       end
@@ -309,7 +309,7 @@ describe TentServer::API::Followings do
 
       it 'should return private following without mac keys' do
         following = Fabricate(:following, :public => false)
-        json_get "/following/#{following.public_uid}", params, env
+        json_get "/followings/#{following.public_uid}", params, env
         expect(last_response.status).to eq(200)
         body = JSON.parse(last_response.body)
         [:remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
@@ -323,7 +323,7 @@ describe TentServer::API::Followings do
 
       it 'should return public following without mac keys' do
         following = Fabricate(:following, :public => true)
-        json_get "/following/#{following.public_uid}", params, env
+        json_get "/followings/#{following.public_uid}", params, env
         expect(last_response.status).to eq(200)
         body = JSON.parse(last_response.body)
         [:remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
@@ -343,7 +343,7 @@ describe TentServer::API::Followings do
 
         it 'should return following with mac keys' do
           following = Fabricate(:following, :public => true)
-          json_get "/following/#{following.public_uid}", params, env
+          json_get "/followings/#{following.public_uid}", params, env
           expect(last_response.status).to eq(200)
           body = JSON.parse(last_response.body)
           [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta, :remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
