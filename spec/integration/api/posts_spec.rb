@@ -60,8 +60,8 @@ describe TentServer::API::Posts do
 
           context 'when has permission via groups' do
             before do
-              post.permissions.create(:group_id => group.id)
-              current_auth.groups = [group.id]
+              post.permissions.create(:group_public_uid => group.public_uid)
+              current_auth.groups = [group.public_uid]
               current_auth.save
             end
 

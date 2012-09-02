@@ -19,7 +19,7 @@ module TentServer
             query << "AND (permissions.#{current_auth.permissible_foreign_key} = ?"
             query_bindings << current_auth.id
             if current_auth.respond_to?(:groups) && current_auth.groups.to_a.any?
-              query << "OR permissions.group_id IN ?)"
+              query << "OR permissions.group_public_uid IN ?)"
               query_bindings << current_auth.groups
             else
               query << ")"

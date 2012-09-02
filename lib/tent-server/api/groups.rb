@@ -3,6 +3,19 @@ module TentServer
     class Groups
       include Router
 
+      class GetActualId < Middleware
+        def action(env)
+          if env.params.group_id
+            if g = Model::Group.first(:public_uid => env.params.group_id)
+              env.params.group_id = g.id
+            else
+              env.params.group_id = nil
+            end
+          end
+          env
+        end
+      end
+
       class GetAll < Middleware
         def action(env)
           env['response'] = Model::Group.all
@@ -22,8 +35,7 @@ module TentServer
       class Update < Middleware
         def action(env)
           if group = Model::Group.get(env.params[:group_id])
-            group_attributes = env.params[:data]
-            group.update(group_attributes)
+            group.update(:name => env.params.data.name)
             env['response'] = group.reload
           end
           env
@@ -52,10 +64,12 @@ module TentServer
       end
 
       get '/groups/:group_id' do |b|
+        b.use GetActualId
         b.use GetOne
       end
 
       put '/groups/:group_id' do |b|
+        b.use GetActualId
         b.use Update
       end
 
@@ -64,6 +78,7 @@ module TentServer
       end
 
       delete '/groups/:group_id' do |b|
+        b.use GetActualId
         b.use Destroy
       end
     end

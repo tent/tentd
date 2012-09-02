@@ -17,7 +17,7 @@ describe TentServer::API::Groups do
   describe 'GET /groups/:id' do
     it 'should find group with :id' do
       group = Fabricate(:group)
-      get "/groups/#{group.id}"
+      get "/groups/#{group.public_uid}"
       expect(last_response.body).to eq(group.to_json)
     end
 
@@ -31,8 +31,8 @@ describe TentServer::API::Groups do
     it 'should update group with :id' do
       group = Fabricate(:group, :name => 'foo-bar')
       group.name = 'bar-baz'
-      group.save
-      json_put "/groups/#{group.id}", group
+      expect(group.save).to be_true
+      json_put "/groups/#{group.public_uid}", group
       actual_group = TentServer::Model::Group.get(group.id)
       expect(actual_group.name).to eq(group.name)
       expect(last_response.body).to eq(actual_group.to_json)
@@ -42,7 +42,7 @@ describe TentServer::API::Groups do
   describe 'POST /groups' do
     it 'should create group' do
       group = Fabricate.build(:group, :name => 'bacon-bacon')
-      expect(lambda { json_post "/groups", group.as_json(:exclude => [:id, :updated_at, :created_at]) }).
+      expect(lambda { json_post "/groups", group.as_json(:exclude => [:id, :public_uid, :updated_at, :created_at]) }).
         to change(TentServer::Model::Group, :count).by(1)
     end
   end
@@ -50,7 +50,7 @@ describe TentServer::API::Groups do
   describe 'DELETE /groups' do
     it 'should destroy group' do
       group = Fabricate(:group, :name => 'foo-bar-baz')
-      expect(lambda { delete "/groups/#{group.id}" }).
+      expect(lambda { delete "/groups/#{group.public_uid}" }).
         to change(TentServer::Model::Group, :count).by(-1)
     end
 

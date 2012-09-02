@@ -132,10 +132,10 @@ describe TentServer::API::Followings do
 
         context 'via group' do
           it 'should return permissible and public followings' do
-            current_auth.update(:groups => [group.id])
+            current_auth.update(:groups => [group.public_uid])
             TentServer::Model::Permission.create(
               :following_id => private_permissible_following.id,
-              :group_id => group.id
+              :group_public_uid => group.public_uid
             )
 
             json_get '/followings', nil, 'current_auth' => current_auth
@@ -212,11 +212,11 @@ describe TentServer::API::Followings do
       context 'via group' do
         it 'should return following' do
           group = Fabricate(:group, :name => 'foo')
-          current_auth.update(:groups => [group.id])
-          following = Fabricate(:following, :public => false, :groups => [group.id.to_s])
+          current_auth.update(:groups => [group.public_uid])
+          following = Fabricate(:following, :public => false, :groups => [group.public_uid.to_s])
           TentServer::Model::Permission.create(
             :following_id => following.id,
-            :group_id => group.id
+            :group_public_uid => group.public_uid
           )
           json_get "/following/#{following.public_uid}", nil, 'current_auth' => current_auth
           expect(last_response.body).to eq(following.to_json)
@@ -262,7 +262,7 @@ describe TentServer::API::Followings do
     let(:following_data) do
       {
         'entity' => entity_url,
-        'groups' => [{ :id => group.id.to_s }]
+        'groups' => [{ :id => group.public_uid.to_s }]
       }
     end
 
@@ -363,7 +363,7 @@ describe TentServer::API::Followings do
 
         following = TentServer::Model::Following.last
         expect(following.entity.to_s).to eq("https://sam.example.org")
-        expect(following.groups).to eq([group.id.to_s])
+        expect(following.groups).to eq([group.public_uid.to_s])
         expect(following.remote_id).to eq(follower.public_uid.to_s)
         expect(following.mac_key_id).to eq(follower.mac_key_id)
         expect(following.mac_key).to eq(follower.mac_key)
