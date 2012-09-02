@@ -44,7 +44,7 @@ module TentServer
         end
       end
 
-      class Create < Middleware
+      class CreatePost < Middleware
         def action(env)
           authorize_env!(env, :write_posts)
           post_attributes = env.params[:data]
@@ -54,10 +54,26 @@ module TentServer
         end
       end
 
+      class CreateAttachments < Middleware
+        def action(env)
+          return env unless env.params.attachments.kind_of?(Array)
+          env.params.attachments.each do |attachment|
+            Model::PostAttachment.create(:post => env['response'], :type => attachment.type,
+                                         :category => attachment.name, :name => attachment.filename,
+                                         :data => attachment.tempfile.read)
+          end
+          env
+        end
+      end
+
       get '/posts/:post_id' do |b|
         b.use GetActualId
         b.use GetOne
       end
+
+      #get '/posts/:post_id/attachments/:filename' do
+        #b.use GetAttachment
+      #end
 
       get '/posts' do |b|
         b.use GetActualId
@@ -65,7 +81,8 @@ module TentServer
       end
 
       post '/posts' do |b|
-        b.use Create
+        b.use CreatePost
+        b.use CreateAttachments
       end
     end
   end

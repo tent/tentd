@@ -263,6 +263,21 @@ describe TentServer::API::Posts do
         expect(lambda { json_post "/posts", post_attributes, env }).to change(TentServer::Model::Post, :count).by(1)
         expect(last_response.body).to eq(TentServer::Model::Post.last.to_json)
       end
+
+      it 'should create post with multipart attachments' do
+        post = Fabricate(:post)
+        post_attributes = post.as_json(:exclude => [:id])
+        attachments = { :foo => [{ :filename => 'a', :content_type => 'text/plain', :content => 'asdf' },
+                                 { :filename => 'a', :content_type => 'application/json', :content => 'asdf123' },
+                                 { :filename => 'b', :content_type => 'text/plain', :content => '1234' }],
+                        :bar => { :filename => 'bar.html', :content_type => 'text/html', :content => '54321' } }
+        expect(lambda {
+          expect(lambda {
+            multipart_post('/posts', post_attributes, attachments, env)
+          }).to change(TentServer::Model::Post, :count).by(1)
+        }).to change(TentServer::Model::PostAttachment, :count).by(4)
+        expect(last_response.body).to eq(TentServer::Model::Post.last.to_json)
+      end
     end
 
     context 'without write_posts scope authorized' do

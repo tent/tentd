@@ -17,7 +17,7 @@ module TentServer
         private
 
         def add_request(env)
-          env['request'] = Rack::Request.new(env)
+          env['request'] = RackRequest.new(env)
         end
 
         def extract_params(env)
@@ -33,14 +33,15 @@ module TentServer
             keys.zip(values) { |k,v| Array === params[k] ? params[k] << v : params[k] = v if v }
           end
 
-          if env['HTTP_CONTENT_TYPE'] =~ /\bjson\Z/
-            begin
+          begin
+            if env['CONTENT_TYPE'] =~ /\bjson\Z/
               params['data'] = JSON.parse(env['rack.input'].read)
-            rescue JSON::ParserError
-              params['data'] = nil
+            elsif env['CONTENT_TYPE'] =~ /\Amultipart/ && params['attachments']
+              data_json = params['attachments'].find { |p| p[:type] == MEDIA_TYPE }
+              params['attachments'].delete(data_json)
+              params['data'] = JSON.parse(data_json[:tempfile].read)
             end
-
-            env['rack.input'].rewind
+          rescue JSON::ParserError
           end
 
           env['params'] = indifferent_params(params)

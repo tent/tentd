@@ -6,6 +6,7 @@ module TentServer
   autoload :Action, 'tent-server/action'
   autoload :JsonPatch, 'tent-server/json_patch'
   autoload :TentVersion, 'tent-server/tent_version'
+  autoload :RackRequest, 'tent-server/rack_request'
 
   def self.new(options={})
     DataMapper.setup(:default, options[:database] || ENV['DATABASE_URL'])
