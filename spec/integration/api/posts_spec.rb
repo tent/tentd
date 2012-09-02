@@ -5,11 +5,13 @@ describe TentServer::API::Posts do
     TentServer::API.new
   end
 
+  let(:authorized_post_types) { [] }
   def authorize!(*scopes)
     env['current_auth'] = stub(
       :kind_of? => true,
       :id => nil,
-      :scopes => scopes
+      :scopes => scopes,
+      :post_types => authorized_post_types
     )
   end
 
@@ -103,19 +105,40 @@ describe TentServer::API::Posts do
 
     context 'with read_posts scope authorized' do
       before { authorize!(:read_posts) }
+      let(:post_type) { 'https://tent.io/types/post/status' }
 
-      context 'when post exists' do
-        it 'should return post' do
-          post = Fabricate(:post, :public => false)
-          json_get "/posts/#{post.public_uid}", params, env
-          expect(last_response.status).to eq(200)
-          expect(last_response.body).to eq(post.to_json)
+      post_type_authorized = proc do
+        context 'when post exists' do
+          it 'should return post' do
+            post = Fabricate(:post, :public => false, :type => post_type)
+            json_get "/posts/#{post.public_uid}", params, env
+            expect(last_response.status).to eq(200)
+            expect(last_response.body).to eq(post.to_json)
+          end
+        end
+
+        context 'when no post exists with :id' do
+          it 'should respond 404' do
+            json_get "/posts/invalid-id", params, env
+            expect(last_response.status).to eq(404)
+          end
         end
       end
 
-      context 'when no post exists with :id' do
-        it 'should respond 404' do
-          json_get "/posts/invalid-id", params, env
+      context 'when post type is authorized' do
+        let(:authorized_post_types) { [post_type] }
+        context &post_type_authorized
+      end
+
+      context 'when all post types authorized' do
+        let(:authorized_post_types) { ['all'] }
+        context &post_type_authorized
+      end
+
+      context 'when post type is not authorized' do
+        it 'should return 404' do
+          post = Fabricate(:post, :public => false, :type => post_type)
+          json_get "/posts/#{post.public_uid}", params, env
           expect(last_response.status).to eq(404)
         end
       end
@@ -254,7 +277,26 @@ describe TentServer::API::Posts do
       before { authorize!(:read_posts) }
       let(:post_public?) { false }
 
-      context &with_params
+      context 'when post type authorized' do
+        let(:authorized_post_types) { ["https://tent.io/types/posts/status", "https://tent.io/types/posts/picture", "https://tent.io/types/posts/blog"] }
+
+        context &with_params
+      end
+
+      context 'when all post types authorized' do
+        let(:authorized_post_types) { ['all'] }
+
+        context &with_params
+      end
+
+      context 'when post type not authorized' do
+        it 'should return empty array' do
+          TentServer::Model::Post.all.destroy
+          post = Fabricate(:post, :public => false)
+          json_get "/posts", params, env
+          expect(last_response.body).to eq([].to_json)
+        end
+      end
     end
   end
 

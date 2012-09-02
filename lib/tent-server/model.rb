@@ -2,6 +2,7 @@ require 'data_mapper'
 require 'dm-ar-finders'
 require 'tent-server/datamapper/array_property'
 require 'tent-server/datamapper/binary_string_property'
+require 'tent-server/datamapper/query'
 
 module TentServer
   module Model

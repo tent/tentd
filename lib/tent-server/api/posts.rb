@@ -22,7 +22,11 @@ module TentServer
       class GetOne < Middleware
         def action(env)
           if authorize_env?(env, :read_posts)
-            post = Model::Post.get(env.params.post_id)
+            conditions = { :id => env.params.post_id }
+            unless env.current_auth.post_types.include?('all')
+              conditions[:type] = env.current_auth.post_types
+            end
+            post = Model::Post.first(conditions)
           else
             post = Model::Post.find_with_permissions(env.params.post_id, env.current_auth)
           end
@@ -36,9 +40,33 @@ module TentServer
       class GetFeed < Middleware
         def action(env)
           if authorize_env?(env, :read_posts)
-            env['response'] = Model::Post.fetch_all(env.params)
+            conditions = {}
+            conditions[:id.gt] = env.params.since_id if env.params.since_id
+            conditions[:id.lt] = env.params.before_id if env.params.before_id
+            conditions[:published_at.gt] = Time.at(env.params.since_time.to_i) if env.params.since_time
+            conditions[:published_at.lt] = Time.at(env.params.before_time.to_i) if env.params.before_time
+            if env.params.post_types
+              conditions[:type] = env.params.post_types.split(',').map do |type|
+                URI.unescape(type)
+              end.select do |type|
+                env.current_auth.post_types.include?('all') ||
+                env.current_auth.post_types.include?(type)
+              end
+            elsif !env.current_auth.post_types.include?('all')
+              conditions[:type] = env.current_auth.post_types
+            end
+            if env.params.limit
+              conditions[:limit] = [env.params.limit.to_i, TentServer::API::MAX_PER_PAGE].min
+            else
+              conditions[:limit] = TentServer::API::PER_PAGE
+            end
+            if conditions[:limit] == 0
+              env.response = []
+            else
+              env.response = Model::Post.all(conditions)
+            end
           else
-            env['response'] = Model::Post.fetch_with_permissions(env.params, env.current_auth)
+            env.response = Model::Post.fetch_with_permissions(env.params, env.current_auth)
           end
           env
         end

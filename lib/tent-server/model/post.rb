@@ -23,28 +23,6 @@ module TentServer
       has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy
       has n, :attachments, 'TentServer::Model::PostAttachment', :constraint => :destroy
 
-      def self.fetch_all(params)
-        super do |params, query_conditions, query_bindings|
-          if params.since_time
-            query_conditions << "posts.published_at > ?"
-            query_bindings << Time.at(params.since_time.to_i)
-          end
-
-          if params.before_time
-            query_conditions << "posts.published_at < ?"
-            query_bindings << Time.at(params.before_time.to_i)
-          end
-
-          if params.post_types
-            params.post_types = params.post_types.split(',').map { |url| URI.unescape(url) }
-            if params.post_types.any?
-              query_conditions << "posts.type IN ?"
-              query_bindings << params.post_types
-            end
-          end
-        end
-      end
-
       def self.fetch_with_permissions(params, current_auth)
         super do |params, query, query_bindings|
           if params.since_time
