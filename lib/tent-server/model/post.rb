@@ -11,7 +11,6 @@ module TentServer
 
       property :id, Serial
       property :entity, URI
-      property :scope, Enum[:public, :limited, :direct], :default => :direct
       property :public, Boolean, :default => false
       property :type, URI
       property :licenses, Array

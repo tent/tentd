@@ -1,6 +1,5 @@
 Fabricator(:post, :class_name => "TentServer::Model::Post") do |f|
   f.entity URI("https://smith.example.com")
-  f.scope 'limited'
   f.public true
   f.type   URI("https://tent.io/types/posts/status")
   f.licenses ["http://creativecommons.org/licenses/by-nc-sa/3.0/", "http://www.gnu.org/copyleft/gpl.html"]

@@ -266,7 +266,6 @@ describe TentServer::Model::Post do
   it "should persist with proper serialization" do
     attributes = {
       :entity => "https://example.org",
-      :scope => :limited,
       :type => "https://tent.io/types/posts/status",
       :licenses => ["http://creativecommons.org/licenses/by-nc-sa/3.0/", "http://www.gnu.org/copyleft/gpl.html"],
       :content => {
