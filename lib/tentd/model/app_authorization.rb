@@ -8,10 +8,9 @@ module TentD
       storage_names[:default] = 'app_authorizations'
 
       property :id, Serial
-      property :scopes, Array
-      property :post_types, Array
+      property :post_types, Array, :lazy => false
       property :profile_info_types, Array, :default => [], :lazy => false
-      property :scopes, Array, :default => []
+      property :scopes, Array, :default => [], :lazy => false
       property :token_code, String
       property :mac_key_id, String, :default => lambda { |*args| 'u:' + SecureRandom.hex(4) }, :unique => true
       property :mac_key, String, :default => lambda { |*args| SecureRandom.hex(16) }
