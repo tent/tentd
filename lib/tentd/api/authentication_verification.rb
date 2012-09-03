@@ -36,10 +36,10 @@ module TentD
       end
 
       def build_request_string(time, nonce, env)
-         body = env['rack.input'].read
-         env['rack.input'].rewind
-         request_uri = env.SCRIPT_NAME + (env.QUERY_STRING ? "?#{env.QUERY_STRING}" : '')
-        [time.to_s, nonce, env.REQUEST_METHOD.to_s.upcase, request_uri, env.HTTP_HOST, env.SERVER_PORT, body, nil].join("\n")
+        body = env['rack.input'].read
+        env['rack.input'].rewind
+        request_uri = env.SCRIPT_NAME + (env.QUERY_STRING != '' ? "?#{env.QUERY_STRING}" : '')
+        [time.to_s, nonce, env.REQUEST_METHOD.to_s.upcase, request_uri, env.HTTP_HOST.split(':').first, env.SERVER_PORT, body, nil].join("\n")
       end
 
       def openssl_digest(mac_algorithm)
