@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe TentServer::API::Posts do
+describe TentD::API::Posts do
   def app
-    TentServer::API.new
+    TentD::API.new
   end
 
   let(:authorized_post_types) { [] }
@@ -34,7 +34,7 @@ describe TentServer::API::Posts do
         end
 
         it "should be 404 if post_id doesn't exist" do
-          TentServer::Model::Post.all.destroy!
+          TentD::Model::Post.all.destroy!
           json_get "/posts/1"
           expect(last_response.status).to eq(404)
         end
@@ -50,7 +50,7 @@ describe TentServer::API::Posts do
           context 'when has explicit permission' do
             before do
               case current_auth
-              when TentServer::Model::Follower
+              when TentD::Model::Follower
                 current_auth.access_permissions.create(:post_id => post.id)
               else
                 current_auth.permissions.create(:post_id => post.id)
@@ -155,9 +155,9 @@ describe TentServer::API::Posts do
   describe 'GET /posts' do
     let(:post_public?) { true }
     with_params = proc do
-      it "should respond with first TentServer::API::PER_PAGE posts if no params given" do
-        with_constants "TentServer::API::PER_PAGE" => 1 do
-          0.upto(TentServer::API::PER_PAGE+1).each { Fabricate(:post, :public => post_public?).save! }
+      it "should respond with first TentD::API::PER_PAGE posts if no params given" do
+        with_constants "TentD::API::PER_PAGE" => 1 do
+          0.upto(TentD::API::PER_PAGE+1).each { Fabricate(:post, :public => post_public?).save! }
           json_get '/posts', params, env
           expect(JSON.parse(last_response.body).size).to eq(1)
         end
@@ -176,7 +176,7 @@ describe TentServer::API::Posts do
         blog_post.type = blog_type_uri
         blog_post.save!
 
-        posts = TentServer::Model::Post.all(:type => [picture_type_uri, blog_type_uri])
+        posts = TentD::Model::Post.all(:type => [picture_type_uri, blog_type_uri])
         post_types = [picture_post, blog_post].map { |p| URI.escape(p.type.to_s, "://") }
 
         json_get "/posts?post_types=#{post_types.join(',')}", params, env
@@ -194,7 +194,7 @@ describe TentServer::API::Posts do
       end
 
       it "should filter by params[:before_id]" do
-        TentServer::Model::Post.all.destroy!
+        TentD::Model::Post.all.destroy!
         post = Fabricate(:post, :public => post_public?)
         post.save!
         before_post = Fabricate(:post, :public => post_public?)
@@ -262,8 +262,8 @@ describe TentServer::API::Posts do
         expect(JSON.parse(last_response.body).size).to eq(1)
       end
 
-      it "limit should never exceed TentServer::API::MAX_PER_PAGE" do
-        with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
+      it "limit should never exceed TentD::API::MAX_PER_PAGE" do
+        with_constants "TentD::API::MAX_PER_PAGE" => 0 do
           0.upto(2).each { Fabricate(:post, :public => post_public?).save! }
           json_get '/posts?limit=1', params, env
           expect(last_response.body).to eq([].to_json)
@@ -291,7 +291,7 @@ describe TentServer::API::Posts do
 
       context 'when post type not authorized' do
         it 'should return empty array' do
-          TentServer::Model::Post.all.destroy
+          TentD::Model::Post.all.destroy
           post = Fabricate(:post, :public => false)
           json_get "/posts", params, env
           expect(last_response.body).to eq([].to_json)
@@ -306,8 +306,8 @@ describe TentServer::API::Posts do
       it "should create post" do
         post = Fabricate(:post)
         post_attributes = post.as_json(:exclude => [:id])
-        expect(lambda { json_post "/posts", post_attributes, env }).to change(TentServer::Model::Post, :count).by(1)
-        expect(last_response.body).to eq(TentServer::Model::Post.last.to_json)
+        expect(lambda { json_post "/posts", post_attributes, env }).to change(TentD::Model::Post, :count).by(1)
+        expect(last_response.body).to eq(TentD::Model::Post.last.to_json)
       end
 
       it 'should create post with multipart attachments' do
@@ -320,15 +320,15 @@ describe TentServer::API::Posts do
         expect(lambda {
           expect(lambda {
             multipart_post('/posts', post_attributes, attachments, env)
-          }).to change(TentServer::Model::Post, :count).by(1)
-        }).to change(TentServer::Model::PostAttachment, :count).by(4)
-        expect(last_response.body).to eq(TentServer::Model::Post.last.to_json)
+          }).to change(TentD::Model::Post, :count).by(1)
+        }).to change(TentD::Model::PostAttachment, :count).by(4)
+        expect(last_response.body).to eq(TentD::Model::Post.last.to_json)
       end
     end
 
     context 'without write_posts scope authorized' do
       it 'should respond 403' do
-        expect(lambda { json_post "/posts", {}, env }).to_not change(TentServer::Model::Post, :count)
+        expect(lambda { json_post "/posts", {}, env }).to_not change(TentD::Model::Post, :count)
         expect(last_response.status).to eq(403)
       end
     end

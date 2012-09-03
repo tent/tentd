@@ -1,4 +1,4 @@
-Fabricator(:post_attachment, :class_name => "TentServer::Model::PostAttachment") do |f|
+Fabricator(:post_attachment, :class_name => "TentD::Model::PostAttachment") do |f|
   post
   f.category 'foo-category'
   f.type 'text/plain'

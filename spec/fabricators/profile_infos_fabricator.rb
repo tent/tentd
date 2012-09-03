@@ -1,4 +1,4 @@
-Fabricator(:profile_info, :class_name => 'TentServer::Model::ProfileInfo') do |f|
+Fabricator(:profile_info, :class_name => 'TentD::Model::ProfileInfo') do |f|
   f.transient :tent
   f.entity "https://johnsmith.example.org"
   f.public true

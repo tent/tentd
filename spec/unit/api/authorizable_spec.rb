@@ -1,9 +1,9 @@
 require 'spec_helper'
 require 'hashie'
 
-describe TentServer::API::Authorizable do
+describe TentD::API::Authorizable do
   class TestMiddleware2
-    include TentServer::API::Authorizable
+    include TentD::API::Authorizable
 
     def initialize(app)
       @app = app
@@ -15,7 +15,7 @@ describe TentServer::API::Authorizable do
     end
   end
 
-  class OtherTestMiddleware < TentServer::API::Middleware
+  class OtherTestMiddleware < TentD::API::Middleware
     def action(env)
       authorize_env!(env, :read_posts)
       env
@@ -23,7 +23,7 @@ describe TentServer::API::Authorizable do
   end
 
   def app
-    TentServer::API.new
+    TentD::API.new
   end
 
   let(:env) { Hashie::Mash.new }
@@ -39,7 +39,7 @@ describe TentServer::API::Authorizable do
       expect( lambda { middleware.call(env) } ).to_not raise_error
     end
 
-    context 'when TentServer::API::Middleware' do
+    context 'when TentD::API::Middleware' do
       it 'should respond 403 unless env.authorized_scopes includes scope' do
         response = OtherTestMiddleware.new(app).call(env)
         expect(response).to be_an(Array)

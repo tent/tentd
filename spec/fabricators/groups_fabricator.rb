@@ -1,1 +1,1 @@
-Fabricator(:group, :class_name => "TentServer::Model::Group")
+Fabricator(:group, :class_name => "TentD::Model::Group")

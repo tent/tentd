@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe TentServer::API::Followers do
+describe TentD::API::Followers do
   def app
-    TentServer::API.new
+    TentD::API.new
   end
 
   def link_header(entity_url)
@@ -79,9 +79,9 @@ describe TentServer::API::Followers do
 
       it 'should create follower db record and respond with hmac secret' do
         expect(lambda { json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com' }).
-          to change(TentServer::Model::Follower, :count).by(1)
+          to change(TentD::Model::Follower, :count).by(1)
         expect(last_response.status).to eq(200)
-        follow = TentServer::Model::Follower.last
+        follow = TentD::Model::Follower.last
         expect(JSON.parse(last_response.body)).to eq({
           "id" => follow.public_id,
           "mac_key_id" => follow.mac_key_id,
@@ -92,9 +92,9 @@ describe TentServer::API::Followers do
 
       it 'should create notification subscription for each type given' do
         expect(lambda { json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com' }).
-          to change(TentServer::Model::NotificationSubscription, :count).by(2)
+          to change(TentD::Model::NotificationSubscription, :count).by(2)
         expect(last_response.status).to eq(200)
-        expect(TentServer::Model::NotificationSubscription.last.view).to eq('meta')
+        expect(TentD::Model::NotificationSubscription.last.view).to eq('meta')
       end
     end
   end
@@ -126,14 +126,14 @@ describe TentServer::API::Followers do
 
       it 'should create follower without discovery' do
         expect(lambda { json_post '/followers', follower_data, env }).
-          to change(TentServer::Model::Follower, :count).by(1)
+          to change(TentD::Model::Follower, :count).by(1)
         expect(last_response.status).to eq(200)
       end
 
       it 'should create notification subscription for each type given' do
         expect(lambda { json_post '/followers', follower_data, env }).
-          to change(TentServer::Model::NotificationSubscription, :count).by(2)
-        expect(TentServer::Model::NotificationSubscription.last.view).to eq('meta')
+          to change(TentD::Model::NotificationSubscription, :count).by(2)
+        expect(TentD::Model::NotificationSubscription.last.view).to eq('meta')
         expect(last_response.status).to eq(200)
       end
     end
@@ -141,10 +141,10 @@ describe TentServer::API::Followers do
     context 'when write_secrets scope not authorized' do
       it 'should respond 403' do
         expect(lambda { json_post '/followers', follower_data, env }).
-          to_not change(TentServer::Model::Follower, :count)
+          to_not change(TentD::Model::Follower, :count)
 
         expect(lambda { json_post '/followers', follower_data, env }).
-          to_not change(TentServer::Model::NotificationSubscription, :count)
+          to_not change(TentD::Model::NotificationSubscription, :count)
 
         expect(last_response.status).to eq(403)
       end
@@ -154,7 +154,7 @@ describe TentServer::API::Followers do
   describe 'GET /followers' do
     authorized_permissible = proc do
       it 'should return a list of followers' do
-        TentServer::Model::Follower.all.destroy!
+        TentD::Model::Follower.all.destroy!
         followers = 2.times.map { Fabricate(:follower, :public => true) }
         json_get '/followers', params, env
         expect(last_response.body).to eq(followers.map { |f|
@@ -165,7 +165,7 @@ describe TentServer::API::Followers do
 
     authorized_full = proc do
       it 'should return a list of followers without mac keys' do
-        TentServer::Model::Follower.all.destroy!
+        TentD::Model::Follower.all.destroy!
         followers = 2.times.map { Fabricate(:follower, :public => false) }
         json_get '/followers', params, env
         expect(last_response.body).to eq(followers.map { |f|
@@ -184,7 +184,7 @@ describe TentServer::API::Followers do
         before { authorize!(:read_followers, :read_secrets) }
         context 'when read_secrets param set to true' do
           it 'should return a list of followers with mac keys' do
-            TentServer::Model::Follower.all.destroy!
+            TentD::Model::Follower.all.destroy!
             followers = 2.times.map { Fabricate(:follower, :public => false) }
             json_get '/followers', params, env
             expect(last_response.body).to eq(followers.map { |f|
@@ -344,14 +344,14 @@ describe TentServer::API::Followers do
           :types => follower.notification_subscriptions.map {|ns| ns.type.to_s}.concat(["https://tent.io/types/post/video/v0.1.x#meta"])
         }
         expect( lambda { json_put "/followers/#{follower.public_id}", data, env } ).
-          to change(TentServer::Model::NotificationSubscription, :count).by (1)
+          to change(TentD::Model::NotificationSubscription, :count).by (1)
 
         follower.reload
         data = {
           :types => follower.notification_subscriptions.map {|ns| ns.type.to_s}[0..-2]
         }
         expect( lambda { json_put "/followers/#{follower.public_id}", data, env } ).
-          to change(TentServer::Model::NotificationSubscription, :count).by (-1)
+          to change(TentD::Model::NotificationSubscription, :count).by (-1)
       end
     end
 
@@ -396,7 +396,7 @@ describe TentServer::API::Followers do
     authorized = proc do
       it 'should delete follower' do
         follower # create follower
-        expect(lambda { delete "/followers/#{follower.public_id}", params, env }).to change(TentServer::Model::Follower, :count).by(-1)
+        expect(lambda { delete "/followers/#{follower.public_id}", params, env }).to change(TentD::Model::Follower, :count).by(-1)
         expect(last_response.status).to eq(200)
       end
     end

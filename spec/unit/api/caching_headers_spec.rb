@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe TentServer::API::Router::CachingHeaders do
+describe TentD::API::Router::CachingHeaders do
   let(:app) { lambda { |env| [200, {}, ''] } }
-  let(:middleware) { TentServer::API::Router::CachingHeaders.new(app) }
+  let(:middleware) { TentD::API::Router::CachingHeaders.new(app) }
   let(:env) { Hashie::Mash.new }
 
   shared_examples 'conditional get' do

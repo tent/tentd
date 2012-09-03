@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe TentServer::JsonPatch::HashPointer do
+describe TentD::JsonPatch::HashPointer do
   context 'when finding pointer' do
     it 'should find nested hash' do
       hash = { "a" => { "b" => { "c" => "foo" } } }
@@ -135,24 +135,24 @@ describe TentServer::JsonPatch::HashPointer do
   end
 end
 
-describe TentServer::JsonPatch do
+describe TentD::JsonPatch do
   describe 'add' do
     it 'should add new value at specified location' do
       object = {}
       patch_object = [{ "add" => "a/b/c", "value" => ["foo", "bar", "baz"] }]
-      TentServer::JsonPatch.merge(object, patch_object)
+      TentD::JsonPatch.merge(object, patch_object)
       expect(object).to be_a(Hash)
       expect(object["a"]["b"]["c"]).to eq(["foo", "bar", "baz"])
 
       object = { "a" => {} }
       patch_object = [{ "add" => "a/b/c", "value" => ["foo", "bar", "baz"] }]
-      TentServer::JsonPatch.merge(object, patch_object)
+      TentD::JsonPatch.merge(object, patch_object)
       expect(object).to be_a(Hash)
       expect(object["a"]["b"]["c"]).to eq(["foo", "bar", "baz"])
 
       object = { "a" => { "b" => {} } }
       patch_object = [{ "add" => "a/b/c", "value" => ["foo", "bar", "baz"] }]
-      TentServer::JsonPatch.merge(object, patch_object)
+      TentD::JsonPatch.merge(object, patch_object)
       expect(object).to be_a(Hash)
       expect(object["a"]["b"]["c"]).to eq(["foo", "bar", "baz"])
     end
@@ -160,31 +160,31 @@ describe TentServer::JsonPatch do
     it 'should throw exception if specified location exists' do
       object = { "a" => "foo" }
       patch_object = [{ "add" => "a/b/c", "value" => ["foo", "bar", "baz"] }]
-      expect( lambda { TentServer::JsonPatch.merge(object, patch_object) } ).
+      expect( lambda { TentD::JsonPatch.merge(object, patch_object) } ).
         to raise_error(described_class::ObjectExists)
       expect(object["a"]).to eq("foo")
 
       object = { "a" => { "b" => "foo" } }
       patch_object = [{ "add" => "a/b/c", "value" => ["foo", "bar", "baz"] }]
-      expect( lambda { TentServer::JsonPatch.merge(object, patch_object) } ).
+      expect( lambda { TentD::JsonPatch.merge(object, patch_object) } ).
         to raise_error(described_class::ObjectExists)
       expect(object["a"]).to eq("b" => "foo")
 
       object = { "a" => { "b" => { "c" => "foo" } } }
       patch_object = [{ "add" => "a/b/c", "value" => ["foo", "bar", "baz"] }]
-      expect( lambda { TentServer::JsonPatch.merge(object, patch_object) } ).
+      expect( lambda { TentD::JsonPatch.merge(object, patch_object) } ).
         to raise_error(described_class::ObjectExists)
       expect(object["a"]).to eq("b" => { "c" => "foo" })
 
       object = { "a" => { "b" => { "c" => "foo" } } }
       patch_object = [{ "add" => "a/b/c/d/e/f/g", "value" => ["foo", "bar", "baz"] }]
-      expect( lambda { TentServer::JsonPatch.merge(object, patch_object) } ).
+      expect( lambda { TentD::JsonPatch.merge(object, patch_object) } ).
         to raise_error(described_class::ObjectExists)
       expect(object["a"]).to eq("b" => { "c" => "foo" })
 
       object = { "a" => { "b" => ["foo", "bar"] } }
       patch_object = [{ "add" => "a/b/c/d/e/f/g", "value" => ["foo", "bar", "baz"] }]
-      expect( lambda { TentServer::JsonPatch.merge(object, patch_object) } ).
+      expect( lambda { TentD::JsonPatch.merge(object, patch_object) } ).
         to raise_error(described_class::ObjectExists)
       expect(object).to eq({ "a" => { "b" => ["foo", "bar"] } })
     end
@@ -193,7 +193,7 @@ describe TentServer::JsonPatch do
       it 'should add new value at specified index' do
         object = { "a" => ["foo", "bar"] }
         patch_object = [{ "add" => "a/1", "value" => "baz" }]
-        TentServer::JsonPatch.merge(object, patch_object)
+        TentD::JsonPatch.merge(object, patch_object)
         expect(object["a"]).to eq(["foo", "baz", "bar"])
       end
     end

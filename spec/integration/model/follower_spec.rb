@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe TentServer::Model::Follower do
+describe TentD::Model::Follower do
   describe 'find_with_permissions(id, current_auth)' do
     public_expectations = proc do
       it 'should return follower if public' do
@@ -27,7 +27,7 @@ describe TentServer::Model::Follower do
         context 'when has permission' do
           it 'should return follower' do
             follower = Fabricate(:follower, :public => false)
-            TentServer::Model::Permission.create(
+            TentD::Model::Permission.create(
               :follower_visibility_id => follower.id, current_auth.permissible_foreign_key => current_auth.id)
 
             response = described_class.find_with_permissions(follower.id, current_auth)
@@ -55,8 +55,8 @@ describe TentServer::Model::Follower do
       public_follower = Fabricate(:follower, :public => true)
       private_follower = Fabricate(:follower, :public => false)
 
-      max_count = TentServer::Model::Follower.count
-      with_constants "TentServer::API::MAX_PER_PAGE" => max_count, "TentServer::API::PER_PAGE" => max_count do
+      max_count = TentD::Model::Follower.count
+      with_constants "TentD::API::MAX_PER_PAGE" => max_count, "TentD::API::PER_PAGE" => max_count do
         res = described_class.fetch_all(params)
         expect(res).to include(public_follower)
         expect(res).to include(private_follower)
@@ -78,7 +78,7 @@ describe TentServer::Model::Follower do
 
       context '[:before_id]' do
         it 'should only return followers with id < :since_id' do
-          TentServer::Model::Follower.all.destroy
+          TentD::Model::Follower.all.destroy
           follower = Fabricate(:follower, :public => false)
           before_follower = Fabricate(:follower, :public => false)
 
@@ -100,13 +100,13 @@ describe TentServer::Model::Follower do
           expect(res.size).to eq(limit)
         end
 
-        it 'should never return more than TentServer::API::MAX_PER_PAGE followers' do
+        it 'should never return more than TentD::API::MAX_PER_PAGE followers' do
           limit = 1
           Fabricate(:follower, :public => false)
 
           params['limit'] = limit
 
-          with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
+          with_constants "TentD::API::MAX_PER_PAGE" => 0 do
             res = described_class.fetch_all(params)
             expect(res.size).to eq(0)
           end
@@ -114,10 +114,10 @@ describe TentServer::Model::Follower do
       end
 
       context 'without [:limit]' do
-        it 'should never return more than TentServer::API::MAX_PER_PAGE followers' do
+        it 'should never return more than TentD::API::MAX_PER_PAGE followers' do
           Fabricate(:follower, :public => false)
 
-          with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
+          with_constants "TentD::API::MAX_PER_PAGE" => 0 do
             res = described_class.fetch_all(params)
             expect(res.size).to eq(0)
           end
@@ -134,7 +134,7 @@ describe TentServer::Model::Follower do
       before do
         if current_auth && authorize_folower
           @authorize_folower = lambda do |follower|
-            TentServer::Model::Permission.create(
+            TentD::Model::Permission.create(
               :follower_visibility_id => follower.id,
               current_auth.permissible_foreign_key => current_auth.id
             )
@@ -160,11 +160,11 @@ describe TentServer::Model::Follower do
 
       context '[:before_id]' do
         it 'should only return followers with id < :before_id' do
-          if current_auth.kind_of?(TentServer::Model::Follower)
-            TentServer::Model::Follower.all(:id.not => current_auth.id).destroy!
+          if current_auth.kind_of?(TentD::Model::Follower)
+            TentD::Model::Follower.all(:id.not => current_auth.id).destroy!
             follower = current_auth
           else
-            TentServer::Model::Follower.all.destroy!
+            TentD::Model::Follower.all.destroy!
             follower = Fabricate(:follower, :public => !authorize_folower)
           end
 
@@ -196,8 +196,8 @@ describe TentServer::Model::Follower do
           expect(response.size).to eq(limit)
         end
 
-        it 'should never return more than TentServer::API::MAX_PER_PAGE followers' do
-          with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
+        it 'should never return more than TentD::API::MAX_PER_PAGE followers' do
+          with_constants "TentD::API::MAX_PER_PAGE" => 0 do
             followers = [Fabricate(:follower, :public => !authorize_folower)]
 
             if authorize_folower
@@ -211,8 +211,8 @@ describe TentServer::Model::Follower do
       end
 
       context 'without [:limit]' do
-        it 'should only return TentServer::API::PER_PAGE number of followers' do
-          with_constants "TentServer::API::PER_PAGE" => 1 do
+        it 'should only return TentD::API::PER_PAGE number of followers' do
+          with_constants "TentD::API::PER_PAGE" => 1 do
             followers = 2.times.map { Fabricate(:follower, :public => !authorize_folower) }
 
             if authorize_folower
@@ -228,8 +228,8 @@ describe TentServer::Model::Follower do
 
     public_expectations = proc do
       it 'should only return public followers' do
-        max_results = TentServer::Model::Follower.count + 100
-        with_constants "TentServer::API::MAX_PER_PAGE" => max_results, "TentServer::API::PER_PAGE" => max_results do
+        max_results = TentD::Model::Follower.count + 100
+        with_constants "TentD::API::MAX_PER_PAGE" => max_results, "TentD::API::PER_PAGE" => max_results do
           public_follower = Fabricate(:follower, :public => true)
           private_follower = Fabricate(:follower, :public => false)
 
@@ -254,7 +254,7 @@ describe TentServer::Model::Follower do
         public_follower = Fabricate(:follower, :public => true)
         private_follower = Fabricate(:follower, :public => false)
 
-        TentServer::Model::Permission.create(
+        TentD::Model::Permission.create(
           :follower_visibility_id => private_follower.id,
           current_auth.permissible_foreign_key => current_auth.id
         )

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe TentServer::API::CoreProfileData do
+describe TentD::API::CoreProfileData do
   let(:tent_profile_type_uri) { "https://tent.io/types/info/core/v0.1.0" }
   let(:entity_url) { "https://smith.example.com" }
   let(:another_entity_url) { "https://alex.example.org" }
@@ -24,8 +24,8 @@ describe TentServer::API::CoreProfileData do
   end
   describe '#expected_version' do
     it 'should return TentVersion representing sever tent profile type uri version' do
-      with_constants "TentServer::Model::ProfileInfo::TENT_PROFILE_TYPE_URI" => tent_profile_type_uri do
-        expect(described_class.new(data).expected_version).to eq(TentServer::TentVersion.new('0.1.0'))
+      with_constants "TentD::Model::ProfileInfo::TENT_PROFILE_TYPE_URI" => tent_profile_type_uri do
+        expect(described_class.new(data).expected_version).to eq(TentD::TentVersion.new('0.1.0'))
       end
     end
   end
@@ -33,16 +33,16 @@ describe TentServer::API::CoreProfileData do
   describe '#versions' do
     it 'should return array of TentVersions found in data matching core info type' do
       expect(described_class.new(data).versions).to eq([
-        TentServer::TentVersion.new('0.1.1'),
-        TentServer::TentVersion.new('0.1.5'),
-        TentServer::TentVersion.new('0.2.0')
+        TentD::TentVersion.new('0.1.1'),
+        TentD::TentVersion.new('0.1.5'),
+        TentD::TentVersion.new('0.2.0')
       ])
     end
   end
 
   describe '#version' do
     it 'should return closest compatible version' do
-      expect(described_class.new(data).version).to eq(TentServer::TentVersion.new('0.1.1'))
+      expect(described_class.new(data).version).to eq(TentD::TentVersion.new('0.1.1'))
     end
   end
 

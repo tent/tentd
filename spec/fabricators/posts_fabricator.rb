@@ -1,4 +1,4 @@
-Fabricator(:post, :class_name => "TentServer::Model::Post") do |f|
+Fabricator(:post, :class_name => "TentD::Model::Post") do |f|
   f.entity "https://smith.example.com"
   f.public true
   f.type "https://tent.io/types/posts/status"

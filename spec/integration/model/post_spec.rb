@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe TentServer::Model::Post do
+describe TentD::Model::Post do
   describe 'find_with_permissions(id, current_auth)' do
     shared_examples 'current_auth param' do
       let(:group) { Fabricate(:group, :name => 'family') }
@@ -8,7 +8,7 @@ describe TentServer::Model::Post do
 
       context 'when has permission via explicit' do
         before do
-          TentServer::Model::Permission.create(
+          TentD::Model::Permission.create(
             :post_id => post.id,
             current_auth.permissible_foreign_key => current_auth.id
           )
@@ -56,13 +56,13 @@ describe TentServer::Model::Post do
     with_params = proc do
       before do
         if current_auth && create_permissions == true
-          @authorize_post = lambda { |post| TentServer::Model::Permission.create(:post_id => post.id, current_auth.permissible_foreign_key => current_auth.id) }
+          @authorize_post = lambda { |post| TentD::Model::Permission.create(:post_id => post.id, current_auth.permissible_foreign_key => current_auth.id) }
         end
       end
 
       context '[:since_id]' do
         it 'should only return posts with ids > :since_id' do
-          TentServer::Model::Post.all.destroy!
+          TentD::Model::Post.all.destroy!
           since_post = Fabricate(:post, :public => !create_permissions)
           post = Fabricate(:post, :public => !create_permissions)
 
@@ -79,7 +79,7 @@ describe TentServer::Model::Post do
 
       context '[:before_id]' do
         it 'should only return posts with ids < :before_id' do
-          TentServer::Model::Post.all.destroy!
+          TentD::Model::Post.all.destroy!
           post = Fabricate(:post, :public => !create_permissions)
           before_post = Fabricate(:post, :public => !create_permissions)
 
@@ -96,7 +96,7 @@ describe TentServer::Model::Post do
 
       context '[:since_time]' do
         it 'should only return posts with published_at > :since_time' do
-          TentServer::Model::Post.all.destroy!
+          TentD::Model::Post.all.destroy!
           since_post = Fabricate(:post, :public => !create_permissions,
                                  :published_at => Time.at(Time.now.to_i + (86400 * 10))) # 10.days.from_now
           post = Fabricate(:post, :public => !create_permissions,
@@ -115,7 +115,7 @@ describe TentServer::Model::Post do
 
       context '[:before_time]' do
         it 'should only return posts with published_at < :before_time' do
-          TentServer::Model::Post.all.destroy!
+          TentD::Model::Post.all.destroy!
           post = Fabricate(:post, :public => !create_permissions,
                            :published_at => Time.at(Time.now.to_i - (86400 * 10))) # 10.days.ago
           before_post = Fabricate(:post, :public => !create_permissions,
@@ -134,7 +134,7 @@ describe TentServer::Model::Post do
 
       context '[:post_types]' do
         it 'should only return posts type in :post_types' do
-          TentServer::Model::Post.all.destroy!
+          TentD::Model::Post.all.destroy!
           photo_post = Fabricate(:post, :public => !create_permissions, :type => "https://tent.io/types/posts/photo")
           blog_post = Fabricate(:post, :public => !create_permissions, :type => "https://tent.io/types/posts/blog")
           status_post = Fabricate(:post, :public => !create_permissions, :type => "https://tent.io/types/posts/status")
@@ -167,7 +167,7 @@ describe TentServer::Model::Post do
           expect(returned_posts.size).to eq(limit)
         end
 
-        it 'should never return more than TentServer::API::MAX_PER_PAGE' do
+        it 'should never return more than TentD::API::MAX_PER_PAGE' do
           limit = 1
           posts = 0.upto(limit).map { Fabricate(:post, :public => !create_permissions) }
 
@@ -177,7 +177,7 @@ describe TentServer::Model::Post do
 
           params['limit'] = limit.to_s
 
-          with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
+          with_constants "TentD::API::MAX_PER_PAGE" => 0 do
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
             expect(returned_posts.size).to eq(0)
           end
@@ -185,9 +185,9 @@ describe TentServer::Model::Post do
       end
 
       context 'no [:limit]' do
-        it 'should return TentServer::API::PER_PAGE number of posts' do
-          with_constants "TentServer::API::PER_PAGE" => 1, "TentServer::API::MAX_PER_PAGE" => 2 do
-            limit = TentServer::API::PER_PAGE
+        it 'should return TentD::API::PER_PAGE number of posts' do
+          with_constants "TentD::API::PER_PAGE" => 1, "TentD::API::MAX_PER_PAGE" => 2 do
+            limit = TentD::API::PER_PAGE
             posts = 0.upto(limit+1).map { Fabricate(:post, :public => !create_permissions) }
 
             if create_permissions
@@ -223,7 +223,7 @@ describe TentServer::Model::Post do
           it 'should return private posts' do
             private_post = Fabricate(:post, :public => false)
             public_post = Fabricate(:post, :public => true)
-            TentServer::Model::Permission.create(:post_id => private_post.id, current_auth.permissible_foreign_key => current_auth.id)
+            TentD::Model::Permission.create(:post_id => private_post.id, current_auth.permissible_foreign_key => current_auth.id)
 
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
             expect(returned_posts).to include(private_post)
@@ -346,12 +346,12 @@ describe TentServer::Model::Post do
         let(:follower) { Fabricate(:follower) }
 
         it "should be true for permission group" do
-          TentServer::Model::Permission.create(:group_public_id => follower.groups.first, :post_id => post.id)
+          TentD::Model::Permission.create(:group_public_id => follower.groups.first, :post_id => post.id)
           expect(post.can_notify?(follower)).to be_true
         end
 
         it "should be true for explicit permission" do
-          TentServer::Model::Permission.create(:follower_access_id => follower.id, :post_id => post.id)
+          TentD::Model::Permission.create(:follower_access_id => follower.id, :post_id => post.id)
           expect(post.can_notify?(follower)).to be_true
         end
 

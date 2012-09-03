@@ -1,21 +1,21 @@
 require 'spec_helper'
 
-describe TentServer::API::Router do
-  class TestMiddleware < TentServer::API::Middleware
+describe TentD::API::Router do
+  class TestMiddleware < TentD::API::Middleware
     def action(env)
       env['response'] = { 'params' => env['params'] }
       env
     end
   end
 
-  class TestMiddlewarePrematureResponse < TentServer::API::Middleware
+  class TestMiddlewarePrematureResponse < TentD::API::Middleware
     def action(env)
       [200, { 'Content-Type' => 'text/plain' }, 'Premature-Response']
     end
   end
 
   class TestMountedApp
-    include TentServer::API::Router
+    include TentD::API::Router
 
     get '/chunky/:bacon' do |b|
       b.use TestMiddleware
@@ -23,7 +23,7 @@ describe TentServer::API::Router do
   end
 
   class TestApp
-    include TentServer::API::Router
+    include TentD::API::Router
 
     get '/foo/:bar' do |b|
       b.use TestMiddleware

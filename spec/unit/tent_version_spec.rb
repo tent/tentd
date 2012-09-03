@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe TentServer::TentVersion do
+describe TentD::TentVersion do
   describe '.from_uri' do
     it 'should parse version from URI' do
       uri = "https://tent.io/types/posts/photo/v0.x.x#meta"

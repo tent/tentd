@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe TentServer::API::AuthenticationVerification do
+describe TentD::API::AuthenticationVerification do
   def app
-    TentServer::API.new
+    TentD::API.new
   end
 
   it 'should verify mac signature' do

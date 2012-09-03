@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe TentServer::API::AuthenticationFinalize do
+describe TentD::API::AuthenticationFinalize do
   def app
-    TentServer::API.new
+    TentD::API.new
   end
 
   it "should set current_auth" do

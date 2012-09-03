@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe TentServer::API::Followings do
+describe TentD::API::Followings do
   def app
-    TentServer::API.new
+    TentD::API.new
   end
 
   def authorize!(*scopes)
@@ -22,7 +22,7 @@ describe TentServer::API::Followings do
 
     before do
       @create_permission = lambda do |following|
-        TentServer::Model::Permission.create(
+        TentD::Model::Permission.create(
           :following_id => following.id,
           current_auth.permissible_foreign_key => current_auth.id
         )
@@ -46,7 +46,7 @@ describe TentServer::API::Followings do
 
       context '[:before_id]' do
         it 'should only return followings with id < :before_id' do
-          TentServer::Model::Following.all.destroy!
+          TentD::Model::Following.all.destroy!
           following = Fabricate(:following, :public => !create_permissions?)
           before_following = Fabricate(:following, :public => !create_permissions?)
 
@@ -72,9 +72,9 @@ describe TentServer::API::Followings do
           expect(JSON.parse(last_response.body).size).to eq(limit)
         end
 
-        context 'when [:limit] > TentServer::API::MAX_PER_PAGE' do
-          it 'should only return TentServer::API::MAX_PER_PAGE number of followings' do
-            with_constants "TentServer::API::MAX_PER_PAGE" => 0 do
+        context 'when [:limit] > TentD::API::MAX_PER_PAGE' do
+          it 'should only return TentD::API::MAX_PER_PAGE number of followings' do
+            with_constants "TentD::API::MAX_PER_PAGE" => 0 do
               limit = 1
               following = Fabricate(:following, :public => !create_permissions?)
 
@@ -90,8 +90,8 @@ describe TentServer::API::Followings do
       end
 
       context 'without [:limit]' do
-        it 'should only return TentServer::API::PER_PAGE number of followings' do
-          with_constants "TentServer::API::PER_PAGE" => 0 do
+        it 'should only return TentD::API::PER_PAGE number of followings' do
+          with_constants "TentD::API::PER_PAGE" => 0 do
             following = Fabricate(:following, :public => !create_permissions?)
 
             if create_permissions?
@@ -107,7 +107,7 @@ describe TentServer::API::Followings do
 
     without_permissions = proc do
       it 'should only return public followings' do
-        TentServer::Model::Following.all(:public => true).destroy!
+        TentD::Model::Following.all(:public => true).destroy!
         public_following = Fabricate(:following, :public => true)
         private_following = Fabricate(:following, :public => false)
 
@@ -144,7 +144,7 @@ describe TentServer::API::Followings do
         context 'via group' do
           it 'should return permissible and public followings' do
             current_auth.update(:groups => [group.public_id])
-            TentServer::Model::Permission.create(
+            TentD::Model::Permission.create(
               :following_id => private_permissible_following.id,
               :group_public_id => group.public_id
             )
@@ -189,14 +189,14 @@ describe TentServer::API::Followings do
       it 'should return all followings without mac keys' do
         Fabricate(:following, :public => true)
         Fabricate(:following, :public => false)
-        count = TentServer::Model::Following.count
-        with_constants "TentServer::API::MAX_PER_PAGE" => count do
+        count = TentD::Model::Following.count
+        with_constants "TentD::API::MAX_PER_PAGE" => count do
           json_get '/followings', params, env
           expect(last_response.status).to eq(200)
           body = JSON.parse(last_response.body)
           expect(body.size).to eq(count)
           body.each do |actual|
-            following = TentServer::Model::Following.first(:public_id => actual['id'])
+            following = TentD::Model::Following.first(:public_id => actual['id'])
             [:remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
               expect(actual[key.to_s].to_json).to eq(following.send(key).to_json)
             }
@@ -219,7 +219,7 @@ describe TentServer::API::Followings do
           expect(last_response.status).to eq(200)
           body = JSON.parse(last_response.body)
           body.each do |actual|
-            following = TentServer::Model::Following.first(:public_id => actual['id'])
+            following = TentD::Model::Following.first(:public_id => actual['id'])
             [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta, :remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
               expect(actual[key.to_s].to_json).to eq(following.send(key).to_json)
             }
@@ -258,7 +258,7 @@ describe TentServer::API::Followings do
       context 'explicitly' do
         it 'should return following' do
           following = Fabricate(:following, :public => false)
-          TentServer::Model::Permission.create(
+          TentD::Model::Permission.create(
             :following_id => following.id,
             current_auth.permissible_foreign_key => current_auth.id
           )
@@ -272,7 +272,7 @@ describe TentServer::API::Followings do
           group = Fabricate(:group, :name => 'foo')
           current_auth.update(:groups => [group.public_id])
           following = Fabricate(:following, :public => false, :groups => [group.public_id.to_s])
-          TentServer::Model::Permission.create(
+          TentD::Model::Permission.create(
             :following_id => following.id,
             :group_public_id => group.public_id
           )
@@ -382,9 +382,9 @@ describe TentServer::API::Followings do
 
     context 'when write_followings scope authorized' do
       before do
-        @tent_profile = TentServer::Model::ProfileInfo.create(
+        @tent_profile = TentD::Model::ProfileInfo.create(
           :entity => tent_entity,
-          :type => TentServer::Model::ProfileInfo::TENT_PROFILE_TYPE_URI,
+          :type => TentD::Model::ProfileInfo::TENT_PROFILE_TYPE_URI,
           :content => { 
             :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
           }
@@ -477,9 +477,9 @@ describe TentServer::API::Followings do
         it 'should create following' do
           expect(lambda {
             json_post '/followings', following_data, env
-          }).to change(TentServer::Model::Following, :count).by(1)
+          }).to change(TentD::Model::Following, :count).by(1)
 
-          following = TentServer::Model::Following.last
+          following = TentD::Model::Following.last
           expect(following.entity.to_s).to eq("https://sam.example.org")
           expect(following.groups).to eq([group.public_id.to_s])
           expect(following.remote_id).to eq(follower.public_id.to_s)
@@ -583,14 +583,14 @@ describe TentServer::API::Followings do
       context 'when exists' do
         it 'should delete following' do
           expect(lambda { delete "/followings/#{following.public_id}", params, env }).
-            to change(TentServer::Model::Following, :count).by(-1)
+            to change(TentD::Model::Following, :count).by(-1)
         end
       end
 
       context 'when does not exist' do
         it 'should return 404' do
           expect(lambda { delete "/followings/invalid-id", params, env }).
-            to_not change(TentServer::Model::Following, :count)
+            to_not change(TentD::Model::Following, :count)
           expect(last_response.status).to eq(404)
         end
       end
@@ -599,7 +599,7 @@ describe TentServer::API::Followings do
     context 'when write_followings scope unauthorized' do
       it 'should return 403' do
         expect(lambda { delete "/followings/invalid-id", params, env }).
-          to_not change(TentServer::Model::Following, :count)
+          to_not change(TentD::Model::Following, :count)
         expect(last_response.status).to eq(403)
       end
     end

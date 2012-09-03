@@ -1,1 +1,1 @@
-Fabricator(:app_authorization, :class_name => 'TentServer::Model::AppAuthorization')
+Fabricator(:app_authorization, :class_name => 'TentD::Model::AppAuthorization')

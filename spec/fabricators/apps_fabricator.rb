@@ -1,4 +1,4 @@
-Fabricator(:app, :class_name => 'TentServer::Model::App') do
+Fabricator(:app, :class_name => 'TentD::Model::App') do
   name "MicroBlogger"
   description "Manages your status updates"
   url "https://microbloggerapp.example.com"

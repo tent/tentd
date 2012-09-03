@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe TentServer::Model::Following do
+describe TentD::Model::Following do
   describe "#as_json" do
     it "should replace id with public_id" do
       post = Fabricate(:post)

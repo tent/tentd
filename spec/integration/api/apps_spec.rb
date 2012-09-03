@@ -1,9 +1,9 @@
 require 'spec_helper'
-require 'tent-server/core_ext/hash/slice'
+require 'tentd/core_ext/hash/slice'
 
-describe TentServer::API::Apps do
+describe TentD::API::Apps do
   def app
-    TentServer::API.new
+    TentD::API.new
   end
 
   def authorize!(*scopes)
@@ -30,7 +30,7 @@ describe TentServer::API::Apps do
 
           body = JSON.parse(last_response.body)
           body.each { |actual|
-            app = TentServer::Model::App.first(:public_id => actual['id'])
+            app = TentD::Model::App.first(:public_id => actual['id'])
             [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each { |key|
               expect(actual[key.to_s].to_json).to eq(app.send(key).to_json)
             }
@@ -46,7 +46,7 @@ describe TentServer::API::Apps do
           expect(last_response.status).to eq(200)
           body = JSON.parse(last_response.body)
           body.each { |actual|
-            app = TentServer::Model::App.first(:public_id => actual['id'])
+            app = TentD::Model::App.first(:public_id => actual['id'])
             [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_algorithm].each { |key|
               expect(actual[key.to_s].to_json).to eq(app.send(key).to_json)
             }
@@ -182,10 +182,10 @@ describe TentServer::API::Apps do
     it 'should create app' do
       data = Fabricate.build(:app).as_json(:only => [:name, :description, :url, :icon, :redirect_uris, :scopes])
 
-      TentServer::Model::App.all.destroy
-      expect(lambda { json_post '/apps', data, env }).to change(TentServer::Model::App, :count).by(1)
+      TentD::Model::App.all.destroy
+      expect(lambda { json_post '/apps', data, env }).to change(TentD::Model::App, :count).by(1)
 
-      app = TentServer::Model::App.last
+      app = TentD::Model::App.last
       expect(last_response.status).to eq(200)
       data.slice(:name, :description, :url, :icon, :redirect_uris, :scopes).each_pair do |key, val|
         expect(app.send(key)).to eq(val)
@@ -228,7 +228,7 @@ describe TentServer::API::Apps do
 
       context 'app with :id does not exist' do
         it 'should return 404' do
-          json_put "/apps/#{(TentServer::Model::App.count + 1) * 100}", params, env
+          json_put "/apps/#{(TentD::Model::App.count + 1) * 100}", params, env
           expect(last_response.status).to eq(404)
         end
       end
@@ -269,7 +269,7 @@ describe TentServer::API::Apps do
           expect(lambda {
             delete "/apps/#{app.public_id}", params, env
             expect(last_response.status).to eq(200)
-          }).to change(TentServer::Model::App, :count).by(-1)
+          }).to change(TentD::Model::App, :count).by(-1)
         end
       end
     end

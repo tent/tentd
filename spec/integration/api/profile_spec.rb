@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe TentServer::API::Profile do
+describe TentD::API::Profile do
   def app
-    TentServer::API.new
+    TentD::API.new
   end
 
   let(:entity) { 'https://smith.example.org' }
@@ -52,7 +52,7 @@ describe TentServer::API::Profile do
         let(:authorized_info_types) { ['all'] }
 
         it 'should return all info types' do
-          TentServer::Model::ProfileInfo.all.destroy
+          TentD::Model::ProfileInfo.all.destroy
 
           profile_infos = []
           profile_infos << Fabricate(:profile_info, :public => false, :entity => entity, :tent => true)
@@ -70,7 +70,7 @@ describe TentServer::API::Profile do
         let(:authorized_info_types) { ['https://tent.io/types/info/basic-info'] }
 
         it 'should only return authorized info types' do
-          TentServer::Model::ProfileInfo.all.destroy
+          TentD::Model::ProfileInfo.all.destroy
 
           profile_infos = []
           profile_infos << Fabricate(:profile_info, :public => false, :entity => entity, :type => "https://tent.io/types/info/basic-info")
@@ -86,7 +86,7 @@ describe TentServer::API::Profile do
 
     context 'when read_profile scope unauthorized' do
       it 'should only return public profile into types' do
-        TentServer::Model::ProfileInfo.all.destroy
+        TentD::Model::ProfileInfo.all.destroy
 
         profile_infos = []
         profile_infos << Fabricate(:profile_info, :public => true, :entity => entity, :tent => true)
@@ -121,7 +121,7 @@ describe TentServer::API::Profile do
         end
 
         it 'should create unless exists' do
-          TentServer::Model::ProfileInfo.all.destroy
+          TentD::Model::ProfileInfo.all.destroy
 
           data = {
             "name" => "John Doe"
@@ -129,9 +129,9 @@ describe TentServer::API::Profile do
 
           expect(lambda {
             json_put "/profile/#{url_encode_type(basic_info_type)}", data, env
-          }).to change(TentServer::Model::ProfileInfo, :count).by(1)
+          }).to change(TentD::Model::ProfileInfo, :count).by(1)
 
-          info = TentServer::Model::ProfileInfo.last
+          info = TentD::Model::ProfileInfo.last
           expect(info.content).to eq(data)
           expect(last_response.status).to eq(200)
         end
@@ -179,7 +179,7 @@ describe TentServer::API::Profile do
 
       can_update_basic_info_type = proc do
         it 'should update basic info with diff' do
-          TentServer::Model::ProfileInfo.all.destroy
+          TentD::Model::ProfileInfo.all.destroy
 
           info = create_info(basic_info_type, basic_info_content, :public => false)
 
@@ -201,7 +201,7 @@ describe TentServer::API::Profile do
         end
 
         it 'should return 422 if diff tests fail' do
-          TentServer::Model::ProfileInfo.all.destroy
+          TentD::Model::ProfileInfo.all.destroy
 
           info = create_info(basic_info_type, basic_info_content, :public => false)
 
@@ -227,7 +227,7 @@ describe TentServer::API::Profile do
         context '', &can_update_basic_info_type
         
         it 'should update any info' do
-          TentServer::Model::ProfileInfo.all.destroy
+          TentD::Model::ProfileInfo.all.destroy
 
           info = create_info(basic_info_type, basic_info_content, :public => false)
 
@@ -253,12 +253,12 @@ describe TentServer::API::Profile do
 
           expect(lambda {
             json_patch "/profile", diff, env
-          }).to change(TentServer::Model::ProfileInfo, :count).by(1)
+          }).to change(TentD::Model::ProfileInfo, :count).by(1)
 
           expect(last_response.status).to eq(200)
           expect(info.reload.content).to eq(expected_basic_data)
 
-          work_info = TentServer::Model::ProfileInfo.last
+          work_info = TentD::Model::ProfileInfo.last
           expect(work_info.content).to eq(expected_work_data)
         end
       end

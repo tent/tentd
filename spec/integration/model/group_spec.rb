@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe TentServer::Model::Group do
+describe TentD::Model::Group do
   it 'should set random_uid for public_id' do
     group = Fabricate(:group)
     expect(group.public_id).to be_a(String)

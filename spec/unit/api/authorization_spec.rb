@@ -1,9 +1,9 @@
 require 'spec_helper'
 require 'hashie'
 
-describe TentServer::API::Authorization do
+describe TentD::API::Authorization do
   def app
-    TentServer::API.new
+    TentD::API.new
   end
 
   let(:env) { Hashie::Mash.new }
