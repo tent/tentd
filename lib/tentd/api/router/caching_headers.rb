@@ -16,7 +16,7 @@ module TentD
           end
           status, headers, body = @app.call(env)
           headers['Last-Modified'] ||= last_modified_at.httpdate if last_modified_at
-          headers['Cache-Control'] ||= cache_control(env.response)
+          headers['Cache-Control'] ||= cache_control(env.response) if cache_control(env.response)
           [status, headers, body]
         end
 
