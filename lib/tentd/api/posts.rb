@@ -84,21 +84,24 @@ module TentD
 
         def authorize_post!(env)
           if auth_is_publisher?(env.current_auth, env.params.data)
+            assign_app_details(env.params.data)
             env.params.data.known_publisher = true
             env.authorized_scopes << :write_posts
           elsif anonymous_publisher?(env.current_auth, env.params.data)
+            assign_app_details(env.params.data)
             env.params.data.known_publisher = false
             env.authorized_scopes << :write_posts
           elsif env.current_auth.respond_to?(:app) && !env.authorized_scopes.include?(:import_posts)
             env.params.data.entity = env['tent.entity']
             env.params.data.app = env.current_auth.app
+            assign_app_details(env.params.data)
           end
           authorize_env!(env, :write_posts)
         end
 
         def whitelisted_attributes(env)
           attrs = Model::Post.public_attributes
-          attrs += [:app, :permissions, :public] if env.current_auth.respond_to?(:app)
+          attrs += [:app_id, :permissions, :public] if env.current_auth.respond_to?(:app)
           attrs += [:received_at] if env.authorized_scopes.include?(:import_posts)
           attrs
         end
@@ -109,6 +112,14 @@ module TentD
 
         def anonymous_publisher?(auth, post)
           !auth && post.entity && !Model::Following.first(:entity => post.entity, :fields => [:id])
+        end
+
+        def assign_app_details(post)
+          if app = post.delete('app')
+            post.app_url = app.url
+            post.app_name = app.name
+            post.app_id = app.id if app.id
+          end
         end
       end
 

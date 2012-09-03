@@ -18,6 +18,8 @@ module TentD
       property :published_at, DateTime, :default => lambda { |*args| Time.now }
       property :received_at, DateTime, :default => lambda { |*args| Time.now }
       property :updated_at, DateTime
+      property :app_name, String
+      property :app_url, String
 
       has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy
       has n, :attachments, 'TentD::Model::PostAttachment', :constraint => :destroy
@@ -46,7 +48,7 @@ module TentD
       end
 
       def self.public_attributes
-        [:entity, :type, :licenses, :content, :published_at]
+        [:app_name, :app_url, :entity, :type, :licenses, :content, :published_at]
       end
 
       def can_notify?(app_or_follower)
@@ -64,7 +66,7 @@ module TentD
       def as_json(options = {})
         attributes = super
         attributes[:id] = public_id if attributes[:id]
-        attributes[:app] = { :url => app.url, :name => app.name } if app
+        attributes[:app] = { :url => app_url, :name => app_name }
         attributes.delete(:public_id)
         attributes[:attachments] = attachments.all.map { |a| a.as_json }
         attributes
