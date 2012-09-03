@@ -9,7 +9,9 @@ module TentD
   autoload :RackRequest, 'tentd/rack_request'
 
   def self.new(options={})
-    DataMapper.setup(:default, options[:database] || ENV['DATABASE_URL'])
+    if options[:database] || ENV['DATABASE_URL']
+      DataMapper.setup(:default, options[:database] || ENV['DATABASE_URL'])
+    end
     API.new
   end
 end
