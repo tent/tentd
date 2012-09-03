@@ -370,7 +370,7 @@ describe TentServer::API::Followings do
     let(:tent_profile_mismatch) {
      %Q({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"https://mismatch.example.org","servers":["#{entity_url}/tent"]}})
     }
-    let(:follower) { Fabricate(:follower, :entity => URI(entity_url)) }
+    let(:follower) { Fabricate(:follower, :entity => entity_url) }
     let(:follow_response) { follower.to_json(:only => [:id, :mac_key_id, :mac_key, :mac_algorithm]) }
     let(:group) { Fabricate(:group, :name => 'family') }
     let(:following_data) do

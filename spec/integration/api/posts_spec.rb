@@ -164,8 +164,8 @@ describe TentServer::API::Posts do
       end
 
       it "should filter by params[:post_types]" do
-        picture_type_uri = URI("https://tent.io/types/posts/picture")
-        blog_type_uri = URI("https://tent.io/types/posts/blog")
+        picture_type_uri = "https://tent.io/types/posts/picture"
+        blog_type_uri = "https://tent.io/types/posts/blog"
 
         picture_post = Fabricate(:post, :public => post_public?)
         picture_post.type = picture_type_uri

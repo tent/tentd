@@ -12,8 +12,8 @@ module TentServer
       property :id, Serial
       property :name, String
       property :description, Text
-      property :url, URI
-      property :icon, URI
+      property :url, String
+      property :icon, String
       property :redirect_uris, Array
       property :scopes, Json
       property :mac_key_id, String, :default => lambda { |*args| 'a:' + SecureRandom.hex(4) }, :unique => true

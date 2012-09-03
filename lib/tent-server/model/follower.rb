@@ -12,7 +12,7 @@ module TentServer
 
       property :id, Serial
       property :groups, Array
-      property :entity, URI
+      property :entity, String
       property :public, Boolean, :default => false
       property :profile, Json
       property :licenses, Array
@@ -38,7 +38,7 @@ module TentServer
           follower = create(data.slice('entity', 'licenses', 'profile'))
         end
         data.types.each do |type_url|
-          follower.notification_subscriptions.create(:type => URI(type_url))
+          follower.notification_subscriptions.create(:type => type_url)
         end
         follower
       end
@@ -60,7 +60,7 @@ module TentServer
             follower.notification_subscriptions.find(:type.not => [data['types']]).each(&:destroy)
           end
           data['types'].each do |type_url|
-            follower.notification_subscriptions.create(:type => URI(type_url))
+            follower.notification_subscriptions.create(:type => type_url)
           end
         end
       end

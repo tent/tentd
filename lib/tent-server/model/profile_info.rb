@@ -13,8 +13,8 @@ module TentServer
 
       property :id, Serial
       property :public, Boolean, :default => false
-      property :entity, URI
-      property :type, URI
+      property :entity, String
+      property :type, String
       property :content, Json, :default => {}, :lazy => false
       property :created_at, DateTime
       property :updated_at, DateTime
@@ -24,7 +24,7 @@ module TentServer
       end
 
       def self.build_for_entity(entity, authorized_scopes = [], current_auth = nil)
-        conditions = { :entity => URI(entity) }
+        conditions = { :entity => entity }
         if (authorized_scopes.include?(:read_profile) || authorized_scopes.include?(:write_profile)) && current_auth.respond_to?(:profile_info_types)
           conditions[:type] = current_auth.profile_info_types.to_a
           conditions.delete(:type) if conditions[:type].first.to_s == 'all'

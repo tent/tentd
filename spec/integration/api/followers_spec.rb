@@ -307,8 +307,8 @@ describe TentServer::API::Followers do
       context '' do
         before(:all) do
           @data = {
-            :entity => URI("https://chunky-bacon.example.com"),
-            :profile => { :entity => URI("https:://chunky-bacon.example.com") },
+            :entity => "https://chunky-bacon.example.com",
+            :profile => { :entity => "https:://chunky-bacon.example.com" },
             :type => :following,
             :public => true,
             :groups => ['group-id', 'group-id-2'],

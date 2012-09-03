@@ -55,8 +55,8 @@ describe TentServer::API::Profile do
           TentServer::Model::ProfileInfo.all.destroy
 
           profile_infos = []
-          profile_infos << Fabricate(:profile_info, :public => false, :entity => URI(entity), :tent => true)
-          profile_infos << Fabricate(:profile_info, :public => false, :entity => URI(entity))
+          profile_infos << Fabricate(:profile_info, :public => false, :entity => entity, :tent => true)
+          profile_infos << Fabricate(:profile_info, :public => false, :entity => entity)
 
           json_get '/profile', params, env
           expect(last_response.body).to eq({
@@ -73,8 +73,8 @@ describe TentServer::API::Profile do
           TentServer::Model::ProfileInfo.all.destroy
 
           profile_infos = []
-          profile_infos << Fabricate(:profile_info, :public => false, :entity => URI(entity), :type => "https://tent.io/types/info/basic-info")
-          profile_infos << Fabricate(:profile_info, :public => false, :entity => URI(entity))
+          profile_infos << Fabricate(:profile_info, :public => false, :entity => entity, :type => "https://tent.io/types/info/basic-info")
+          profile_infos << Fabricate(:profile_info, :public => false, :entity => entity)
 
           json_get '/profile', params, env
           expect(last_response.body).to eq({
@@ -89,8 +89,8 @@ describe TentServer::API::Profile do
         TentServer::Model::ProfileInfo.all.destroy
 
         profile_infos = []
-        profile_infos << Fabricate(:profile_info, :public => true, :entity => URI(entity), :tent => true)
-        profile_infos << Fabricate(:profile_info, :public => false, :entity => URI(entity))
+        profile_infos << Fabricate(:profile_info, :public => true, :entity => entity, :tent => true)
+        profile_infos << Fabricate(:profile_info, :public => false, :entity => entity)
 
         json_get '/profile', params, env
         expect(last_response.body).to eq({

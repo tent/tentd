@@ -135,9 +135,9 @@ describe TentServer::Model::Post do
       context '[:post_types]' do
         it 'should only return posts type in :post_types' do
           TentServer::Model::Post.all.destroy!
-          photo_post = Fabricate(:post, :public => !create_permissions, :type => URI("https://tent.io/types/posts/photo"))
-          blog_post = Fabricate(:post, :public => !create_permissions, :type => URI("https://tent.io/types/posts/blog"))
-          status_post = Fabricate(:post, :public => !create_permissions, :type => URI("https://tent.io/types/posts/status"))
+          photo_post = Fabricate(:post, :public => !create_permissions, :type => "https://tent.io/types/posts/photo")
+          blog_post = Fabricate(:post, :public => !create_permissions, :type => "https://tent.io/types/posts/blog")
+          status_post = Fabricate(:post, :public => !create_permissions, :type => "https://tent.io/types/posts/status")
 
           if create_permissions
             [photo_post, blog_post, status_post].each { |post| @authorize_post.call(post) }
@@ -277,9 +277,6 @@ describe TentServer::Model::Post do
     post = described_class.get(post.id)
     attributes.each_pair do |k,v|
       actual_value = post.send(k)
-      if actual_value.is_a? Addressable::URI
-        actual_value = actual_value.to_s
-      end
       expect(actual_value).to eq(v)
     end
   end

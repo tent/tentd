@@ -12,7 +12,7 @@ module TentServer
       property :id, Serial
       property :remote_id, String
       property :groups, Array
-      property :entity, URI
+      property :entity, String
       property :public, Boolean, :default => false
       property :profile, Json
       property :licenses, Array
@@ -28,7 +28,7 @@ module TentServer
       def self.create_from_params(params)
         create(
           :remote_id => params.id,
-          :entity => URI(params.entity),
+          :entity => params.entity,
           :groups => params.groups.to_a.map { |g| g['id'] },
           :mac_key_id => params.mac_key_id,
           :mac_key => params.mac_key,

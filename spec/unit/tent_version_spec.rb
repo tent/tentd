@@ -3,7 +3,7 @@ require 'spec_helper'
 describe TentServer::TentVersion do
   describe '.from_uri' do
     it 'should parse version from URI' do
-      uri = URI("https://tent.io/types/posts/photo/v0.x.x#meta")
+      uri = "https://tent.io/types/posts/photo/v0.x.x#meta"
       expect(described_class.from_uri(uri)).to eq(described_class.new("0.x.x"))
     end
   end

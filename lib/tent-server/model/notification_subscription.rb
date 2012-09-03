@@ -6,7 +6,7 @@ module TentServer
       storage_names[:default] = 'notification_subscriptions'
 
       property :id, Serial
-      property :type, URI
+      property :type, String
       property :view, String, :default => 'full'
       property :created_at, DateTime
       property :updated_at, DateTime

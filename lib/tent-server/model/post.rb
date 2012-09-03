@@ -10,9 +10,9 @@ module TentServer
       storage_names[:default] = "posts"
 
       property :id, Serial
-      property :entity, URI
+      property :entity, String
       property :public, Boolean, :default => false
-      property :type, URI
+      property :type, String
       property :licenses, Array
       property :content, Json
       property :published_at, DateTime
