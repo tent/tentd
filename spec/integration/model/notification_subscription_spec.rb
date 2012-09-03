@@ -31,7 +31,7 @@ describe TentD::Model::NotificationSubscription do
 
       it 'should notify about a post' do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
-        http_stubs.post('/posts') { [200, {}, nil] }
+        http_stubs.post('/notifications') { [200, {}, nil] }
         expect(subscription.notify_about(post.id)).to be_true
       end
     end
