@@ -44,6 +44,18 @@ module TentServer
         end
       end
 
+      def can_notify?(app_or_follower)
+        return true if public
+        case app_or_follower
+        when AppAuthorization
+          app_or_follower.scopes && app_or_follower.scopes.include?(:read_posts) ||
+          app_or_follower.post_types && app_or_follower.post_types.include?(type)
+        when Follower
+          (permissions.all(:group_public_uid => app_or_follower.groups) +
+           permissions.all(:follower_access_id => app_or_follower.id)).any?
+        end
+      end
+
       def as_json(options = {})
         attributes = super
         attributes[:id] = public_uid if attributes[:id]

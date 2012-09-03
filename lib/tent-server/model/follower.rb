@@ -28,7 +28,7 @@ module TentServer
       # permissions describing who can see them
       has n, :visibility_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_visibility_id ], :constraint => :destroy
 
-      # permissions describing what they have access too
+      # permissions describing what they have access to
       has n, :access_permissions, 'TentServer::Model::Permission', :child_key => [ :follower_access_id ], :constraint => :destroy
 
       def self.create_follower(data, authorized_scopes = [])

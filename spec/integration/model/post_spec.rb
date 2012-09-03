@@ -310,5 +310,59 @@ describe TentServer::Model::Post do
     expect(post).to be_saved
     expect(post.public_uid).to_not eq(first_post.public_uid)
   end
+
+  describe "can_notify?" do
+    let(:post) { Fabricate.build(:post) }
+
+    context "with app authorization" do
+      it "should be true for a public post" do
+        expect(post.can_notify?(Fabricate(:app_authorization))).to be_true
+      end
+
+      describe "with private post" do
+        let(:post) { Fabricate.build(:post, :public => false) }
+
+        it "should be true with read_posts scope" do
+          auth = Fabricate.build(:app_authorization, :scopes => [:read_posts])
+          expect(post.can_notify?(auth)).to be_true
+        end
+
+        it "should be true with authorized type" do
+          auth = Fabricate.build(:app_authorization, :post_types => [post.type])
+          expect(post.can_notify?(auth)).to be_true
+        end
+
+        it "should be false if unauthorized" do
+          auth = Fabricate.build(:app_authorization)
+          expect(post.can_notify?(auth)).to be_false
+        end
+      end
+    end
+
+    context "with follower" do
+      it "should be true for a public post" do
+        expect(post.can_notify?(Fabricate(:follower))).to be_true
+      end
+
+      describe "with private post" do
+        let(:post) { Fabricate(:post, :public => false) }
+        let(:follower) { Fabricate(:follower) }
+
+        it "should be true for permission group" do
+          TentServer::Model::Permission.create(:group_public_uid => follower.groups.first, :post_id => post.id)
+          expect(post.can_notify?(follower)).to be_true
+        end
+
+        it "should be true for explicit permission" do
+          TentServer::Model::Permission.create(:follower_access_id => follower.id, :post_id => post.id)
+          expect(post.can_notify?(follower)).to be_true
+        end
+
+        it "should be false if unauthorized" do
+          expect(post.can_notify?(follower)).to be_false
+        end
+      end
+    end
+  end
 end
 
