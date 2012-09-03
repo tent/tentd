@@ -7,7 +7,7 @@ require 'tent-server/datamapper/query'
 module TentServer
   module Model
     require 'tent-server/model/permissible'
-    require 'tent-server/model/random_public_uid'
+    require 'tent-server/model/random_public_id'
     require 'tent-server/model/post'
     require 'tent-server/model/post_attachment'
     require 'tent-server/model/follower'

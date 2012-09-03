@@ -2,7 +2,7 @@ module TentServer
   module Model
     class Group
       include DataMapper::Resource
-      include RandomPublicUid
+      include RandomPublicId
 
       storage_names[:default] = "groups"
 
@@ -11,11 +11,11 @@ module TentServer
       property :created_at, DateTime
       property :updated_at, DateTime
 
-      has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy, :parent_key => :public_uid
+      has n, :permissions, 'TentServer::Model::Permission', :constraint => :destroy, :parent_key => :public_id
 
       def as_json(options = {})
         attributes = super
-        attributes[:id] = attributes.delete(:public_uid)
+        attributes[:id] = attributes.delete(:public_id)
         attributes
       end
     end

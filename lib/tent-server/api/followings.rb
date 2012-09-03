@@ -10,9 +10,9 @@ module TentServer
             env.params[key] = nil
             memo
           }
-          followings = Model::Following.all(:public_uid => id_mapping.keys, :fields => [:id, :public_uid])
+          followings = Model::Following.all(:public_id => id_mapping.keys, :fields => [:id, :public_id])
           followings.each do |following|
-            key = id_mapping[following.public_uid]
+            key = id_mapping[following.public_id]
             env.params[key] = following.id
           end
           env

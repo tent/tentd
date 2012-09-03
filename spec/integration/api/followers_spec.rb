@@ -83,7 +83,7 @@ describe TentServer::API::Followers do
         expect(last_response.status).to eq(200)
         follow = TentServer::Model::Follower.last
         expect(JSON.parse(last_response.body)).to eq({
-          "id" => follow.public_uid,
+          "id" => follow.public_id,
           "mac_key_id" => follow.mac_key_id,
           "mac_key" => follow.mac_key,
           "mac_algorithm" => follow.mac_algorithm
@@ -201,7 +201,7 @@ describe TentServer::API::Followers do
   describe 'GET /followers/:id' do
     authorized = proc do
       it 'should respond with follower json' do
-        json_get "/followers/#{follower.public_uid}", params, env
+        json_get "/followers/#{follower.public_id}", params, env
         expect(last_response.status).to eq(200)
         expect(last_response.body).to eq(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_algorithm]).to_json)
       end
@@ -223,7 +223,7 @@ describe TentServer::API::Followers do
           before { params['read_secrets'] = true }
 
           it 'should respond with follower json with mac_key' do
-            json_get "/followers/#{follower.public_uid}", params, env
+            json_get "/followers/#{follower.public_id}", params, env
             expect(last_response.status).to eq(200)
             actual = JSON.parse(last_response.body)
             expected = follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
@@ -269,7 +269,7 @@ describe TentServer::API::Followers do
     context 'when not authorized' do
       context 'when follower public' do
         it 'should respond with follower json' do
-          json_get "/followers/#{follower.public_uid}", params, env
+          json_get "/followers/#{follower.public_id}", params, env
           expect(last_response.status).to eq(200)
           expect(last_response.body).to eq(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type]).to_json)
         end
@@ -299,7 +299,7 @@ describe TentServer::API::Followers do
         data = {
           :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
         }
-        json_put "/followers/#{follower.public_uid}", data, env
+        json_put "/followers/#{follower.public_id}", data, env
         follower.reload
         expect(follower.licenses).to eq(data[:licenses])
       end
@@ -322,7 +322,7 @@ describe TentServer::API::Followers do
           it "should not update #{property}" do
             original_value = follower.send(property)
             data = { property => @data[property] }
-            json_put "/followers/#{follower.public_uid}", data, env
+            json_put "/followers/#{follower.public_id}", data, env
             follower.reload
             expect(follower.send(property)).to eq(original_value)
           end
@@ -331,7 +331,7 @@ describe TentServer::API::Followers do
           it "should update #{property}" do
             original_value = follower.send(property)
             data = { property => @data[property] }
-            json_put "/followers/#{follower.public_uid}", data, env
+            json_put "/followers/#{follower.public_id}", data, env
             follower.reload
             actual_value = follower.send(property)
             expect(actual_value.to_json).to eq(@data[property].to_json)
@@ -343,14 +343,14 @@ describe TentServer::API::Followers do
         data = {
           :types => follower.notification_subscriptions.map {|ns| ns.type.to_s}.concat(["https://tent.io/types/post/video/v0.1.x#meta"])
         }
-        expect( lambda { json_put "/followers/#{follower.public_uid}", data, env } ).
+        expect( lambda { json_put "/followers/#{follower.public_id}", data, env } ).
           to change(TentServer::Model::NotificationSubscription, :count).by (1)
 
         follower.reload
         data = {
           :types => follower.notification_subscriptions.map {|ns| ns.type.to_s}[0..-2]
         }
-        expect( lambda { json_put "/followers/#{follower.public_uid}", data, env } ).
+        expect( lambda { json_put "/followers/#{follower.public_id}", data, env } ).
           to change(TentServer::Model::NotificationSubscription, :count).by (-1)
       end
     end
@@ -396,7 +396,7 @@ describe TentServer::API::Followers do
     authorized = proc do
       it 'should delete follower' do
         follower # create follower
-        expect(lambda { delete "/followers/#{follower.public_uid}", params, env }).to change(TentServer::Model::Follower, :count).by(-1)
+        expect(lambda { delete "/followers/#{follower.public_id}", params, env }).to change(TentServer::Model::Follower, :count).by(-1)
         expect(last_response.status).to eq(200)
       end
     end

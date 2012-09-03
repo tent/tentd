@@ -10,9 +10,9 @@ module TentServer
             env.params[key] = nil
             memo
           }
-          posts = Model::Post.all(:public_uid => id_mapping.keys, :fields => [:id, :public_uid])
+          posts = Model::Post.all(:public_id => id_mapping.keys, :fields => [:id, :public_id])
           posts.each do |post|
-            key = id_mapping[post.public_uid]
+            key = id_mapping[post.public_id]
             env.params[key] = post.id
           end
           env

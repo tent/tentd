@@ -6,7 +6,7 @@ module TentServer
       class GetActualId < Middleware
         def action(env)
           if env.params.app_id
-            if app = Model::App.first(:public_uid => env.params.app_id)
+            if app = Model::App.first(:public_id => env.params.app_id)
               env.params.app_id = app.id
             else
               env.params.app_id = nil

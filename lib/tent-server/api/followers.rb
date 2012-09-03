@@ -5,7 +5,7 @@ module TentServer
 
       class GetActualId < Middleware
         def action(env)
-          if env.params.follower_id && (follower = Model::Follower.first(:public_uid => env.params.follower_id, :fields => [:id]))
+          if env.params.follower_id && (follower = Model::Follower.first(:public_id => env.params.follower_id, :fields => [:id]))
             env.params.follower_id = follower.id
           else
             env.params.follower_id = nil

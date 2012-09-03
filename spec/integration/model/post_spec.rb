@@ -24,7 +24,7 @@ describe TentServer::Model::Post do
       context 'when has permission via group' do
         before do
           group.permissions.create(:post_id => post.id)
-          current_auth.groups = [group.public_uid]
+          current_auth.groups = [group.public_id]
           current_auth.save
         end
 
@@ -285,10 +285,10 @@ describe TentServer::Model::Post do
   end
 
   describe "#as_json" do
-    it "should replace id with public_uid" do
+    it "should replace id with public_id" do
       post = Fabricate(:post)
-      expect(post.as_json[:id]).to eq(post.public_uid)
-      expect(post.as_json).to_not have_key(:public_uid)
+      expect(post.as_json[:id]).to eq(post.public_id)
+      expect(post.as_json).to_not have_key(:public_id)
     end
 
     it "should not add id to returned object if excluded" do
@@ -300,15 +300,15 @@ describe TentServer::Model::Post do
   it "should generate public_id on create" do
     post = Fabricate.build(:post)
     expect(post.save).to be_true
-    expect(post.public_uid).to_not be_nil
+    expect(post.public_id).to_not be_nil
   end
 
   it "should ensure public_id is unique" do
     first_post = Fabricate(:post)
-    post = Fabricate.build(:post, :public_uid => first_post.public_uid)
+    post = Fabricate.build(:post, :public_id => first_post.public_id)
     post.save
     expect(post).to be_saved
-    expect(post.public_uid).to_not eq(first_post.public_uid)
+    expect(post.public_id).to_not eq(first_post.public_id)
   end
 
   describe "can_notify?" do
@@ -349,7 +349,7 @@ describe TentServer::Model::Post do
         let(:follower) { Fabricate(:follower) }
 
         it "should be true for permission group" do
-          TentServer::Model::Permission.create(:group_public_uid => follower.groups.first, :post_id => post.id)
+          TentServer::Model::Permission.create(:group_public_id => follower.groups.first, :post_id => post.id)
           expect(post.can_notify?(follower)).to be_true
         end
 

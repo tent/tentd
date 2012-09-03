@@ -42,7 +42,7 @@ describe TentServer::API::Groups do
 
       it 'should find group with :id' do
         group = Fabricate(:group)
-        get "/groups/#{group.public_uid}", params, env
+        get "/groups/#{group.public_id}", params, env
         expect(last_response.body).to eq(group.to_json)
       end
 
@@ -68,7 +68,7 @@ describe TentServer::API::Groups do
         group = Fabricate(:group, :name => 'foo-bar')
         group.name = 'bar-baz'
         expect(group.save).to be_true
-        json_put "/groups/#{group.public_uid}", group, env
+        json_put "/groups/#{group.public_id}", group, env
         actual_group = TentServer::Model::Group.get(group.id)
         expect(actual_group.name).to eq(group.name)
         expect(last_response.body).to eq(actual_group.to_json)
@@ -112,7 +112,7 @@ describe TentServer::API::Groups do
 
       it 'should destroy group' do
         group = Fabricate(:group, :name => 'foo-bar-baz')
-        expect(lambda { delete "/groups/#{group.public_uid}", params, env }).
+        expect(lambda { delete "/groups/#{group.public_id}", params, env }).
           to change(TentServer::Model::Group, :count).by(-1)
       end
 

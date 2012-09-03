@@ -6,7 +6,7 @@ module TentServer
     class Follower
       include DataMapper::Resource
       include Permissible
-      include RandomPublicUid
+      include RandomPublicId
 
       storage_names[:default] = 'followers'
 
@@ -72,8 +72,8 @@ module TentServer
       def as_json(options = {})
         authorized_scopes = options.delete(:authorized_scopes)
         attributes = super(options)
-        attributes[:id] = public_uid if attributes[:id]
-        attributes.delete(:public_uid)
+        attributes[:id] = public_id if attributes[:id]
+        attributes.delete(:public_id)
 
         if authorized_scopes
           whitelist = [:id, :entity, :profile, :licenses]

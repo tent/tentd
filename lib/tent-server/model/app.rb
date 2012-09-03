@@ -5,7 +5,7 @@ module TentServer
   module Model
     class App
       include DataMapper::Resource
-      include RandomPublicUid
+      include RandomPublicId
 
       storage_names[:default] = 'apps'
 
@@ -39,7 +39,7 @@ module TentServer
       def as_json(options = {})
         authorized_scopes = options.delete(:authorized_scopes)
         attributes = super(options)
-        attributes[:id] = attributes.delete(:public_uid)
+        attributes[:id] = attributes.delete(:public_id)
         blacklist = [:created_at, :updated_at]
         if authorized_scopes
           unless authorized_scopes.include?(:read_secrets)

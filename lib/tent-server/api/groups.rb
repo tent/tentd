@@ -20,7 +20,7 @@ module TentServer
       class GetActualId < Middleware
         def action(env)
           if env.params.group_id
-            if g = Model::Group.first(:public_uid => env.params.group_id)
+            if g = Model::Group.first(:public_id => env.params.group_id)
               env.params.group_id = g.id
             else
               env.params.group_id = nil

@@ -5,7 +5,7 @@ module TentServer
     class Following
       include DataMapper::Resource
       include Permissible
-      include RandomPublicUid
+      include RandomPublicId
 
       storage_names[:default] = 'followings'
 
@@ -52,8 +52,8 @@ module TentServer
       def as_json(options = {})
         authorized_scopes = options.delete(:authorized_scopes).to_a
         attributes = super(options)
-        attributes[:id] = public_uid if attributes[:id]
-        attributes.delete(:public_uid)
+        attributes[:id] = public_id if attributes[:id]
+        attributes.delete(:public_id)
         blacklist = [:created_at, :updated_at]
         unless authorized_scopes.include?(:read_followings) && authorized_scopes.include?(:read_secrets)
           blacklist.concat([:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])

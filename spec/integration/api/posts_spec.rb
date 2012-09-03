@@ -21,9 +21,9 @@ describe TentServer::API::Posts do
   describe 'GET /posts/:post_id' do
     using_permissions = proc do
       not_authenticated = proc do
-        it "should find existing post by public_uid" do
+        it "should find existing post by public_id" do
           post = Fabricate(:post, :public => true)
-          json_get "/posts/#{post.public_uid}"
+          json_get "/posts/#{post.public_id}"
           expect(last_response.body).to eq(post.to_json)
         end
 
@@ -58,7 +58,7 @@ describe TentServer::API::Posts do
             end
 
             it 'should return post' do
-              json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
+              json_get "/posts/#{post.public_id}", nil, 'current_auth' => current_auth
               expect(last_response.status).to_not eq(404)
               expect(last_response.body).to eq(post.to_json)
             end
@@ -66,13 +66,13 @@ describe TentServer::API::Posts do
 
           context 'when has permission via groups' do
             before do
-              post.permissions.create(:group_public_uid => group.public_uid)
-              current_auth.groups = [group.public_uid]
+              post.permissions.create(:group_public_id => group.public_id)
+              current_auth.groups = [group.public_id]
               current_auth.save
             end
 
             it 'should return post' do
-              json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
+              json_get "/posts/#{post.public_id}", nil, 'current_auth' => current_auth
               expect(last_response.status).to_not eq(404)
               expect(last_response.body).to eq(post.to_json)
             end
@@ -81,7 +81,7 @@ describe TentServer::API::Posts do
           context 'when does not have permission' do
             it 'should return 404' do
               post # create post
-              json_get "/posts/#{post.public_uid}", nil, 'current_auth' => current_auth
+              json_get "/posts/#{post.public_id}", nil, 'current_auth' => current_auth
               expect(last_response.status).to eq(404)
             end
           end
@@ -111,7 +111,7 @@ describe TentServer::API::Posts do
         context 'when post exists' do
           it 'should return post' do
             post = Fabricate(:post, :public => false, :type => post_type)
-            json_get "/posts/#{post.public_uid}", params, env
+            json_get "/posts/#{post.public_id}", params, env
             expect(last_response.status).to eq(200)
             expect(last_response.body).to eq(post.to_json)
           end
@@ -138,7 +138,7 @@ describe TentServer::API::Posts do
       context 'when post type is not authorized' do
         it 'should return 404' do
           post = Fabricate(:post, :public => false, :type => post_type)
-          json_get "/posts/#{post.public_uid}", params, env
+          json_get "/posts/#{post.public_id}", params, env
           expect(last_response.status).to eq(404)
         end
       end
@@ -189,7 +189,7 @@ describe TentServer::API::Posts do
         post = Fabricate(:post, :public => post_public?)
         post.save!
 
-        json_get "/posts?since_id=#{since_post.public_uid}", params, env
+        json_get "/posts?since_id=#{since_post.public_id}", params, env
         expect(last_response.body).to eq([post].to_json)
       end
 
@@ -200,7 +200,7 @@ describe TentServer::API::Posts do
         before_post = Fabricate(:post, :public => post_public?)
         before_post.save!
 
-        json_get "/posts?before_id=#{before_post.public_uid}", params, env
+        json_get "/posts?before_id=#{before_post.public_id}", params, env
         expect(last_response.body).to eq([post].to_json)
       end
 
@@ -212,7 +212,7 @@ describe TentServer::API::Posts do
         before_post = Fabricate(:post, :public => post_public?)
         before_post.save!
 
-        json_get "/posts?before_id=#{before_post.public_uid}&since_id=#{since_post.public_uid}", params, env
+        json_get "/posts?before_id=#{before_post.public_id}&since_id=#{since_post.public_id}", params, env
         expect(last_response.body).to eq([post].to_json)
       end
 
@@ -339,14 +339,14 @@ describe TentServer::API::Posts do
     let(:attachment) { Fabricate(:post_attachment, :post => post) }
 
     it 'should get an attachment' do
-      get "/posts/#{post.public_uid}/attachments/#{attachment.name}", {}, 'HTTP_ACCEPT' => attachment.type
+      get "/posts/#{post.public_id}/attachments/#{attachment.name}", {}, 'HTTP_ACCEPT' => attachment.type
       expect(last_response.status).to eq(200)
       expect(last_response.headers['Content-Type']).to eq(attachment.type)
       expect(last_response.body).to eq(attachment.data)
     end
 
     it "should 404 if the attachment doesn't exist" do
-      get "/posts/#{post.public_uid}/attachments/asdf"
+      get "/posts/#{post.public_id}/attachments/asdf"
       expect(last_response.status).to eq(404)
     end
 
