@@ -36,6 +36,10 @@ module TentD
         app
       end
 
+      def auth_details
+        attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
+      end
+
       def as_json(options = {})
         authorized_scopes = options.delete(:authorized_scopes)
         attributes = super(options)
