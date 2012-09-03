@@ -15,6 +15,8 @@ module TentD
         if env.potential_auth
           env.hmac.secret = env.potential_auth.mac_key
           env.hmac.algorithm = env.potential_auth.mac_algorithm
+        else
+          env.hmac = nil
         end
         env
       end
