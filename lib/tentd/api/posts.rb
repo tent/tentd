@@ -75,8 +75,8 @@ module TentD
       class CreatePost < Middleware
         def action(env)
           authorize_env!(env, :write_posts)
-          post_attributes = env.params[:data]
-          post = Model::Post.create!(post_attributes)
+          post_attributes = 
+          post = Model::Post.create!(env.params[:data].slice(*Model::Post.public_attributes))
           env['response'] = post
           env
         end

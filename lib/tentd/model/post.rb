@@ -44,6 +44,10 @@ module TentD
         end
       end
 
+      def self.public_attributes
+        [:entity, :public, :type, :licenses, :content, :published_at]
+      end
+
       def can_notify?(app_or_follower)
         return true if public
         case app_or_follower
