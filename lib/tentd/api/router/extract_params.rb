@@ -11,7 +11,7 @@ module TentD
         def call(env)
           add_request(env)
           extract_params(env)
-          env['tent.entity'] = ENV['TENT_ENTITY']
+          env['tent.entity'] ||= ENV['TENT_ENTITY']
           @app.call(env)
         end
 
