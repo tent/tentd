@@ -11,11 +11,11 @@ module TentD
 
       property :id, Serial
       property :name, String
-      property :description, Text
+      property :description, Text, :lazy => false
       property :url, String
       property :icon, String
-      property :redirect_uris, Array
-      property :scopes, Json
+      property :redirect_uris, Array, :lazy => false
+      property :scopes, Json, :default => {}, :lazy => false
       property :mac_key_id, String, :default => lambda { |*args| 'a:' + SecureRandom.hex(4) }, :unique => true
       property :mac_key, String, :default => lambda { |*args| SecureRandom.hex(16) }
       property :mac_algorithm, String, :default => 'hmac-sha-256'
@@ -52,7 +52,7 @@ module TentD
           end
         end
         blacklist.flatten.each { |key| attributes.delete(key) }
-        attributes
+        attributes.merge(:authorizations => authorizations.all.map(&:as_json))
       end
     end
   end
