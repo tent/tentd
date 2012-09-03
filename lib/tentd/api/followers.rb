@@ -47,10 +47,10 @@ module TentD
           return env if env.authorized_scopes.include?(:write_followers)
           client = ::TentClient.new
           profile, profile_url = client.discover(env.params[:data]['entity']).get_profile
-          return [404, {}, 'Not Found'] unless profile
+          return [404, {}, ['Not Found']] unless profile
 
           profile = CoreProfileData.new(profile)
-          return [409, {}, 'Entity Mismatch'] unless profile.entity?(env.params.data.entity)
+          return [409, {}, ['Entity Mismatch']] unless profile.entity?(env.params.data.entity)
           env['profile'] = profile
           env
         end

@@ -14,7 +14,7 @@ module TentD
         response = action(env)
         response.kind_of?(Hash) ? @app.call(response) : response
       rescue Unauthorized
-        [403, {}, 'Unauthorized']
+        [403, {}, ['Unauthorized']]
       end
     end
   end
