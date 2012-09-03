@@ -74,11 +74,41 @@ module TentD
 
       class CreatePost < Middleware
         def action(env)
-          authorize_env!(env, :write_posts)
-          post_attributes = 
-          post = Model::Post.create!(env.params[:data].slice(*Model::Post.public_attributes))
+          authorize_post!(env)
+          post = Model::Post.create!(env.params[:data].slice(*whitelisted_attributes(env)))
           env['response'] = post
           env
+        end
+
+        private
+
+        def authorize_post!(env)
+          if auth_is_publisher?(env.current_auth, env.params.data)
+            env.params.data.known_publisher = true
+            env.authorized_scopes << :write_posts
+          elsif anonymous_publisher?(env.current_auth, env.params.data)
+            env.params.data.known_publisher = false
+            env.authorized_scopes << :write_posts
+          elsif env.current_auth.respond_to?(:app) && !env.authorized_scopes.include?(:import_posts)
+            env.params.data.entity = env['tent.entity']
+            env.params.data.app = env.current_auth.app
+          end
+          authorize_env!(env, :write_posts)
+        end
+
+        def whitelisted_attributes(env)
+          attrs = Model::Post.public_attributes
+          attrs += [:app, :permissions, :public] if env.current_auth.respond_to?(:app)
+          attrs += [:received_at] if env.authorized_scopes.include?(:import_posts)
+          attrs
+        end
+
+        def auth_is_publisher?(auth, post)
+          auth.respond_to?(:entity) && auth.entity == post.entity
+        end
+
+        def anonymous_publisher?(auth, post)
+          !auth && post.entity && !Model::Following.first(:entity => post.entity, :fields => [:id])
         end
       end
 

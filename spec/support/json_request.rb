@@ -10,7 +10,7 @@ module JsonRequest
   end
 
   def json_post(path, data = {}, rack_env = {})
-    post path, data.to_json,  { 'CONTENT_TYPE' => TentD::API::MEDIA_TYPE }.merge(rack_env)
+    post path, data.to_json, { 'CONTENT_TYPE' => TentD::API::MEDIA_TYPE }.merge(rack_env)
   end
 
   def json_get(path, data = {}, rack_env = {})

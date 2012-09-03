@@ -6,13 +6,21 @@ describe TentD::API::Posts do
   end
 
   let(:authorized_post_types) { [] }
+
   def authorize!(*scopes)
-    env['current_auth'] = stub(
+    options = scopes.last if scopes.last.kind_of?(Hash)
+    scopes.delete(options)
+    methods = {
       :kind_of? => true,
       :id => nil,
       :scopes => scopes,
-      :post_types => authorized_post_types
-    )
+      :post_types => authorized_post_types,
+    }
+    if options
+      methods[:app] = options[:app] if options[:app]
+      methods[:entity] = options[:entity] if options[:entity]
+    end
+    env['current_auth'] = stub(methods)
   end
 
   let(:env) { Hash.new }
@@ -301,18 +309,21 @@ describe TentD::API::Posts do
   end
 
   describe 'POST /posts' do
-    context 'with write_posts scope authorized' do
-      before { authorize!(:write_posts) }
+    let(:p) { Fabricate.build(:post) }
+
+    context 'as app with write_posts scope authorized' do
+      let(:application) { Fabricate.build(:app) }
+      before { authorize!(:write_posts, :app => application) }
+
       it "should create post" do
-        post = Fabricate(:post)
-        post_attributes = post.as_json(:exclude => [:id])
+        post_attributes = p.as_json(:exclude => [:id])
         expect(lambda { json_post "/posts", post_attributes, env }).to change(TentD::Model::Post, :count).by(1)
         expect(last_response.body).to eq(TentD::Model::Post.last.to_json)
+        expect(JSON.parse(last_response.body)['app']).to eq('url' => application.url, 'name' => application.name)
       end
 
       it 'should create post with multipart attachments' do
-        post = Fabricate(:post)
-        post_attributes = post.as_json(:exclude => [:id])
+        post_attributes = p.as_json(:exclude => [:id])
         attachments = { :foo => [{ :filename => 'a', :content_type => 'text/plain', :content => 'asdf' },
                                  { :filename => 'a', :content_type => 'application/json', :content => 'asdf123' },
                                  { :filename => 'b', :content_type => 'text/plain', :content => '1234' }],
@@ -326,10 +337,38 @@ describe TentD::API::Posts do
       end
     end
 
-    context 'without write_posts scope authorized' do
+    context 'without app write_posts scope authorized' do
       it 'should respond 403' do
         expect(lambda { json_post "/posts", {}, env }).to_not change(TentD::Model::Post, :count)
         expect(last_response.status).to eq(403)
+      end
+    end
+
+    context 'as follower' do
+      before { authorize!(:entity => 'https://smith.example.com') }
+
+      it 'should allow a post from the follower' do
+        json_post "/posts", p.as_json(:exclude => [:id]), env
+        expect(last_response.body).to eq(TentD::Model::Post.last.to_json)
+      end
+
+      it "should not allow a post that isn't from the follower" do
+        json_post "/posts", p.as_json(:exclude => [:id]).merge(:entity => 'example.org'), env
+        expect(last_response.status).to eq(403)
+      end
+    end
+
+    context 'as anonymous' do
+      before { Fabricate(:following) }
+
+      it 'should not allow a post by an entity that is a following' do
+        json_post "/posts", p.as_json(:exclude => [:id]), env
+        expect(last_response.status).to eq(403)
+      end
+
+      it 'should allow a post by an entity that is not a following' do
+        json_post "/posts", p.as_json(:exclude => [:id]).merge(:entity => 'example.org'), env
+        expect(last_response.body).to eq(TentD::Model::Post.last.to_json)
       end
     end
   end

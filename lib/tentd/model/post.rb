@@ -15,12 +15,13 @@ module TentD
       property :type, String
       property :licenses, Array
       property :content, Json
-      property :published_at, DateTime
-      property :received_at, DateTime
+      property :published_at, DateTime, :default => lambda { |*args| Time.now }
+      property :received_at, DateTime, :default => lambda { |*args| Time.now }
       property :updated_at, DateTime
 
       has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy
       has n, :attachments, 'TentD::Model::PostAttachment', :constraint => :destroy
+      belongs_to :app, 'TentD::Model::App', :required => false
 
       def self.fetch_with_permissions(params, current_auth)
         super do |params, query, query_bindings|
@@ -45,7 +46,7 @@ module TentD
       end
 
       def self.public_attributes
-        [:entity, :public, :type, :licenses, :content, :published_at]
+        [:entity, :type, :licenses, :content, :published_at]
       end
 
       def can_notify?(app_or_follower)
@@ -63,6 +64,7 @@ module TentD
       def as_json(options = {})
         attributes = super
         attributes[:id] = public_id if attributes[:id]
+        attributes[:app] = { :url => app.url, :name => app.name } if app
         attributes.delete(:public_id)
         attributes[:attachments] = attachments.all.map { |a| a.as_json }
         attributes
