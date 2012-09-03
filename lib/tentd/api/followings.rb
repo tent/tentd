@@ -119,7 +119,7 @@ module TentD
         def action(env)
           following = env.following
           client = TentClient.new(following.core_profile.servers.first,
-                                  following.attributes.slice(:mac_key_id, :mac_key, :mac_algorithm).merge(:skip_serialization => true))
+                                  following.auth_details.merge(:skip_serialization => true))
           env.params.delete(:following_id)
           path = env.params.delete(:proxy_path)
           res = client.http.get(path, env.params, whitelisted_headers(env))

@@ -17,13 +17,17 @@ module TentD
       property :mac_key, String, :default => lambda { |*args| SecureRandom.hex(16) }
       property :mac_algorithm, String, :default => 'hmac-sha-256'
       property :mac_timestamp_delta, Integer
-      property :token_type, String
+      property :notification_url, String
       property :authorized, Boolean
       property :created_at, DateTime
       property :updated_at, DateTime
 
       belongs_to :app, 'TentD::Model::App'
       has n, :notification_subscriptions, 'TentD::Model::NotificationSubscription', :constraint => :destroy
+
+      def auth_details
+        attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
+      end
     end
   end
 end

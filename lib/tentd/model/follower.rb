@@ -69,6 +69,19 @@ module TentD
         :follower_access_id
       end
 
+      def core_profile
+        API::CoreProfileData.new(profile)
+      end
+
+      # TODO: make this support multiple urls
+      def notification_url
+        core_profile.servers.first + '/posts'
+      end
+
+      def auth_details
+        attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
+      end
+
       def as_json(options = {})
         authorized_scopes = options.delete(:authorized_scopes)
         attributes = super(options)

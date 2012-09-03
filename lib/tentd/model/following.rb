@@ -40,6 +40,10 @@ module TentD
         API::CoreProfileData.new(profile)
       end
 
+      def auth_details
+        attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
+      end
+
       def update_from_params(params, authorized_scopes = [])
         whitelist = [:remote_id, :entity, :groups, :public, :licenses, :profile]
         if authorized_scopes.include?(:write_secrets)
