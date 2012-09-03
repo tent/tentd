@@ -197,6 +197,42 @@ describe TentD::API::Apps do
     end
   end
 
+  describe 'POST /apps/:id/authorizations' do
+    context 'when authorized' do
+      before { authorize!(:write_apps) }
+
+      it 'should create app authorization' do
+        app = Fabricate(:app)
+        scopes = %w{ read_posts write_posts }
+        post_types = %w{ https://tent.io/types/post/status https://tent.io/types/post/photo }
+        profile_info_types = %w{ https://tent.io/types/info/basic https://tent.io/types/info/core }
+        data = {
+          :scopes => scopes,
+          :post_types => post_types.map {|url| URI.encode(url, ":/") },
+          :profile_info_types => profile_info_types.map {|url| URI.encode(url, ":/") },
+        }
+        expect(lambda {
+          json_post "/apps/#{app.public_id}/authorizations", data, env
+        }).to change(TentD::Model::AppAuthorization, :count)
+
+        app_auth = app.authorizations.last
+        expect(app_auth.scopes).to eq(scopes)
+        expect(app_auth.post_types).to eq(post_types)
+        expect(app_auth.profile_info_types).to eq(profile_info_types)
+      end
+    end
+
+    context 'when not authorized' do
+      it 'should return 403' do
+        app = Fabricate(:app)
+        expect(lambda {
+          json_post "/apps/#{app.public_id}/authorizations", params, env
+        }).to_not change(TentD::Model::AppAuthorization, :count)
+        expect(last_response.status).to eq(403)
+      end
+    end
+  end
+
   describe 'PUT /apps/:id' do
     authorized_examples = proc do
       context 'app with :id exists' do

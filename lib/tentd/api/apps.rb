@@ -47,6 +47,13 @@ module TentD
         end
       end
 
+      class AuthorizeWriteAll < Middleware
+        def action(env)
+          authorize_env!(env, :write_apps)
+          env
+        end
+      end
+
       class GetOne < Middleware
         def action(env)
           if app = Model::App.get(env.params.app_id)
@@ -68,6 +75,19 @@ module TentD
       class Create < Middleware
         def action(env)
           env.response = Model::App.create_from_params(env.params.data).as_json
+          env
+        end
+      end
+
+      class CreateAuthorization < Middleware
+        def action(env)
+          if app = Model::App.get(env.params.app_id)
+            authorization = app.authorizations.create(env.params.data.merge({
+              :post_types => env.params.data.post_types.to_a.map { |url| URI.decode(url) },
+              :profile_info_types => env.params.data.profile_info_types.to_a.map { |url| URI.decode(url) },
+            }))
+            env.response = authorization.as_json
+          end
           env
         end
       end
@@ -103,6 +123,12 @@ module TentD
 
       post '/apps' do |b|
         b.use Create
+      end
+
+      post '/apps/:app_id/authorizations' do |b|
+        b.use GetActualId
+        b.use AuthorizeWriteAll
+        b.use CreateAuthorization
       end
 
       put '/apps/:app_id' do |b|
