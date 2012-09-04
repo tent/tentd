@@ -1,29 +1,42 @@
 # TentD
 
-TODO: Write a gem description
+TentD is an **alpha** implementation of a [Tent Protocol](http://tent.io) server.
+It currently contains **broken code, ugly code, many bugs, and security flaws**.
+The code should only be used to experiment with how Tent works. Under no
+circumstances should the code in its current form be used for data that is
+supposed to be private. All of the implemented APIs are in flux, and are
+expected to change heavily before the Tent 1.0 release.
 
-## Installation
 
-Add this line to your application's Gemfile:
+## Requirements
 
-    gem 'tentd'
+TentD is written using Ruby 1.9 with Rack and Datamapper and is only tested with
+PostgreSQL. The code needs a few fixes to work with 1.8 and other databases.
 
-And then execute:
+If you have Ruby 1.9, Bundler, and PostgreSQL installed, this should get the
+tests running:
 
-    $ bundle
+```shell
+createdb tent_server_test
+bundle install
+rake
+```
 
-Or install it yourself as:
+If you want to run this as a Tent server, you should use
+[tentd-admin](https://github.com/tent/tentd-admin).
 
-    $ gem install tentd
 
-## Usage
+## Contributions
 
-TODO: Write usage instructions here
+If you want to help out with the TentD code instead of writing Tent clients and
+applications, here are some areas that can be worked on:
 
-## Contributing
-
-1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
+- Fix database queries. There are a bunch of suboptimal uses of the database,
+  and basically no indexes. Low hanging fruit would be to turn on logging while
+  running the tests and index all the queries.
+- Add data validation/normalization.
+- Audit security.
+- Refactor. The current code was hacked together quickly and is pretty ugly.
+- Add tests. There are quite a few areas that aren't tested completely.
+- Fix tests. A lot of tests are written as integration tests and depend on the
+  database, many would be much faster as unit tests that don't hit the database.
