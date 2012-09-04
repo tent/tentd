@@ -11,11 +11,11 @@ module TentD
 
       property :id, Serial
       property :remote_id, String
-      property :groups, Array
+      property :groups, Array, :lazy => false
       property :entity, String
       property :public, Boolean, :default => false
       property :profile, Json
-      property :licenses, Array
+      property :licenses, Array, :lazy => false
       property :mac_key_id, String
       property :mac_key, String
       property :mac_algorithm, String

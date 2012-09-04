@@ -11,11 +11,11 @@ module TentD
       storage_names[:default] = 'followers'
 
       property :id, Serial
-      property :groups, Array
+      property :groups, Array, :lazy => false
       property :entity, String
       property :public, Boolean, :default => false
       property :profile, Json
-      property :licenses, Array
+      property :licenses, Array, :lazy => false
       property :mac_key_id, String, :default => lambda { |*args| 's:' + SecureRandom.hex(4) }, :unique => true
       property :mac_key, String, :default => lambda { |*args| SecureRandom.hex(16) }
       property :mac_algorithm, String, :default => 'hmac-sha-256'
