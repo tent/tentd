@@ -17,7 +17,7 @@ RSpec.configure do |config|
   config.mock_with :mocha
   config.before(:suite) do
     # DataMapper::Logger.new(STDOUT, :debug)
-    DataMapper.setup(:default, 'postgres://localhost/tent_server_test')
+    DataMapper.setup(:default, ENV['TEST_DATABASE_URL'] || 'postgres://localhost/tent_server_test')
     DataMapper.auto_migrate!
   end
 end
