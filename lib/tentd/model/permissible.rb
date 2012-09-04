@@ -31,6 +31,11 @@ module TentD
             query_bindings << true
           end
 
+          if properties[:original]
+            query << "AND original = ?"
+            query_bindings << true
+          end
+
           if block_given?
             yield query, query_bindings
           end

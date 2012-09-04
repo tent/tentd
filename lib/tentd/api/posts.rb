@@ -83,19 +83,21 @@ module TentD
         private
 
         def authorize_post!(env)
-          if auth_is_publisher?(env.current_auth, env.params.data)
-            assign_app_details(env.params.data)
-            env.params.data.known_publisher = true
+          post = env.params.data
+          if auth_is_publisher?(env.current_auth, post)
+            assign_app_details(post)
+            post.known_publisher = true
             env.authorized_scopes << :write_posts
-          elsif anonymous_publisher?(env.current_auth, env.params.data)
-            assign_app_details(env.params.data)
-            env.params.data.known_publisher = false
+          elsif anonymous_publisher?(env.current_auth, post) && post != env['tent.entity']
+            assign_app_details(post)
+            post.known_publisher = false
             env.authorized_scopes << :write_posts
           elsif env.current_auth.respond_to?(:app) && !env.authorized_scopes.include?(:import_posts)
-            env.params.data.entity = env['tent.entity']
-            env.params.data.app = env.current_auth.app
-            assign_app_details(env.params.data)
+            post.entity = env['tent.entity']
+            post.app = env.current_auth.app
+            assign_app_details(post)
           end
+          post.original = post.entity == env['tent.entity']
           authorize_env!(env, :write_posts)
         end
 

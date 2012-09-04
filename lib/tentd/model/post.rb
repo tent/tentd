@@ -20,6 +20,7 @@ module TentD
       property :updated_at, DateTime
       property :app_name, String
       property :app_url, String
+      property :original, Boolean, :default => false
 
       has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy
       has n, :attachments, 'TentD::Model::PostAttachment', :constraint => :destroy
@@ -48,7 +49,7 @@ module TentD
       end
 
       def self.public_attributes
-        [:app_name, :app_url, :entity, :type, :licenses, :content, :published_at]
+        [:app_name, :app_url, :entity, :type, :licenses, :content, :published_at, :original]
       end
 
       def can_notify?(app_or_follower)
@@ -58,17 +59,18 @@ module TentD
           app_or_follower.scopes && app_or_follower.scopes.include?(:read_posts) ||
           app_or_follower.post_types && app_or_follower.post_types.include?(type)
         when Follower
+          return false unless original
           (permissions.all(:group_public_id => app_or_follower.groups) +
            permissions.all(:follower_access_id => app_or_follower.id)).any?
         end
       end
 
       def as_json(options = {})
-        attributes = super
-        attributes[:id] = public_id if attributes[:id]
+        attributes = super(:only => [:entity, :public, :type, :licenses, :content, :published_at])
+        attributes[:id] = public_id
         attributes[:app] = { :url => app_url, :name => app_name }
-        attributes.delete(:public_id)
         attributes[:attachments] = attachments.all.map { |a| a.as_json }
+        Array(options[:exclude]).each { |k| attributes.delete(k) if k }
         attributes
       end
     end
