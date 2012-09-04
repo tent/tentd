@@ -47,13 +47,6 @@ module TentD
         end
       end
 
-      class AuthorizeWriteAll < Middleware
-        def action(env)
-          authorize_env!(env, :write_apps)
-          env
-        end
-      end
-
       class GetOne < Middleware
         def action(env)
           if app = Model::App.get(env.params.app_id)
@@ -81,12 +74,31 @@ module TentD
 
       class CreateAuthorization < Middleware
         def action(env)
+          unless authorize_env?(env, :write_apps)
+            if env.params.data.token_code
+              return AuthorizationTokenExchange.new(@app).call(env)
+            else
+              authorize_env!(env, :write_apps)
+            end
+          end
+
           if app = Model::App.get(env.params.app_id)
             authorization = app.authorizations.create(env.params.data.merge({
               :post_types => env.params.data.post_types.to_a.map { |url| URI.decode(url) },
               :profile_info_types => env.params.data.profile_info_types.to_a.map { |url| URI.decode(url) },
             }))
             env.response = authorization.as_json
+          end
+          env
+        end
+      end
+
+      class AuthorizationTokenExchange < Middleware
+        def action(env)
+          if authorization = Model::AppAuthorization.first(:app_id => env.params.app_id, :token_code => env.params.data.token_code)
+            env.response = authorization.token_exchange!
+          else
+            raise Unauthorized
           end
           env
         end
@@ -127,7 +139,6 @@ module TentD
 
       post '/apps/:app_id/authorizations' do |b|
         b.use GetActualId
-        b.use AuthorizeWriteAll
         b.use CreateAuthorization
       end
 

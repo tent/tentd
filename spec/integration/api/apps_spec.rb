@@ -223,6 +223,22 @@ describe TentD::API::Apps do
     end
 
     context 'when not authorized' do
+      context 'when token exchange' do
+        it 'should exchange mac_key_id for mac_key' do
+          app = Fabricate(:app)
+          authorization = app.authorizations.create
+
+          data = {
+            :token_code => authorization.token_code
+          }
+
+          json_post "/apps/#{app.public_id}/authorizations", data, env
+          expect(last_response.status).to eq(200)
+          expect(authorization.reload.token_code).to_not eq(data[:token_code])
+          expect(last_response.body).to eq(authorization.auth_details.merge(:token_code => authorization.token_code).to_json)
+        end
+      end
+
       it 'should return 403' do
         app = Fabricate(:app)
         expect(lambda {

@@ -27,6 +27,11 @@ module TentD
       def auth_details
         attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
       end
+
+      def token_exchange!
+        update(:token_code => SecureRandom.hex(16))
+        auth_details.merge(:token_code => token_code)
+      end
     end
   end
 end
