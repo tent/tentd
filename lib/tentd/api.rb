@@ -30,7 +30,6 @@ module TentD
 
     class HelloWorld < Middleware
       def action(env)
-        puts env.inspect
         [200, { 'Link' => %(<%sprofile>; rel="%s") % [env['SCRIPT_NAME'], PROFILE_REL] }, ['Tent!']]
       end
     end
