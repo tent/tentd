@@ -1,3 +1,4 @@
+require 'jdbc/postgres' if RUBY_ENGINE == 'jruby'
 require 'data_mapper'
 require 'dm-ar-finders'
 require 'tentd/datamapper/array_property'

@@ -3,3 +3,6 @@ before_script:
   - psql -c 'create database tentd_test;' -U postgres
 env:
   - TEST_DATABASE_URL=postgres://postgres@localhost/tentd_test
+rvm:
+  - 1.9.3
+  - jruby-19mode
