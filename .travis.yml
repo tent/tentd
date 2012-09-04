@@ -6,3 +6,4 @@ env:
 rvm:
   - 1.9.3
   - jruby-head
+  - rbx-19mode
