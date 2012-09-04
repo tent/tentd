@@ -318,7 +318,7 @@ describe TentD::API::Posts do
       it "should create post" do
         post_attributes = p.as_json(:exclude => [:id])
         expect(lambda { json_post "/posts", post_attributes, env }).to change(TentD::Model::Post, :count).by(1)
-        expect(last_response.body).to eq(TentD::Model::Post.last.to_json)
+        expect(last_response.body).to eq(TentD::Model::Post.last.to_json(:kind => :app))
         expect(JSON.parse(last_response.body)['app']).to eq('url' => application.url, 'name' => application.name)
       end
 
@@ -333,7 +333,7 @@ describe TentD::API::Posts do
             multipart_post('/posts', post_attributes, attachments, env)
           }).to change(TentD::Model::Post, :count).by(1)
         }).to change(TentD::Model::PostAttachment, :count).by(4)
-        expect(last_response.body).to eq(TentD::Model::Post.last.to_json)
+        expect(last_response.body).to eq(TentD::Model::Post.last.to_json(:kind => :app))
       end
     end
 

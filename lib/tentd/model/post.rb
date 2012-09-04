@@ -21,6 +21,7 @@ module TentD
       property :app_name, String
       property :app_url, String
       property :original, Boolean, :default => false
+      property :known_entity, Boolean
 
       has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy
       has n, :attachments, 'TentD::Model::PostAttachment', :constraint => :destroy
@@ -49,7 +50,7 @@ module TentD
       end
 
       def self.public_attributes
-        [:app_name, :app_url, :entity, :type, :licenses, :content, :published_at, :original]
+        [:known_entity, :app_name, :app_url, :entity, :type, :licenses, :content, :published_at, :original]
       end
 
       def can_notify?(app_or_follower)
@@ -66,10 +67,28 @@ module TentD
       end
 
       def as_json(options = {})
-        attributes = super(:only => [:entity, :public, :type, :licenses, :content, :published_at])
+        attributes = super(:only => [:entity, :type, :licenses, :content, :published_at])
         attributes[:id] = public_id
         attributes[:app] = { :url => app_url, :name => app_name }
         attributes[:attachments] = attachments.all.map { |a| a.as_json }
+        attributes[:permissions] = { :public => public }
+
+        if options[:kind] == :app
+          attributes[:received_at] = received_at
+          attributes[:known_entity] = known_entity
+        end
+
+        if options[:permissions]
+          groups = []
+          entities = []
+          permissions.each do |permission|
+            groups << permission.group.public_id if permission.group
+            entities << permission.follower.entity if permission.follower
+          end
+          attributes[:permissions][:groups] = groups.uniq
+          attributes[:permissions][:entities] = Hash[entities.uniq.map { |e| [e, true] }]
+        end
+
         Array(options[:exclude]).each { |k| attributes.delete(k) if k }
         attributes
       end

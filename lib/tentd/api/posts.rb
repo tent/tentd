@@ -75,7 +75,10 @@ module TentD
       class CreatePost < Middleware
         def action(env)
           authorize_post!(env)
+          set_app_details(env.params.data)
+          set_publicity(env.params.data)
           post = Model::Post.create!(env.params[:data].slice(*whitelisted_attributes(env)))
+          assign_permissions(post, env.params.data.permissions)
           env['response'] = post
           env
         end
@@ -85,17 +88,15 @@ module TentD
         def authorize_post!(env)
           post = env.params.data
           if auth_is_publisher?(env.current_auth, post)
-            assign_app_details(post)
-            post.known_publisher = true
+            post.known_entity = true
             env.authorized_scopes << :write_posts
           elsif anonymous_publisher?(env.current_auth, post) && post != env['tent.entity']
-            assign_app_details(post)
-            post.known_publisher = false
+            post.known_entity = false
             env.authorized_scopes << :write_posts
           elsif env.current_auth.respond_to?(:app) && !env.authorized_scopes.include?(:import_posts)
             post.entity = env['tent.entity']
             post.app = env.current_auth.app
-            assign_app_details(post)
+            post.known_entity = nil
           end
           post.original = post.entity == env['tent.entity']
           authorize_env!(env, :write_posts)
@@ -103,7 +104,7 @@ module TentD
 
         def whitelisted_attributes(env)
           attrs = Model::Post.public_attributes
-          attrs += [:app_id, :permissions, :public] if env.current_auth.respond_to?(:app)
+          attrs += [:app_id, :public] if env.current_auth.respond_to?(:app)
           attrs += [:received_at] if env.authorized_scopes.include?(:import_posts)
           attrs
         end
@@ -116,11 +117,36 @@ module TentD
           !auth && post.entity && !Model::Following.first(:entity => post.entity, :fields => [:id])
         end
 
-        def assign_app_details(post)
+        def set_app_details(post)
           if app = post.delete('app')
             post.app_url = app.url
             post.app_name = app.name
             post.app_id = app.id if app.id
+          end
+        end
+
+        def set_publicity(post)
+          post.public = post.permissions.public if post.permissions
+        end
+
+        def assign_permissions(post, permissions)
+          return unless post.original && permissions
+          if permissions.groups && permissions.groups.kind_of?(Array)
+            permissions.groups.each do |g|
+              next unless g.id
+              group = Model::Group.first(:public_id => g.id, :fields => [:id])
+              post.permissions << Model::Permission.new(:group => group) if group
+            end
+          end
+
+          if permissions.entities && permissions.entities.kind_of?(Hash)
+            permissions.entities.each do |entity,visible|
+              next unless visible
+              followers = Model::Follower.all(:entity => entity, :fields => [:id])
+              followers.each do |follower|
+                post.permissions << Model::Permission.new(:follower => follower)
+              end
+            end
           end
         end
       end
