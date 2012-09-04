@@ -28,7 +28,7 @@ Gem::Specification.new do |gem|
 
   gem.add_development_dependency 'rack-test', '~> 0.6.1'
   gem.add_development_dependency 'rspec', '~> 2.11'
-  gem.add_development_dependency 'bundler', '~> 1.2'
+  gem.add_development_dependency 'bundler'
   gem.add_development_dependency 'rake'
   gem.add_development_dependency 'guard-rspec'
   gem.add_development_dependency 'mocha'
