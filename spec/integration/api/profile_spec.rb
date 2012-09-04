@@ -5,8 +5,7 @@ describe TentD::API::Profile do
     TentD::API.new
   end
 
-  let(:entity) { 'https://smith.example.org' }
-  let(:env) { { 'tent.entity' => entity } }
+  let(:env) { {} }
   let(:params) { Hash.new }
 
   let(:authorized_info_types) { [] }
@@ -40,7 +39,7 @@ describe TentD::API::Profile do
   end
 
   def create_info(type, content, options = {})
-    Fabricate(:profile_info, :public => options[:public], :entity => entity, :type => type, :content => content)
+    Fabricate(:profile_info, :public => options[:public], :type => type, :content => content)
   end
 
   describe 'GET /profile' do
@@ -55,8 +54,8 @@ describe TentD::API::Profile do
           TentD::Model::ProfileInfo.all.destroy
 
           profile_infos = []
-          profile_infos << Fabricate(:profile_info, :public => false, :entity => entity, :tent => true)
-          profile_infos << Fabricate(:profile_info, :public => false, :entity => entity)
+          profile_infos << Fabricate(:profile_info, :public => false, :tent => true)
+          profile_infos << Fabricate(:profile_info, :public => false)
 
           json_get '/profile', params, env
           expect(last_response.body).to eq({
@@ -73,8 +72,8 @@ describe TentD::API::Profile do
           TentD::Model::ProfileInfo.all.destroy
 
           profile_infos = []
-          profile_infos << Fabricate(:profile_info, :public => false, :entity => entity, :type => "https://tent.io/types/info/basic-info")
-          profile_infos << Fabricate(:profile_info, :public => false, :entity => entity)
+          profile_infos << Fabricate(:profile_info, :public => false, :type => "https://tent.io/types/info/basic-info")
+          profile_infos << Fabricate(:profile_info, :public => false)
 
           json_get '/profile', params, env
           expect(last_response.body).to eq({
@@ -89,8 +88,8 @@ describe TentD::API::Profile do
         TentD::Model::ProfileInfo.all.destroy
 
         profile_infos = []
-        profile_infos << Fabricate(:profile_info, :public => true, :entity => entity, :tent => true)
-        profile_infos << Fabricate(:profile_info, :public => false, :entity => entity)
+        profile_infos << Fabricate(:profile_info, :public => true, :tent => true)
+        profile_infos << Fabricate(:profile_info, :public => false)
 
         json_get '/profile', params, env
         expect(last_response.body).to eq({

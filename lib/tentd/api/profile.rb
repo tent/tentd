@@ -12,7 +12,7 @@ module TentD
 
       class Get < Middleware
         def action(env)
-          env.response = Model::ProfileInfo.build_for_entity(env['tent.entity'], env.authorized_scopes, env.current_auth)
+          env.response = Model::ProfileInfo.get_profile(env.authorized_scopes, env.current_auth)
           env
         end
       end
@@ -22,7 +22,7 @@ module TentD
           data = env.params.data
           type = URI.unescape(env.params.type_url)
           raise Unauthorized unless ['all', type].find { |t| env.current_auth.profile_info_types.include?(t) }
-          Model::ProfileInfo.update_profile(env['tent.entity'], type, data)
+          Model::ProfileInfo.update_profile(type, data)
           env
         end
       end
@@ -35,7 +35,7 @@ module TentD
           JsonPatch.merge(new_profile_hash, diff_array)
           if new_profile_hash != profile_hash
             new_profile_hash.each_pair do |type, data|
-              Model::ProfileInfo.update_profile(env['tent.entity'], type, data)
+              Model::ProfileInfo.update_profile(type, data)
             end
           end
           env.response = new_profile_hash

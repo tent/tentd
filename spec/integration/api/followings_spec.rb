@@ -383,9 +383,8 @@ describe TentD::API::Followings do
     context 'when write_followings scope authorized' do
       before do
         @tent_profile = TentD::Model::ProfileInfo.create(
-          :entity => tent_entity,
           :type => TentD::Model::ProfileInfo::TENT_PROFILE_TYPE_URI,
-          :content => { 
+          :content => {
             :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
           }
         )
