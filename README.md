@@ -1,6 +1,6 @@
-# TentD
+# tentd ![Build Status](https://magnum.travis-ci.com/tent/tentd.png?branch=master&token=YmxLSPgdpsxNUMWJpzRx)
 
-TentD is an **alpha** implementation of a [Tent Protocol](http://tent.io) server.
+tentd is an **alpha** implementation of a [Tent Protocol](http://tent.io) server.
 It currently contains **broken code, ugly code, many bugs, and security flaws**.
 The code should only be used to experiment with how Tent works. Under no
 circumstances should the code in its current form be used for data that is
