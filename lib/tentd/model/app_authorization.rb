@@ -30,7 +30,12 @@ module TentD
 
       def token_exchange!
         update(:token_code => SecureRandom.hex(16))
-        auth_details.merge(:token_code => token_code)
+        {
+          :access_token => mac_key_id,
+          :mac_key => mac_key,
+          :mac_algorithm => mac_algorithm,
+          :token_type => 'mac'
+        }
       end
     end
   end

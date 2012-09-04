@@ -229,13 +229,18 @@ describe TentD::API::Apps do
           authorization = app.authorizations.create
 
           data = {
-            :token_code => authorization.token_code
+            :code => authorization.token_code
           }
 
           json_post "/apps/#{app.public_id}/authorizations", data, env
           expect(last_response.status).to eq(200)
-          expect(authorization.reload.token_code).to_not eq(data[:token_code])
-          expect(last_response.body).to eq(authorization.auth_details.merge(:token_code => authorization.token_code).to_json)
+          expect(authorization.reload.token_code).to_not eq(data[:code])
+          expect(last_response.body).to eq({
+            :access_token => authorization.mac_key_id,
+            :mac_key => authorization.mac_key,
+            :mac_algorithm => authorization.mac_algorithm,
+            :token_type => 'mac'
+          }.to_json)
         end
       end
 

@@ -75,7 +75,7 @@ module TentD
       class CreateAuthorization < Middleware
         def action(env)
           unless authorize_env?(env, :write_apps)
-            if env.params.data.token_code
+            if env.params.data.code
               return AuthorizationTokenExchange.new(@app).call(env)
             else
               authorize_env!(env, :write_apps)
@@ -95,7 +95,7 @@ module TentD
 
       class AuthorizationTokenExchange < Middleware
         def action(env)
-          if authorization = Model::AppAuthorization.first(:app_id => env.params.app_id, :token_code => env.params.data.token_code)
+          if authorization = Model::AppAuthorization.first(:app_id => env.params.app_id, :token_code => env.params.data.code)
             env.response = authorization.token_exchange!
           else
             raise Unauthorized
