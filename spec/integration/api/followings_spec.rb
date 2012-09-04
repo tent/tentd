@@ -362,13 +362,13 @@ describe TentD::API::Followings do
     let(:tent_entity) { 'https://smith.example.com' } # me
     let(:entity_url) { "https://sam.example.org" } # them
     let(:link_header) {
-      %Q(<#{entity_url}/tent/profile>; rel="profile"; type="%s") % TentClient::PROFILE_MEDIA_TYPE
+      %(<#{entity_url}/tent/profile>; rel="#{TentD::API::PROFILE_REL}")
     }
     let(:tent_profile) {
-      %Q({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"#{entity_url}","servers":["#{entity_url}/tent"]}})
+      %({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"#{entity_url}","servers":["#{entity_url}/tent"]}})
     }
     let(:tent_profile_mismatch) {
-     %Q({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"https://mismatch.example.org","servers":["#{entity_url}/tent"]}})
+     %({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"https://mismatch.example.org","servers":["#{entity_url}/tent"]}})
     }
     let(:follower) { Fabricate(:follower, :entity => entity_url) }
     let(:follow_response) { follower.to_json(:only => [:id, :mac_key_id, :mac_key, :mac_algorithm]) }
@@ -396,18 +396,18 @@ describe TentD::API::Followings do
 
         @http_stub_profile_success = lambda do
           http_stubs.get('/tent/profile') {
-            [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile]
+            [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, tent_profile]
           }
         end
 
         @http_stub_profile_mismatch = lambda do
           http_stubs.get('/tent/profile') {
-            [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile_mismatch]
+            [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, tent_profile_mismatch]
           }
         end
 
         @http_stub_follow_success = lambda do
-          http_stubs.post('/followers') { [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE}, follow_response] }
+          http_stubs.post('/followers') { [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, follow_response] }
         end
 
         @http_stub_success = lambda do

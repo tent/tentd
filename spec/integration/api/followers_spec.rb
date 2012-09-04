@@ -6,11 +6,11 @@ describe TentD::API::Followers do
   end
 
   def link_header(entity_url)
-    %Q(<#{entity_url}/tent/profile>; rel="profile"; type="%s") % TentClient::PROFILE_MEDIA_TYPE
+    %(<#{entity_url}/tent/profile>; rel="#{TentD::API::PROFILE_REL}")
   end
 
   def tent_profile(entity_url)
-    %Q({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"#{entity_url}","servers":["#{entity_url}/tent"]}})
+    %({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"#{entity_url}","servers":["#{entity_url}/tent"]}})
   end
 
   def authorize!(*scopes)
@@ -40,7 +40,7 @@ describe TentD::API::Followers do
     it 'should perform discovery' do
       http_stubs.head('/') { [200, { 'Link' => link_header(follower_entity_url) }, ''] }
       http_stubs.get('/tent/profile') {
-        [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile(follower_entity_url)]
+        [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, tent_profile(follower_entity_url)]
       }
       TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
@@ -60,7 +60,7 @@ describe TentD::API::Followers do
     it 'should fail if entity identifiers do not match' do
       http_stubs.head('/') { [200, { 'Link' => link_header(follower_entity_url) }, ''] }
       http_stubs.get('/tent/profile') {
-        [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile('https://otherentity.example.com')]
+        [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, tent_profile('https://otherentity.example.com')]
       }
       TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
@@ -72,7 +72,7 @@ describe TentD::API::Followers do
       before do
         http_stubs.head('/') { [200, { 'Link' => link_header(follower_entity_url) }, ''] }
         http_stubs.get('/tent/profile') {
-          [200, { 'Content-Type' => TentClient::PROFILE_MEDIA_TYPE }, tent_profile(follower_entity_url)]
+          [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, tent_profile(follower_entity_url)]
         }
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
       end

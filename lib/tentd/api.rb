@@ -2,7 +2,8 @@ module TentD
   class API
     PER_PAGE = 50
     MAX_PER_PAGE = 200
-    MEDIA_TYPE = 'application/vnd.tent.v0+json'
+    MEDIA_TYPE = 'application/vnd.tent.v0+json'.freeze
+    PROFILE_REL = 'https://tent.io/rels/profile'.freeze
 
     autoload :Apps, 'tentd/api/apps'
     autoload :Posts, 'tentd/api/posts'
