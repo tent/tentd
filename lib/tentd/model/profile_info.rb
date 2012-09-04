@@ -42,7 +42,7 @@ module TentD
           infos.destroy
           info.update(:content => data)
         else
-          info = create(:entity => entity, :type => type, :content => data)
+          info = create(:entity => entity, :type => type, :public => data.delete(:public), :content => data)
         end
       end
     end
