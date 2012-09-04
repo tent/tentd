@@ -10,6 +10,7 @@ describe TentD::API::Apps do
     env['current_auth'] = stub(
       :kind_of? => true,
       :app_id => nil,
+      :id => nil,
       :scopes => scopes
     )
   end
@@ -141,32 +142,47 @@ describe TentD::API::Apps do
 
     context 'when authorized via identity' do
       let(:_app) { Fabricate(:app) }
-      before do
-        env['current_auth'] = Fabricate(:app_authorization, :app => _app)
-      end
+      examples = proc do
+        context 'app with :id exists' do
+          context 'with read_secrets params' do
+            before { params['read_secrets'] = true }
+            it 'should return app with mac_key' do
+              app = _app
+              json_get "/apps/#{app.public_id}", params, env
+              expect(last_response.status).to eq(200)
+              body = JSON.parse(last_response.body)
+              [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_timestamp_delta, :mac_algorithm].each { |key|
+                expect(body[key.to_s].to_json).to eq(app.send(key).to_json)
+              }
+              expect(body['id']).to eq(app.public_id)
+            end
+          end
 
-      context 'app with :id exists' do
-        context 'with read_secrets params' do
-          before { params['read_secrets'] = true }
-          it 'should return app with mac_key' do
-            app = _app
-            json_get "/apps/#{app.public_id}", params, env
-            body = JSON.parse(last_response.body)
-            [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_timestamp_delta, :mac_algorithm].each { |key|
-              expect(body[key.to_s].to_json).to eq(app.send(key).to_json)
-            }
-            expect(body['id']).to eq(app.public_id)
+          context 'without read_secrets params', &without_mac_key
+        end
+
+        context 'app with :id does not exist' do
+          it 'should return 403' do
+            json_get '/apps/app-id', params, env
+            expect(last_response.status).to eq(403)
           end
         end
-
-        context 'without read_secrets params', &without_mac_key
       end
 
-      context 'app with :id does not exist' do
-        it 'should return 403' do
-          json_get '/apps/app-id', params, env
-          expect(last_response.status).to eq(403)
+      context 'when AppAuthorization' do
+        before do
+          env['current_auth'] = Fabricate(:app_authorization, :app => _app)
         end
+
+        context &examples
+      end
+
+      context 'when App' do
+        before do
+          env['current_auth'] = _app
+        end
+
+        context &examples
       end
     end
 

@@ -18,8 +18,8 @@ module TentD
 
       class AuthorizeReadOne < Middleware
         def action(env)
-          if env.params.app_id && env.current_auth && env.current_auth.kind_of?(Model::AppAuthorization) &&
-                 env.current_auth.app_id == env.params.app_id
+          if env.params.app_id && env.current_auth && ((env.current_auth.kind_of?(Model::AppAuthorization) &&
+                 env.current_auth.app_id == env.params.app_id) || (env.current_auth.kind_of?(Model::App) && env.current_auth.id == env.params.app_id))
             (env.authorized_scopes ||= []) << :read_secrets if env.params.read_secrets.to_s == 'true'
           else
             authorize_env!(env, :read_apps)
