@@ -153,13 +153,21 @@ module TentD
 
       class CreateAttachments < Middleware
         def action(env)
-          return env unless env.params.attachments.kind_of?(Array)
+          return env unless env.params.attachments.kind_of?(Array) && env.response
           env.params.attachments.each do |attachment|
             Model::PostAttachment.create(:post => env.response, :type => attachment.type,
                                          :category => attachment.name, :name => attachment.filename,
                                          :data => attachment.tempfile.read, :size => attachment.tempfile.size)
           end
           env.response.reload
+          env
+        end
+      end
+
+      class Notify < Middleware
+        def action(env)
+          return env unless post = env.response
+          Notifications::TRIGGER_QUEUE << { :type => post.type, :post_id => post.id }
           env
         end
       end
@@ -198,6 +206,7 @@ module TentD
       post '/posts' do |b|
         b.use CreatePost
         b.use CreateAttachments
+        b.use Notify
       end
     end
   end
