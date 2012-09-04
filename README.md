@@ -40,3 +40,6 @@ applications, here are some areas that can be worked on:
 - Add tests. There are quite a few areas that aren't tested completely.
 - Fix tests. A lot of tests are written as integration tests and depend on the
   database, many would be much faster as unit tests that don't hit the database.
+
+Please note that we are not looking for Pull Requests that make fundamental
+changes to how the Tent Protocol works.
