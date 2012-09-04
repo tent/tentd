@@ -37,7 +37,7 @@ module TentD
         else
           follower = create(data.slice('entity', 'licenses', 'profile'))
         end
-        data.types.to_a.each do |type_url|
+        (data.types || ['all']).each do |type_url|
           follower.notification_subscriptions.create(:type => type_url)
         end
         follower
