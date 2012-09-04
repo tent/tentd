@@ -27,5 +27,16 @@ module TentD
     mount Profile
     mount Followers
     mount Followings
+
+    class HelloWorld < Middleware
+      def action(env)
+        puts env.inspect
+        [200, { 'Link' => %(<%sprofile>; rel="%s") % [env['SCRIPT_NAME'], PROFILE_REL] }, ['Tent!']]
+      end
+    end
+
+    get '/' do |b|
+      b.use HelloWorld
+    end
   end
 end
