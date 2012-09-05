@@ -31,12 +31,12 @@ module TentD
           if authorize_env?(env, :read_followings)
             if following = Model::Following.get(env.params.following_id)
               env.following = following
-              env.response = following.as_json(:authorized_scopes => env.authorized_scopes)
+              env.response = following
             end
           else
             following = Model::Following.find_with_permissions(env.params.following_id, env.current_auth)
             if following
-              env.response = following.as_json
+              env.response = following
             else
               raise Unauthorized
             end
@@ -48,9 +48,7 @@ module TentD
       class GetMany < Middleware
         def action(env)
           if authorize_env?(env, :read_followings)
-            env.response = Model::Following.fetch_all(env.params).map { |following|
-              following.as_json(:authorized_scopes => env.authorized_scopes)
-            }
+            env.response = Model::Following.fetch_all(env.params)
           else
             env.response = Model::Following.fetch_with_permissions(env.params, env.current_auth)
           end
@@ -100,7 +98,7 @@ module TentD
         def action(env)
           if following = Model::Following.get(env.params.following_id)
             following.update_from_params(env.params.data, env.authorized_scopes)
-            env.response = following.as_json(:authorized_scopes => env.authorized_scopes)
+            env.response = following
           end
           env
         end

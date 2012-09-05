@@ -6,6 +6,7 @@ module TentD
       include DataMapper::Resource
       include Permissible
       include RandomPublicId
+      include Serializable
 
       storage_names[:default] = 'followings'
 
@@ -36,6 +37,10 @@ module TentD
         )
       end
 
+      def self.public_attributes
+        [:remote_id, :entity]
+      end
+
       def core_profile
         API::CoreProfileData.new(profile)
       end
@@ -54,15 +59,13 @@ module TentD
       end
 
       def as_json(options = {})
-        authorized_scopes = options.delete(:authorized_scopes).to_a
-        attributes = super(options)
-        attributes[:id] = public_id if attributes[:id]
-        attributes.delete(:public_id)
-        blacklist = [:created_at, :updated_at]
-        unless authorized_scopes.include?(:read_followings) && authorized_scopes.include?(:read_secrets)
-          blacklist.concat([:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
+        attributes = super
+
+        if options[:app]
+          attributes[:profile] = profile
+          attributes[:licenses] = licenses
         end
-        blacklist.each { |key| attributes.delete(key) }
+
         attributes
       end
     end

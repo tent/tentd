@@ -205,19 +205,16 @@ describe TentD::API::Followings do
           expect(last_response.status).to eq(200)
           body = JSON.parse(last_response.body)
           expect(body.size).to eq(count)
+          blacklist = %w{ mac_key_id mac_key mac_algorithm mac_timestamp_delta }
           body.each do |actual|
-            following = TentD::Model::Following.first(:public_id => actual['id'])
-            [:remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
-              expect(actual[key.to_s].to_json).to eq(following.send(key).to_json)
-            }
-            [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each { |key|
-              expect(actual[key.to_s]).to be_nil
+            blacklist.each { |k|
+              expect(actual).to_not have_key(k)
             }
           end
         end
       end
 
-      context 'with read_secrets scope authorized' do
+      context 'and read_secrets scope authorized' do
         before {
           authorize!(:read_followings, :read_secrets)
           params['read_secrets'] = true
@@ -228,10 +225,10 @@ describe TentD::API::Followings do
           json_get '/followings', params, env
           expect(last_response.status).to eq(200)
           body = JSON.parse(last_response.body)
+          whitelist = %w{ mac_key_id mac_key mac_algorithm }
           body.each do |actual|
-            following = TentD::Model::Following.first(:public_id => actual['id'])
-            [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta, :remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
-              expect(actual[key.to_s].to_json).to eq(following.send(key).to_json)
+            whitelist.each { |k|
+              expect(actual).to have_key(k)
             }
           end
         end
@@ -319,11 +316,9 @@ describe TentD::API::Followings do
         json_get "/followings/#{following.public_id}", params, env
         expect(last_response.status).to eq(200)
         body = JSON.parse(last_response.body)
-        [:remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
-          expect(body[key.to_s].to_json).to eq(following.send(key).to_json)
-        }
-        [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each { |key|
-          expect(body[key.to_s]).to be_nil
+        blacklist = %w{ mac_key_id mac_key mac_algorithm mac_timestamp_delta }
+        blacklist.each { |k|
+          expect(body).to_not have_key(k)
         }
         expect(body['id']).to eq(following.public_id)
       end
@@ -333,11 +328,9 @@ describe TentD::API::Followings do
         json_get "/followings/#{following.public_id}", params, env
         expect(last_response.status).to eq(200)
         body = JSON.parse(last_response.body)
-        [:remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
-          expect(body[key.to_s].to_json).to eq(following.send(key).to_json)
-        }
-        [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each { |key|
-          expect(body[key.to_s]).to be_nil
+        blacklist = %w{ mac_key_id mac_key mac_algorithm mac_timestamp_delta }
+        blacklist.each { |k|
+          expect(body).to_not have_key(k)
         }
         expect(body['id']).to eq(following.public_id)
       end
@@ -353,10 +346,11 @@ describe TentD::API::Followings do
           json_get "/followings/#{following.public_id}", params, env
           expect(last_response.status).to eq(200)
           body = JSON.parse(last_response.body)
-          [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta, :remote_id, :entity, :groups, :public, :profile, :licenses].each { |key|
-            expect(body[key.to_s].to_json).to eq(following.send(key).to_json)
-          }
+          whitelist = %w{ mac_key_id mac_key mac_algorithm }
           expect(body['id']).to eq(following.public_id)
+          whitelist.each { |k|
+            expect(body).to have_key(k)
+          }
         end
       end
 
