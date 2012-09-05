@@ -11,7 +11,7 @@ module TentD
 
       module ClassMethods
         def random_id
-          rand(36 ** 8 ).to_s(36)
+          rand(36 ** 6).to_s(36)
         end
       end
 
