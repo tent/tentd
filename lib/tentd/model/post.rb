@@ -6,6 +6,7 @@ module TentD
       include DataMapper::Resource
       include Permissible
       include RandomPublicId
+      include Serializable
 
       storage_names[:default] = "posts"
 
@@ -50,7 +51,11 @@ module TentD
       end
 
       def self.public_attributes
-        [:known_entity, :app_name, :app_url, :entity, :type, :licenses, :content, :published_at, :original]
+        [:app_name, :app_url, :entity, :type, :licenses, :content, :published_at]
+      end
+
+      def self.write_attributes
+        public_attributes + [:known_entity, :original]
       end
 
       def can_notify?(app_or_follower)
@@ -67,30 +72,14 @@ module TentD
       end
 
       def as_json(options = {})
-        attributes = super(:only => [:entity, :type, :licenses, :content, :published_at])
+        attributes = super
         attributes[:id] = public_id
-        attributes[:app] = { :url => app_url, :name => app_name }
+        attributes[:app] = { :url => attributes.delete(:app_url), :name => attributes.delete(:app_name) }
         attributes[:attachments] = attachments.all.map { |a| a.as_json }
-        attributes[:permissions] = { :public => public }
 
-        if options[:kind] == :app
-          attributes[:received_at] = received_at
+        if options[:app]
+          attributes[:received_at] = received_at.to_time.to_i
           attributes[:known_entity] = known_entity
-        end
-
-        [:published_at, :received_at, :updated_at].each do |key|
-          attributes[key] = attributes[key].to_time.to_i if attributes[key]
-        end
-
-        if options[:permissions]
-          groups = []
-          entities = []
-          permissions.each do |permission|
-            groups << permission.group.public_id if permission.group
-            entities << permission.follower.entity if permission.follower
-          end
-          attributes[:permissions][:groups] = groups.uniq
-          attributes[:permissions][:entities] = Hash[entities.uniq.map { |e| [e, true] }]
         end
 
         Array(options[:exclude]).each { |k| attributes.delete(k) if k }

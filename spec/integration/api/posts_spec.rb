@@ -346,8 +346,11 @@ describe TentD::API::Posts do
           json_post "/posts", post_attributes, env
           expect(last_response.status).to eq(200)
         }).to change(TentD::Model::Post, :count).by(1)
+        post = TentD::Model::Post.last
+        expect(post.app_name).to eq(application.name)
+        expect(post.app_url).to eq(application.url)
         body = JSON.parse(last_response.body)
-        expect(body['id']).to eq(TentD::Model::Post.last.public_id)
+        expect(body['id']).to eq(post.public_id)
         expect(body['app']).to eq('url' => application.url, 'name' => application.name)
       end
 

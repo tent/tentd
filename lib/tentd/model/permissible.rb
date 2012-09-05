@@ -7,6 +7,25 @@ module TentD
         base.extend(ClassMethods)
       end
 
+      def permissions_json(extended = false)
+        if extended
+          groups = []
+          entities = []
+          send(respond_to?(:permissions) ? :permissions : :visibility_permissions).each do |permission|
+            groups << permission.group.public_id if permission.group
+            entities << permission.follower_access.entity if permission.follower_access
+          end
+
+          {
+            :groups => groups.uniq,
+            :entities => Hash[entities.uniq.map { |e| [e, true] }],
+            :public => self.public
+          }
+        else
+          { :public => self.public }
+        end
+      end
+
       module ClassMethods
         def query_with_permissions(current_auth)
           query = []

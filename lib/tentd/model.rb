@@ -8,6 +8,7 @@ require 'tentd/datamapper/query'
 module TentD
   module Model
     require 'tentd/model/permissible'
+    require 'tentd/model/serializable'
     require 'tentd/model/random_public_id'
     require 'tentd/model/post'
     require 'tentd/model/post_attachment'

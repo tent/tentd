@@ -282,15 +282,71 @@ describe TentD::Model::Post do
   end
 
   describe "#as_json" do
+    let(:post) { Fabricate(:post) }
+    let(:public_attributes) do
+      {
+        :id => post.public_id,
+        :entity => post.entity,
+        :type => post.type,
+        :licenses => post.licenses,
+        :content => post.content,
+        :app => { :url => post.app_url, :name => post.app_name },
+        :attachments => [],
+        :permissions => { :public => post.public },
+        :published_at => post.published_at.to_time.to_i
+      }
+    end
+
     it "should replace id with public_id" do
-      post = Fabricate(:post)
       expect(post.as_json[:id]).to eq(post.public_id)
       expect(post.as_json).to_not have_key(:public_id)
     end
 
     it "should not add id to returned object if excluded" do
-      post = Fabricate(:post)
       expect(post.as_json(:exclude => :id)).to_not have_key(:id)
+    end
+
+    context 'without options' do
+      it 'should only return public attributes' do
+        expect(post.as_json).to eq(public_attributes)
+      end
+    end
+
+    context 'with options[:permissions] = true' do
+      let(:follower) { Fabricate(:follower) }
+      let(:group) { Fabricate(:group) }
+      let(:entity_permission) { Fabricate(:permission, :follower_access => follower) }
+      let(:group_permission) { Fabricate(:permission, :group => group) }
+      let(:post) { Fabricate(:post, :permissions => [entity_permission, group_permission]) }
+
+      it 'should return detailed permissions' do
+        expect(post.as_json(:permissions => true)).to eq(public_attributes.merge(
+          :permissions => {
+            :public => post.public,
+            :groups => [group.public_id],
+            :entities => {
+              follower.entity => true
+            }
+          }
+        ))
+      end
+    end
+
+    context 'with options[:app] = true' do
+      it 'should return app relevant data' do
+        expect(post.as_json(:app => true)).to eq(public_attributes.merge(
+          :received_at => post.received_at.to_time.to_i,
+          :known_entity => post.known_entity
+        ))
+      end
+    end
+
+    context 'with options[:exclude]' do
+      it 'should return public attributes excluding specified keys' do
+        expected_attributes = public_attributes.dup
+        expected_attributes.delete(:published_at)
+        expect(post.as_json(:exclude => [:published_at])).to eq(expected_attributes)
+      end
     end
   end
 

@@ -17,7 +17,7 @@ module TentD
 
         def serialization_options(env)
           options = {}
-          options[:kind] = :app if env.current_auth.respond_to?(:app)
+          options[:app] = env.current_auth.kind_of?(Model::AppAuthorization)
           options[:permissions] = env.authorized_scopes.include?(:read_permissions)
           options
         end
