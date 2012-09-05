@@ -316,15 +316,17 @@ describe TentD::Model::Follower do
       it 'should return additional attributes' do
         expect(follower.as_json(:app => true)).to eq(public_attributes.merge(
           :profile => follower.profile,
-          :licenses => follower.licenses
+          :licenses => follower.licenses,
+          :types => []
         ))
       end
     end
 
     context 'with options[:self]' do
-      it 'should return licenses' do
+      it 'should return licenses and types' do
         expect(follower.as_json(:self => true)).to eq(public_attributes.merge(
-          :licenses => follower.licenses
+          :licenses => follower.licenses,
+          :types => []
         ))
       end
     end

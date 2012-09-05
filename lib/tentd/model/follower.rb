@@ -89,17 +89,11 @@ module TentD
       def as_json(options = {})
         attributes = super
 
-        if options[:app]
-          attributes.merge!(
-            :profile => profile,
-            :licenses => licenses
-          )
-        end
+        attributes.merge!(:profile => profile) if options[:app]
 
-        if options[:self]
-          attributes.merge!(
-            :licenses => licenses
-          )
+        if options[:app] || options[:self]
+          types = notification_subscriptions.all.map { |s| s.type + '#' + s.view }
+          attributes.merge!(:licenses => licenses, :types => types)
         end
 
         attributes
