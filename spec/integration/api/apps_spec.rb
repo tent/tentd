@@ -383,4 +383,48 @@ describe TentD::API::Apps do
       end
     end
   end
+
+  describe 'DELETE /apps/:app_id/authorizations/:auth_id' do
+    let!(:_app) { Fabricate(:app) }
+    let!(:app_auth) { Fabricate(:app_authorization, :app => _app) }
+    context 'when authorized via scope' do
+      before { authorize!(:write_apps) }
+
+      it 'should delete app authorization' do
+        expect(lambda {
+          expect(lambda {
+            delete "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", params, env
+          }).to_not change(TentD::Model::App, :count)
+          expect(last_response.status).to eq(200)
+        }).to change(TentD::Model::AppAuthorization, :count).by(-1)
+      end
+
+      it 'should return 404 unless app and authorization exist' do
+        expect(lambda {
+          expect(lambda {
+            delete "/apps/app-id/authorizations/#{app_auth.id}", params, env
+            expect(last_response.status).to eq(404)
+          }).to_not change(TentD::Model::App, :count)
+        }).to_not change(TentD::Model::AppAuthorization, :count)
+
+        expect(lambda {
+          expect(lambda {
+            delete "/apps/#{_app.public_id}/authorizations/auth-id", params, env
+            expect(last_response.status).to eq(404)
+          }).to_not change(TentD::Model::App, :count)
+        }).to_not change(TentD::Model::AppAuthorization, :count)
+      end
+    end
+
+    context 'when not authorized' do
+      it 'it should return 403' do
+        expect(lambda {
+          expect(lambda {
+            delete "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", params, env
+          }).to_not change(TentD::Model::App, :count)
+          expect(last_response.status).to eq(403)
+        }).to_not change(TentD::Model::AppAuthorization, :count)
+      end
+    end
+  end
 end

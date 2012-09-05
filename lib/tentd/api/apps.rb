@@ -122,6 +122,17 @@ module TentD
         end
       end
 
+      class DestroyAppAuthorization < Middleware
+        def action(env)
+          authorize_env!(env, :write_apps)
+          if (auth = TentD::Model::AppAuthorization.first(:app_id => env.params.app_id, :id => env.params.auth_id)) &&
+            auth.destroy
+            env.response = ''
+          end
+          env
+        end
+      end
+
       get '/apps/:app_id' do |b|
         b.use GetActualId
         b.use AuthorizeReadOne
@@ -140,6 +151,11 @@ module TentD
       post '/apps/:app_id/authorizations' do |b|
         b.use GetActualId
         b.use CreateAuthorization
+      end
+
+      delete '/apps/:app_id/authorizations/:auth_id' do |b|
+        b.use GetActualId
+        b.use DestroyAppAuthorization
       end
 
       put '/apps/:app_id' do |b|
