@@ -14,7 +14,7 @@ module TentD
       property :description, Text, :lazy => false
       property :url, String
       property :icon, String
-      property :redirect_uris, Array, :lazy => false
+      property :redirect_uris, Array, :lazy => false, :default => []
       property :scopes, Json, :default => {}, :lazy => false
       property :mac_key_id, String, :default => lambda { |*args| 'a:' + SecureRandom.hex(4) }, :unique => true
       property :mac_key, String, :default => lambda { |*args| SecureRandom.hex(16) }

@@ -8,7 +8,7 @@ module TentD
       storage_names[:default] = 'app_authorizations'
 
       property :id, Serial
-      property :post_types, Array, :lazy => false
+      property :post_types, Array, :lazy => false, :default => []
       property :profile_info_types, Array, :default => [], :lazy => false
       property :scopes, Array, :default => [], :lazy => false
       property :token_code, String, :default => lambda { |*args| SecureRandom.hex(16) }, :unique => true
@@ -17,7 +17,6 @@ module TentD
       property :mac_algorithm, String, :default => 'hmac-sha-256'
       property :mac_timestamp_delta, Integer
       property :notification_url, String
-      property :authorized, Boolean
       property :created_at, DateTime
       property :updated_at, DateTime
 
