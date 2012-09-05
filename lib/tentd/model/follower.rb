@@ -7,6 +7,7 @@ module TentD
       include DataMapper::Resource
       include Permissible
       include RandomPublicId
+      include Serializable
 
       storage_names[:default] = 'followers'
 
@@ -64,6 +65,10 @@ module TentD
         follower
       end
 
+      def self.public_attributes
+        [:entity]
+      end
+
       def permissible_foreign_key
         :follower_access_id
       end
@@ -82,23 +87,22 @@ module TentD
       end
 
       def as_json(options = {})
-        authorized_scopes = options.delete(:authorized_scopes)
-        attributes = super(options)
-        attributes[:id] = public_id if attributes[:id]
-        attributes.delete(:public_id)
+        attributes = super
 
-        if authorized_scopes
-          whitelist = [:id, :entity, :profile, :licenses]
-          if authorized_scopes.include?(:read_followers)
-            whitelist.concat([:public, :groups, :mac_key_id, :mac_algorithm])
-            if authorized_scopes.include?(:read_secrets)
-              whitelist.concat([:mac_key, :mac_algorithm, :mac_timestamp_delta])
-            end
-          end
-          attributes.slice(*whitelist)
-        else
-          attributes
+        if options[:app]
+          attributes.merge!(
+            :profile => profile,
+            :licenses => licenses
+          )
         end
+
+        if options[:self]
+          attributes.merge!(
+            :licenses => licenses
+          )
+        end
+
+        attributes
       end
     end
   end

@@ -18,7 +18,7 @@ module TentD
         def action(env)
           if env.params.follower_id && env.current_auth && env.current_auth.kind_of?(Model::Follower) &&
                  env.current_auth.id == env.params.follower_id
-            env.single_read_authorized = true
+            env.authorized_scopes << :self
           end
           env.full_read_authorized = authorize_env?(env, :read_followers)
           env
@@ -60,7 +60,9 @@ module TentD
         def action(env)
           return env if env.authorized_scopes.include?(:write_followers)
           if follower = Model::Follower.create_follower(env.params[:data].merge('profile' => env['profile']))
-            env['response'] = follower.as_json(:only => [:id, :mac_key_id, :mac_key, :mac_algorithm])
+            env.authorized_scopes << :read_secrets
+            env.authorized_scopes << :self
+            env.response = follower
           end
           env
         end
@@ -82,23 +84,18 @@ module TentD
 
       class GetOne < Middleware
         def action(env)
-          if env.full_read_authorized || env.single_read_authorized
+          if env.full_read_authorized || authorize_env?(env, :self)
             follower = Model::Follower.find(env.params.follower_id)
           else
             follower = Model::Follower.find_with_permissions(env.params.follower_id, env.current_auth)
           end
 
-          if follower && (env.full_read_authorized || env.single_read_authorized)
-            if authorize_env?(env, :read_secrets)
-              env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta], :authorized_scopes => env.authorized_scopes)
-            else
-              env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses, :mac_key_id, :mac_algorithm])
-            end
-          elsif follower && follower.public?
-            env['response'] = follower.as_json(:only => [:id, :groups, :entity, :licenses])
-          elsif !env.full_read_authorized
+          if env.full_read_authorized || authorize_env?(env, :self) || (follower && follower.public?)
+            env.response = follower
+          else
             raise Unauthorized
           end
+
           env
         end
       end
@@ -110,11 +107,7 @@ module TentD
           else
             followers = Model::Follower.fetch_with_permissions(env.params, env.current_auth)
           end
-          if followers
-            env['response'] = followers.map { |f|
-              f.as_json(:authorized_scopes => env.authorized_scopes)
-            }
-          end
+          env.response = followers if followers
           env
         end
       end

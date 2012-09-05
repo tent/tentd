@@ -287,14 +287,54 @@ describe TentD::Model::Follower do
   end
 
   describe "#as_json" do
-    it "should replace id with public_id" do
-      post = Fabricate(:post)
-      expect(post.as_json[:id]).to eq(post.public_id)
+    let(:follower) { Fabricate(:follower) }
+    let(:public_attributes) do
+      {
+        :id => follower.public_id,
+        :entity => follower.entity,
+        :permissions => { :public => true }
+      }
     end
 
-    it "should not add id to returned object if excluded" do
-      post = Fabricate(:post)
-      expect(post.as_json(:exclude => :id)).to_not have_key(:id)
+    context 'without options' do
+      it 'should return public attributes' do
+        expect(follower.as_json).to eq(public_attributes)
+      end
+    end
+
+    context 'with options[:mac]' do
+      it 'should return mac key' do
+        expect(follower.as_json(:mac => true)).to eq(public_attributes.merge(
+          :mac_key_id => follower.mac_key_id,
+          :mac_key => follower.mac_key,
+          :mac_algorithm => follower.mac_algorithm
+        ))
+      end
+    end
+
+    context 'with options[:app]' do
+      it 'should return additional attributes' do
+        expect(follower.as_json(:app => true)).to eq(public_attributes.merge(
+          :profile => follower.profile,
+          :licenses => follower.licenses
+        ))
+      end
+    end
+
+    context 'with options[:self]' do
+      it 'should return licenses' do
+        expect(follower.as_json(:self => true)).to eq(public_attributes.merge(
+          :licenses => follower.licenses
+        ))
+      end
+    end
+
+    context 'with options[:groups]' do
+      it 'should return groups' do
+        expect(follower.as_json(:groups => true)).to eq(public_attributes.merge(
+          :groups => follower.groups.uniq
+        ))
+      end
     end
   end
 end

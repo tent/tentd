@@ -19,6 +19,9 @@ module TentD
           options = {}
           options[:app] = env.current_auth.kind_of?(Model::AppAuthorization)
           options[:permissions] = env.authorized_scopes.include?(:read_permissions)
+          options[:groups] = env.authorized_scopes.include?(:read_groups)
+          options[:mac] = env.authorized_scopes.include?(:read_secrets)
+          options[:self] = env.authorized_scopes.include?(:self)
           options
         end
       end

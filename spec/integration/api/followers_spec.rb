@@ -82,12 +82,11 @@ describe TentD::API::Followers do
           to change(TentD::Model::Follower, :count).by(1)
         expect(last_response.status).to eq(200)
         follow = TentD::Model::Follower.last
-        expect(JSON.parse(last_response.body)).to eq({
-          "id" => follow.public_id,
-          "mac_key_id" => follow.mac_key_id,
-          "mac_key" => follow.mac_key,
-          "mac_algorithm" => follow.mac_algorithm
-        })
+        body = JSON.parse(last_response.body)
+        expect(body['id']).to eq(follow.public_id)
+        %w{ mac_key_id mac_key mac_algorithm }.each { |key|
+          expect(body[key]).to eq(follow.send(key))
+        }
       end
 
       it 'should create notification subscription for each type given' do
@@ -169,9 +168,13 @@ describe TentD::API::Followers do
         TentD::Model::Follower.all.destroy!
         followers = 2.times.map { Fabricate(:follower, :public => false) }
         json_get '/followers', params, env
-        expect(last_response.body).to eq(followers.map { |f|
-            f.as_json(:only => [:id, :entity, :public, :profile, :groups, :licenses, :mac_key_id, :mac_algorithm], :authorized_scopes => [:read_followers])
-        }.to_json)
+        blacklist = %w{ mac_key_id mac_key mac_algorithm }
+        body = JSON.parse(last_response.body)
+        body.each do |f|
+          blacklist.each { |k|
+            expect(f).to_not have_key(k)
+          }
+        end
         expect(last_response.status).to eq(200)
       end
     end
@@ -184,14 +187,19 @@ describe TentD::API::Followers do
 
       context 'when read_secrets authorized' do
         before { authorize!(:read_followers, :read_secrets) }
+
         context 'when read_secrets param set to true' do
           it 'should return a list of followers with mac keys' do
             TentD::Model::Follower.all.destroy!
             followers = 2.times.map { Fabricate(:follower, :public => false) }
-            json_get '/followers', params, env
-            expect(last_response.body).to eq(followers.map { |f|
-                f.as_json(:only => [:id, :entity, :public, :profile, :groups, :licenses, :mac_key_id, :mac_algorithm], :authorized_scopes => [:read_secrets, :read_followers])
-            }.to_json)
+            json_get '/followers?read_secrets=true', params, env
+            whitelist = %w{ mac_key_id mac_key mac_algorithm }
+            body = JSON.parse(last_response.body)
+            body.each do |f|
+              whitelist.each { |k|
+                expect(f).to have_key(k)
+              }
+            end
             expect(last_response.status).to eq(200)
           end
         end
@@ -206,7 +214,8 @@ describe TentD::API::Followers do
       it 'should respond with follower json' do
         json_get "/followers/#{follower.public_id}", params, env
         expect(last_response.status).to eq(200)
-        expect(last_response.body).to eq(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :mac_key_id, :mac_algorithm]).to_json)
+        body = JSON.parse(last_response.body)
+        expect(body['id']).to eq(follower.public_id)
       end
     end
 
