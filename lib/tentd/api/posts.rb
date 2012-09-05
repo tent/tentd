@@ -77,7 +77,9 @@ module TentD
           authorize_post!(env)
           set_app_details(env.params.data)
           set_publicity(env.params.data)
-          post = Model::Post.create!(env.params[:data].slice(*whitelisted_attributes(env)))
+          parse_times(env.params.data)
+          data = env.params[:data].slice(*whitelisted_attributes(env))
+          post = Model::Post.create(data)
           assign_permissions(post, env.params.data.permissions)
           env['response'] = post
           env
@@ -127,6 +129,11 @@ module TentD
 
         def set_publicity(post)
           post.public = post.permissions.public if post.permissions
+        end
+
+        def parse_times(post)
+          post.published_at = Time.at(post.published_at.to_i) if post.published_at
+          post.received_at = Time.at(post.received_at.to_i) if post.received_at
         end
 
         def assign_permissions(post, permissions)
