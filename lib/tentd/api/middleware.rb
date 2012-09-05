@@ -15,6 +15,8 @@ module TentD
         response.kind_of?(Hash) ? @app.call(response) : response
       rescue Unauthorized
         [403, {}, ['Unauthorized']]
+      rescue
+        [500, {}, ['Internal Server Error']]
       end
     end
   end
