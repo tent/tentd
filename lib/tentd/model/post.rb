@@ -78,6 +78,10 @@ module TentD
           attributes[:known_entity] = known_entity
         end
 
+        [:published_at, :received_at, :updated_at].each do |key|
+          attributes[key] = attributes[key].to_time.to_i if attributes[key]
+        end
+
         if options[:permissions]
           groups = []
           entities = []
