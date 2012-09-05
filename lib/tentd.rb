@@ -13,7 +13,16 @@ module TentD
     if options[:database] || ENV['DATABASE_URL']
       DataMapper.setup(:default, options[:database] || ENV['DATABASE_URL'])
     end
+    @faraday_adapter = options[:faraday_adapter]
     API.new
+  end
+
+  def self.faraday_adapter
+    @faraday_adapter
+  end
+
+  def self.faraday_adapter=(a)
+    @faraday_adapter = a
   end
 end
 

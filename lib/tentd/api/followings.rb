@@ -60,7 +60,7 @@ module TentD
 
       class Discover < Middleware
         def action(env)
-          client = ::TentClient.new
+          client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
           profile, profile_url = client.discover(env.params.data.entity).get_profile
           return [404, {}, ['Not Found']] unless profile
 
@@ -74,7 +74,7 @@ module TentD
 
       class Follow < Middleware
         def action(env)
-          client = ::TentClient.new(env.server_url)
+          client = ::TentClient.new(env.server_url, :faraday_adapter => TentD.faraday_adapter)
           res = client.follower.create(
             :entity => env['tent.entity'],
             :licenses => Model::ProfileInfo.tent_info(env['tent.entity']).content['licenses']
@@ -119,7 +119,8 @@ module TentD
         def action(env)
           following = env.following
           client = TentClient.new(following.core_profile.servers.first,
-                                  following.auth_details.merge(:skip_serialization => true))
+                                  following.auth_details.merge(:skip_serialization => true,
+                                                               :faraday_adapter => TentD.faraday_adapter))
           env.params.delete(:following_id)
           path = env.params.delete(:proxy_path)
           res = client.http.get(path, env.params, whitelisted_headers(env))
