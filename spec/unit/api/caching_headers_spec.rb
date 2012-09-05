@@ -3,7 +3,7 @@ require 'spec_helper'
 describe TentD::API::Router::CachingHeaders do
   let(:app) { lambda { |env| [200, {}, ''] } }
   let(:middleware) { TentD::API::Router::CachingHeaders.new(app) }
-  let(:env) { Hashie::Mash.new }
+  let(:env) { Hashie::Mash.new('REQUEST_METHOD' => 'GET') }
 
   shared_examples 'conditional get' do
     it 'should respond with a 304 when cached' do
