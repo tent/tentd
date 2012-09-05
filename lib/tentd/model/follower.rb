@@ -56,13 +56,12 @@ module TentD
         end
         follower.update(data.slice(*whitelist))
         if data['types']
-          if follower.notification_subscriptions.any?
-            follower.notification_subscriptions.find(:type.not => [data['types']]).each(&:destroy)
-          end
+          follower.notification_subscriptions.destroy
           data['types'].each do |type_url|
             follower.notification_subscriptions.create(:type => type_url)
           end
         end
+        follower
       end
 
       def permissible_foreign_key
