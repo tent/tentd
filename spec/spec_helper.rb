@@ -6,6 +6,7 @@ require 'mocha_standalone'
 require 'rack/test'
 require 'tentd'
 require 'fabrication'
+require 'tentd/core_ext/hash/slice'
 
 Dir["#{File.dirname(__FILE__)}/support/*.rb"].each { |f| require f }
 

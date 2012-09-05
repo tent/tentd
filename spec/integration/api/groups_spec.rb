@@ -24,7 +24,7 @@ describe TentD::API::Groups do
         Fabricate(:group, :name => 'chunky-bacon').save!
 
         get '/groups', params, env
-        expect(last_response.body).to eq(TentD::Model::Group.all.to_json)
+        expect(JSON.parse(last_response.body).size).to eq(TentD::Model::Group.count)
       end
     end
 
@@ -43,7 +43,7 @@ describe TentD::API::Groups do
       it 'should find group with :id' do
         group = Fabricate(:group)
         get "/groups/#{group.public_id}", params, env
-        expect(last_response.body).to eq(group.to_json)
+        expect(JSON.parse(last_response.body)['id']).to eq(group.public_id)
       end
 
       it "should render 404 if :id doesn't exist" do
@@ -71,7 +71,7 @@ describe TentD::API::Groups do
         json_put "/groups/#{group.public_id}", group, env
         actual_group = TentD::Model::Group.get(group.id)
         expect(actual_group.name).to eq(group.name)
-        expect(last_response.body).to eq(actual_group.to_json)
+        expect(JSON.parse(last_response.body)['id']).to eq(actual_group.public_id)
       end
 
       it 'should return 404 unless group with :id exists' do

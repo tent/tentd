@@ -40,7 +40,10 @@ describe TentD::API::Followings do
           end
 
           json_get "/followings?since_id=#{since_following.public_id}", params, env
-          expect(last_response.body).to eq([following].to_json)
+          expect(last_response.status).to eq(200)
+          body = JSON.parse(last_response.body)
+          expect(body.size).to eq(1)
+          expect(body.first['id']).to eq(following.public_id)
         end
       end
 
@@ -55,7 +58,10 @@ describe TentD::API::Followings do
           end
 
           json_get "/followings?before_id=#{before_following.public_id}", params, env
-          expect(last_response.body).to eq([following].to_json)
+          expect(last_response.status).to eq(200)
+          body = JSON.parse(last_response.body)
+          expect(body.size).to eq(1)
+          expect(body.first['id']).to eq(following.public_id)
         end
       end
 
@@ -114,8 +120,9 @@ describe TentD::API::Followings do
         json_get '/followings', params, env
         expect(last_response.status).to eq(200)
         body = JSON.parse(last_response.body)
-        expect(body).to include(JSON.parse(public_following.to_json))
-        expect(body).to_not include(JSON.parse(private_following.to_json))
+        body_ids = body.map { |f| f['id'] }
+        expect(body_ids).to include(public_following.public_id)
+        expect(body_ids).to_not include(private_following.public_id)
       end
 
       context 'with params', &with_params
@@ -129,32 +136,35 @@ describe TentD::API::Followings do
         let!(:private_following) { Fabricate(:following, :public => false) }
         let!(:private_permissible_following) { Fabricate(:following, :public => false) }
 
-        context 'explicitly' do
+        permissible_and_public = proc do
           it 'should return permissible and public followings' do
-            @create_permission.call(private_permissible_following)
-
             json_get '/followings', params, env
             body = JSON.parse(last_response.body)
-            expect(body).to include(JSON.parse(public_following.to_json))
-            expect(body).to include(JSON.parse(private_permissible_following.to_json))
-            expect(body).to_not include(JSON.parse(private_following.to_json))
+            body_ids = body.map { |f| f['id'] }
+            expect(body_ids).to include(public_following.public_id)
+            expect(body_ids).to include(private_permissible_following.public_id)
+            expect(body_ids).to_not include(private_following.public_id)
           end
         end
 
+        context 'explicitly' do
+          before {
+            @create_permission.call(private_permissible_following)
+          }
+
+          context &permissible_and_public
+        end
+
         context 'via group' do
-          it 'should return permissible and public followings' do
+          before {
             current_auth.update(:groups => [group.public_id])
             TentD::Model::Permission.create(
               :following_id => private_permissible_following.id,
               :group_public_id => group.public_id
             )
+          }
 
-            json_get '/followings', params, env
-            body = JSON.parse(last_response.body)
-            expect(body).to include(JSON.parse(public_following.to_json))
-            expect(body).to include(JSON.parse(private_permissible_following.to_json))
-            expect(body).to_not include(JSON.parse(private_following.to_json))
-          end
+          context &permissible_and_public
         end
 
         context 'with params', &with_params
@@ -238,16 +248,16 @@ describe TentD::API::Followings do
       it 'should return following if public' do
         following = Fabricate(:following, :public => true)
         json_get "/followings/#{following.public_id}", params, env
-        expect(last_response.body).to eq(following.to_json)
+        expect(JSON.parse(last_response.body)['id']).to eq(following.public_id)
       end
 
-      it 'should return 404 unless public' do
+      it 'should return 403 unless public' do
         following = Fabricate(:following, :public => false)
         json_get "/followings/#{following.public_id}", params, env
         expect(last_response.status).to eq(403)
       end
 
-      it 'should return 404 unless exists' do
+      it 'should return 403 unless exists' do
         following = Fabricate(:following, :public => true)
         json_get "/followings/invalid-id", params, env
         expect(last_response.status).to eq(403)
@@ -263,7 +273,7 @@ describe TentD::API::Followings do
             current_auth.permissible_foreign_key => current_auth.id
           )
           json_get "/followings/#{following.public_id}", params, env
-          expect(last_response.body).to eq(following.to_json)
+          expect(JSON.parse(last_response.body)['id']).to eq(following.public_id)
         end
       end
 
@@ -277,7 +287,7 @@ describe TentD::API::Followings do
             :group_public_id => group.public_id
           )
           json_get "/followings/#{following.public_id}", params, env
-          expect(last_response.body).to eq(following.to_json)
+          expect(JSON.parse(last_response.body)['id']).to eq(following.public_id)
         end
       end
     end
@@ -371,7 +381,7 @@ describe TentD::API::Followings do
      %({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"https://mismatch.example.org","servers":["#{entity_url}/tent"]}})
     }
     let(:follower) { Fabricate(:follower, :entity => entity_url) }
-    let(:follow_response) { follower.to_json(:only => [:id, :mac_key_id, :mac_key, :mac_algorithm]) }
+    let(:follow_response) { { :id => follower.public_id }.merge(follower.attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)) }
     let(:group) { Fabricate(:group, :name => 'family') }
     let(:following_data) do
       {
@@ -486,7 +496,7 @@ describe TentD::API::Followings do
           expect(following.mac_key).to eq(follower.mac_key)
           expect(following.mac_algorithm).to eq(follower.mac_algorithm)
 
-          expect(last_response.body).to eq(following.to_json)
+          expect(JSON.parse(last_response.body)['id']).to eq(following.public_id)
         end
       end
     end
@@ -510,7 +520,7 @@ describe TentD::API::Followings do
       before { authorize!(:write_followings) }
       let(:following) { Fabricate(:following, :public => false) }
       let(:data) do
-        data = following.as_json
+        data = following.attributes
         data[:groups] = ['group-id-1', 'group-id-2']
         data[:entity] = "https://entity-name.example.org"
         data[:public] = true

@@ -196,7 +196,7 @@ describe TentD::API::Apps do
 
   describe 'POST /apps' do
     it 'should create app' do
-      data = Fabricate.build(:app).as_json(:only => [:name, :description, :url, :icon, :redirect_uris, :scopes])
+      data = Fabricate.build(:app).attributes.slice(:name, :description, :url, :icon, :redirect_uris, :scopes)
 
       TentD::Model::App.all.destroy
       expect(lambda { json_post '/apps', data, env }).to change(TentD::Model::App, :count).by(1)
@@ -275,7 +275,7 @@ describe TentD::API::Apps do
       context 'app with :id exists' do
         it 'should update app' do
           app = _app
-          data = app.as_json(:only => [:name, :url, :icon, :redirect_uris, :scopes])
+          data = app.attributes.slice(:name, :url, :icon, :redirect_uris, :scopes)
           data[:name] = "Yet Another MicroBlog App"
           data[:scopes] = {
             "read_posts" => "Can read your posts"

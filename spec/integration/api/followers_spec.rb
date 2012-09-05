@@ -160,6 +160,7 @@ describe TentD::API::Followers do
         expect(last_response.body).to eq(followers.map { |f|
             f.as_json(:only => [:id, :entity, :profile, :licenses])
         }.to_json)
+        expect(last_response.status).to eq(200)
       end
     end
 
@@ -171,6 +172,7 @@ describe TentD::API::Followers do
         expect(last_response.body).to eq(followers.map { |f|
             f.as_json(:only => [:id, :entity, :public, :profile, :groups, :licenses, :mac_key_id, :mac_algorithm], :authorized_scopes => [:read_followers])
         }.to_json)
+        expect(last_response.status).to eq(200)
       end
     end
 
@@ -190,6 +192,7 @@ describe TentD::API::Followers do
             expect(last_response.body).to eq(followers.map { |f|
                 f.as_json(:only => [:id, :entity, :public, :profile, :groups, :licenses, :mac_key_id, :mac_algorithm], :authorized_scopes => [:read_secrets, :read_followers])
             }.to_json)
+            expect(last_response.status).to eq(200)
           end
         end
 

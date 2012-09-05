@@ -32,7 +32,8 @@ describe TentD::API::Posts do
         it "should find existing post by public_id" do
           post = Fabricate(:post, :public => true)
           json_get "/posts/#{post.public_id}"
-          expect(last_response.body).to eq(post.to_json)
+          expect(last_response.status).to eq(200)
+          expect(JSON.parse(last_response.body)['id']).to eq(post.public_id)
         end
 
         it "should not find existing post by actual id" do
@@ -67,8 +68,8 @@ describe TentD::API::Posts do
 
             it 'should return post' do
               json_get "/posts/#{post.public_id}", nil, 'current_auth' => current_auth
-              expect(last_response.status).to_not eq(404)
-              expect(last_response.body).to eq(post.to_json)
+              expect(last_response.status).to eq(200)
+              expect(JSON.parse(last_response.body)['id']).to eq(post.public_id)
             end
           end
 
@@ -81,8 +82,8 @@ describe TentD::API::Posts do
 
             it 'should return post' do
               json_get "/posts/#{post.public_id}", nil, 'current_auth' => current_auth
-              expect(last_response.status).to_not eq(404)
-              expect(last_response.body).to eq(post.to_json)
+              expect(last_response.status).to eq(200)
+              expect(JSON.parse(last_response.body)['id']).to eq(post.public_id)
             end
           end
 
@@ -121,7 +122,7 @@ describe TentD::API::Posts do
             post = Fabricate(:post, :public => false, :type => post_type)
             json_get "/posts/#{post.public_id}", params, env
             expect(last_response.status).to eq(200)
-            expect(last_response.body).to eq(post.to_json)
+            expect(JSON.parse(last_response.body)['id']).to eq(post.public_id)
           end
         end
 
@@ -188,7 +189,12 @@ describe TentD::API::Posts do
         post_types = [picture_post, blog_post].map { |p| URI.escape(p.type.to_s, "://") }
 
         json_get "/posts?post_types=#{post_types.join(',')}", params, env
-        expect(last_response.body).to eq(posts.to_json)
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(posts.size)
+        body_ids = body.map { |i| i['id'] }
+        posts.each { |post|
+          expect(body_ids).to include(post.public_id)
+        }
       end
 
       it "should filter by params[:since_id]" do
@@ -198,7 +204,10 @@ describe TentD::API::Posts do
         post.save!
 
         json_get "/posts?since_id=#{since_post.public_id}", params, env
-        expect(last_response.body).to eq([post].to_json)
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(1)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids.first).to eq(post.public_id)
       end
 
       it "should filter by params[:before_id]" do
@@ -209,7 +218,10 @@ describe TentD::API::Posts do
         before_post.save!
 
         json_get "/posts?before_id=#{before_post.public_id}", params, env
-        expect(last_response.body).to eq([post].to_json)
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(1)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids.first).to eq(post.public_id)
       end
 
       it "should filter by both params[:since_id] and params[:before_id]" do
@@ -221,7 +233,10 @@ describe TentD::API::Posts do
         before_post.save!
 
         json_get "/posts?before_id=#{before_post.public_id}&since_id=#{since_post.public_id}", params, env
-        expect(last_response.body).to eq([post].to_json)
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(1)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids.first).to eq(post.public_id)
       end
 
       it "should filter by params[:since_time]" do
@@ -233,7 +248,10 @@ describe TentD::API::Posts do
         post.save!
 
         json_get "/posts?since_time=#{since_post.published_at.to_time.to_i}", params, env
-        expect(last_response.body).to eq([post].to_json)
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(1)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids.first).to eq(post.public_id)
       end
 
       it "should filter by params[:before_time]" do
@@ -245,7 +263,10 @@ describe TentD::API::Posts do
         before_post.save!
 
         json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}", params, env
-        expect(last_response.body).to eq([post].to_json)
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(1)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids.first).to eq(post.public_id)
       end
 
       it "should filter by both params[:before_time] and params[:since_time]" do
@@ -261,7 +282,10 @@ describe TentD::API::Posts do
         before_post.save!
 
         json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}&since_time=#{since_post.published_at.to_time.to_i}", params, env
-        expect(last_response.body).to eq([post].to_json)
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(1)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids.first).to eq(post.public_id)
       end
 
       it "should set feed length with params[:limit]" do
@@ -316,14 +340,20 @@ describe TentD::API::Posts do
       before { authorize!(:write_posts, :app => application) }
 
       it "should create post" do
-        post_attributes = p.as_json(:exclude => [:id])
-        expect(lambda { json_post "/posts", post_attributes, env }).to change(TentD::Model::Post, :count).by(1)
-        expect(last_response.body).to eq(TentD::Model::Post.last.to_json(:kind => :app))
-        expect(JSON.parse(last_response.body)['app']).to eq('url' => application.url, 'name' => application.name)
+        post_attributes = p.attributes
+        post_attributes.delete(:id)
+        expect(lambda {
+          json_post "/posts", post_attributes, env
+          expect(last_response.status).to eq(200)
+        }).to change(TentD::Model::Post, :count).by(1)
+        body = JSON.parse(last_response.body)
+        expect(body['id']).to eq(TentD::Model::Post.last.public_id)
+        expect(body['app']).to eq('url' => application.url, 'name' => application.name)
       end
 
       it 'should create post with multipart attachments' do
-        post_attributes = p.as_json(:exclude => [:id])
+        post_attributes = p.attributes
+        post_attributes.delete(:id)
         attachments = { :foo => [{ :filename => 'a', :content_type => 'text/plain', :content => 'asdf' },
                                  { :filename => 'a', :content_type => 'application/json', :content => 'asdf123' },
                                  { :filename => 'b', :content_type => 'text/plain', :content => '1234' }],
@@ -333,7 +363,8 @@ describe TentD::API::Posts do
             multipart_post('/posts', post_attributes, attachments, env)
           }).to change(TentD::Model::Post, :count).by(1)
         }).to change(TentD::Model::PostAttachment, :count).by(4)
-        expect(last_response.body).to eq(TentD::Model::Post.last.to_json(:kind => :app))
+        body = JSON.parse(last_response.body)
+        expect(body['id']).to eq(TentD::Model::Post.last.public_id)
       end
     end
 
@@ -348,12 +379,17 @@ describe TentD::API::Posts do
       before { authorize!(:entity => 'https://smith.example.com') }
 
       it 'should allow a post from the follower' do
-        json_post "/posts", p.as_json(:exclude => [:id]), env
-        expect(last_response.body).to eq(TentD::Model::Post.last.to_json)
+        post_attributes = p.attributes
+        post_attributes.delete(:id)
+        json_post "/posts", post_attributes, env
+        body = JSON.parse(last_response.body)
+        expect(body['id']).to eq(TentD::Model::Post.last.public_id)
       end
 
       it "should not allow a post that isn't from the follower" do
-        json_post "/posts", p.as_json(:exclude => [:id]).merge(:entity => 'example.org'), env
+        post_attributes = p.attributes
+        post_attributes.delete(:id)
+        json_post "/posts", post_attributes.merge(:entity => 'example.org'), env
         expect(last_response.status).to eq(403)
       end
     end
@@ -362,13 +398,18 @@ describe TentD::API::Posts do
       before { Fabricate(:following) }
 
       it 'should not allow a post by an entity that is a following' do
-        json_post "/posts", p.as_json(:exclude => [:id]), env
+        post_attributes = p.attributes
+        post_attributes.delete(:id)
+        json_post "/posts", post_attributes, env
         expect(last_response.status).to eq(403)
       end
 
       it 'should allow a post by an entity that is not a following' do
-        json_post "/posts", p.as_json(:exclude => [:id]).merge(:entity => 'example.org'), env
-        expect(last_response.body).to eq(TentD::Model::Post.last.to_json)
+        post_attributes = p.attributes
+        post_attributes.delete(:id)
+        json_post "/posts", post_attributes.merge(:entity => 'example.org'), env
+        body = JSON.parse(last_response.body)
+        expect(body['id']).to eq(TentD::Model::Post.last.public_id)
       end
     end
   end
