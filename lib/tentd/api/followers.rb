@@ -38,6 +38,7 @@ module TentD
                  env.current_auth.id == env.params.follower_id
             authorize_env!(env, :write_followers)
           end
+          env.authorized_scopes << :self
           env
         end
       end
