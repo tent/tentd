@@ -7,7 +7,7 @@ module TentD
 
       property :id, Serial
       property :type, String
-      property :view, String, :default => 'full'
+      property :view, String, :default => lambda { |m,p| 'full' unless m.type == 'all' }
       property :created_at, DateTime
       property :updated_at, DateTime
 
