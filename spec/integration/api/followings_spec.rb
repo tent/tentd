@@ -16,6 +16,10 @@ describe TentD::API::Followings do
   let(:env) { Hash.new }
   let(:params) { Hash.new }
 
+  def stub_notification_http!
+    http_stubs.post('/notifications') { [200, {}, []] }
+  end
+
   describe 'GET /followings' do
     let(:create_permissions?) { false }
     let(:current_auth) { env['current_auth'] }
@@ -394,10 +398,12 @@ describe TentD::API::Followings do
         )
 
         @http_stub_head_success = lambda do
+            expect(true)
           http_stubs.head('/') { [200, { 'Link' => link_header }, ''] }
         end
 
         @http_stub_profile_success = lambda do
+          expect(true)
           http_stubs.get('/tent/profile') {
             [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, tent_profile]
           }
@@ -405,18 +411,23 @@ describe TentD::API::Followings do
 
         @http_stub_profile_mismatch = lambda do
           http_stubs.get('/tent/profile') {
+            expect(true)
             [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, tent_profile_mismatch]
           }
         end
 
         @http_stub_follow_success = lambda do
-          http_stubs.post('/followers') { [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, follow_response] }
+          http_stubs.post('/followers') {
+            expect(true)
+            [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, follow_response]
+          }
         end
 
         @http_stub_success = lambda do
           @http_stub_head_success.call
           @http_stub_profile_success.call
           @http_stub_follow_success.call
+          stub_notification_http!
         end
 
         authorize!(:write_followings)
@@ -428,7 +439,6 @@ describe TentD::API::Followings do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
         json_post '/followings', following_data, env
-        http_stubs.verify_stubbed_calls
       end
 
       it 'should send follow request to following' do
@@ -436,7 +446,6 @@ describe TentD::API::Followings do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
         json_post '/followings', following_data, env
-        http_stubs.verify_stubbed_calls
       end
 
       context 'when discovery fails' do
@@ -474,6 +483,7 @@ describe TentD::API::Followings do
       context 'when discovery and follow requests success' do
         before do
           @http_stub_success.call
+          stub_notification_http!
           TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
         end
 

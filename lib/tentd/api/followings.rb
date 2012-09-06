@@ -89,7 +89,11 @@ module TentD
 
       class Create < Middleware
         def action(env)
-          env.response = Model::Following.create_from_params(env.follow_data.merge(env.params.data))
+          if following = Model::Following.create_from_params(env.follow_data.merge(env.params.data))
+            env.response = following
+            env.notify_action = 'create'
+            env.notify_instance = following
+          end
           env
         end
       end
@@ -108,6 +112,8 @@ module TentD
         def action(env)
           if (following = Model::Following.get(env.params.following_id)) && following.destroy
             env.response = ''
+            env.notify_action = 'delete'
+            env.notify_instance = following
           end
           env
         end
@@ -141,6 +147,22 @@ module TentD
         end
       end
 
+      class Notify < Middleware
+        def action(env)
+          return env unless following = env.notify_instance
+          post = Model::Post.create(
+            :type => 'https://tent.io/types/post/following',
+            :entity => env['tent.entity'],
+            :content => {
+              :entity => following.entity,
+              :action => env.notify_action
+            }
+          )
+          Notifications::TRIGGER_QUEUE << { :type => post.type, :post_id => post.id }
+          env
+        end
+      end
+
       get '/followings/:following_id' do |b|
         b.use GetActualId
         b.use GetOne
@@ -163,6 +185,7 @@ module TentD
         b.use Discover
         b.use Follow
         b.use Create
+        b.use Notify
       end
 
       put '/followings/:following_id' do |b|
@@ -175,6 +198,7 @@ module TentD
         b.use AuthorizeWrite
         b.use GetActualId
         b.use Destroy
+        b.use Notify
       end
     end
   end
