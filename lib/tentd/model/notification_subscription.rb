@@ -26,7 +26,7 @@ module TentD
 
       def self.notify_all(type, post_id)
         all(:type => [type, 'all'], :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
-          next unless Post.get(post_id, :fields => [:id, :original, :public]).can_notify?(subscription.subject)
+          next unless Post.first(:id => post_id, :fields => [:id, :original, :public]).can_notify?(subscription.subject)
           Notifications::NOTIFY_QUEUE << { :subscription_id => subscription.id, :post_id => post_id }
         end
       end
@@ -35,7 +35,7 @@ module TentD
         post = Post.get(post_id)
         client = TentClient.new(nil, subject.auth_details)
         permissions = subject.respond_to?(:scopes) && subject.scopes.include?(:read_permissions)
-        client.post.create(post.to_json(:app => !!app_authorization, :permissions => permissions), :url => subject.notification_url)
+        client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions), :url => subject.notification_url)
       end
 
       private
