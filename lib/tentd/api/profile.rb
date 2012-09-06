@@ -23,6 +23,7 @@ module TentD
           type = URI.unescape(env.params.type_url)
           raise Unauthorized unless ['all', type].find { |t| env.current_auth.profile_info_types.include?(t) }
           Model::ProfileInfo.update_profile(type, data)
+          env.notify_types = [type]
           env
         end
       end
@@ -39,10 +40,27 @@ module TentD
             end
           end
           env.response = new_profile_hash
+          env.notify_types = new_profile_hash.keys
           env
         rescue JsonPatch::ObjectNotFound, JsonPatch::ObjectExists => e
           env['response.status'] = 422
           env.response = profile_hash
+          env
+        end
+      end
+
+      class Notify < Middleware
+        def action(env)
+          return env unless env.notify_types
+          post = Model::Post.create(
+            :type => 'https://tent.io/types/post/profile/v0.1.0',
+            :entity => env['tent.entity'],
+            :content => {
+              :action => 'update',
+              :types => env.notify_types,
+            }
+          )
+          Notifications::TRIGGER_QUEUE << { :type => post.type, :post_id => post.id }
           env
         end
       end
@@ -55,12 +73,14 @@ module TentD
         b.use AuthorizeWrite
         b.use Update
         b.use Get
+        b.use Notify
       end
 
       patch '/profile' do |b|
         b.use AuthorizeWrite
         b.use Get
         b.use Patch
+        b.use Notify
       end
     end
   end
