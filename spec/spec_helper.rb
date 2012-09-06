@@ -11,6 +11,8 @@ require 'girl_friday'
 
 Dir["#{File.dirname(__FILE__)}/support/*.rb"].each { |f| require f }
 
+ENV['RACK_ENV'] ||= 'test'
+
 require 'data_mapper'
 
 RSpec.configure do |config|

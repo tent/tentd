@@ -18,6 +18,7 @@ module TentD
       rescue DataMapper::SaveFailureError
         [422, {}, ['Invalid Attributes']]
       rescue
+        raise if ENV['RACK_ENV'] == 'test'
         [500, {}, ['Internal Server Error']]
       end
     end
