@@ -77,10 +77,13 @@ module TentD
 
           if app = Model::App.get(env.params.app_id)
             env.authorized_scopes << :authorization_token
-            authorization = app.authorizations.create(env.params.data.merge({
+            authorization = app.authorizations.create_from_params(
+              :app_id => env.params.app_id,
+              :notification_url => env.params.data.notification_url,
               :post_types => env.params.data.post_types.to_a.map { |url| URI.decode(url) },
               :profile_info_types => env.params.data.profile_info_types.to_a.map { |url| URI.decode(url) },
-            }))
+              :scopes => env.params.data.scopes
+            )
             env.response = authorization
           end
           env

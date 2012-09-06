@@ -201,12 +201,16 @@ describe TentD::API::Apps do
         post_types = %w{ https://tent.io/types/post/status https://tent.io/types/post/photo }
         profile_info_types = %w{ https://tent.io/types/info/basic https://tent.io/types/info/core }
         data = {
+          :notification_url => "http://example.com/webhooks/notifications",
           :scopes => scopes,
           :post_types => post_types.map {|url| URI.encode(url, ":/") },
           :profile_info_types => profile_info_types.map {|url| URI.encode(url, ":/") },
         }
         expect(lambda {
-          json_post "/apps/#{app.public_id}/authorizations", data, env
+          expect(lambda {
+            json_post "/apps/#{app.public_id}/authorizations", data, env
+            expect(last_response.status).to eq(200)
+          }).to change(TentD::Model::NotificationSubscription, :count).by(2)
         }).to change(TentD::Model::AppAuthorization, :count)
 
         app_auth = app.authorizations.last

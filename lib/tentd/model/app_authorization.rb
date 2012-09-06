@@ -33,6 +33,17 @@ module TentD
         [:id, :post_types, :profile_info_types, :scopes, :notification_url]
       end
 
+      def self.create_from_params(data)
+        authorization = create(data)
+
+        if data[:notification_url]
+          data[:post_types].each do |type|
+            authorization.notification_subscriptions.create(:type => type)
+          end
+        end
+
+        authorization
+      end
 
       def update_from_params(data)
         _post_types = post_types
