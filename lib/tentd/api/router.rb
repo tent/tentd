@@ -1,4 +1,5 @@
 require 'rack/mount'
+require 'rack/head'
 
 class Rack::Mount::RouteSet
   def merge_routes(routes)
@@ -67,6 +68,7 @@ module TentD
           return if route_exists?(verb, path)
 
           builder = Rack::Builder.new(SerializeResponse.new)
+          builder.use(Rack::Head)
           builder.use(AuthenticationLookup)
           builder.use(AuthenticationVerification)
           builder.use(AuthenticationFinalize)
