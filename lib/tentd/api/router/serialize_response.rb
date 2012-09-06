@@ -22,10 +22,12 @@ module TentD
         def serialization_options(env)
           {
             :app => env.current_auth.kind_of?(Model::AppAuthorization),
+            :authorization_token => env.authorized_scopes.include?(:read_apps),
             :permissions => env.authorized_scopes.include?(:read_permissions),
             :groups => env.authorized_scopes.include?(:read_groups),
             :mac => env.authorized_scopes.include?(:read_secrets),
-            :self => env.authorized_scopes.include?(:self)
+            :self => env.authorized_scopes.include?(:self),
+            :auth_token => env.authorized_scopes.include?(:authorization_token)
           }
         end
       end

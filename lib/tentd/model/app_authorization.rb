@@ -41,6 +41,16 @@ module TentD
           :token_type => 'mac'
         }
       end
+
+      def as_json(options = {})
+        attributes = super
+
+        if options[:authorization_token]
+          attributes[:token_code] = token_code
+        end
+
+        attributes
+      end
     end
   end
 end

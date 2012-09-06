@@ -23,6 +23,15 @@ describe TentD::Model::AppAuthorization do
         expect(app_authorization.as_json(options)).to eq(app_attributes)
       end
 
+      context 'and options[:authorization_token]' do
+        before { options[:authorization_token] = true }
+        it 'should return token code' do
+          expect(app_authorization.as_json(options)).to eq(app_attributes.merge(
+            :token_code => app_authorization.token_code
+          ))
+        end
+      end
+
       context 'and options[:mac]' do
         before { options[:mac] = true }
 
