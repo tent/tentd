@@ -25,5 +25,14 @@ describe TentD::Model::Group do
     it 'should return public attributes' do
       expect(group.as_json).to eq(public_attributes)
     end
+
+    context 'with options[:app]' do
+      it 'should expose timestamps' do
+        expect(group.as_json(:app => true)).to eq(public_attributes.merge(
+          :created_at => group.created_at.to_time.to_i,
+          :updated_at => group.updated_at.to_time.to_i
+        ))
+      end
+    end
   end
 end

@@ -77,7 +77,6 @@ module TentD
         attributes[:attachments] = attachments.all.map { |a| a.as_json }
 
         if options[:app]
-          attributes[:received_at] = received_at.to_time.to_i
           attributes[:known_entity] = known_entity
         end
 

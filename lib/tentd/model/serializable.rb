@@ -6,7 +6,13 @@ module TentD
         attributes.merge!(:permissions => permissions_json(options[:permissions])) if respond_to?(:permissions_json)
         attributes[:id] = respond_to?(:public_id) ? public_id : id
 
-        [:published_at, :updated_at].each do |key|
+        if options[:app]
+          [:created_at, :updated_at, :published_at, :received_at].each { |key|
+            attributes[key] = send(key) if respond_to?(key)
+          }
+        end
+
+        [:published_at, :updated_at, :created_at, :received_at].each do |key|
           attributes[key] = attributes[key].to_time.to_i if attributes[key].respond_to?(:to_time)
         end
 

@@ -317,7 +317,9 @@ describe TentD::Model::Follower do
         expect(follower.as_json(:app => true)).to eq(public_attributes.merge(
           :profile => follower.profile,
           :licenses => follower.licenses,
-          :types => []
+          :types => [],
+          :created_at => follower.created_at.to_time.to_i,
+          :updated_at => follower.updated_at.to_time.to_i
         ))
       end
     end

@@ -8,4 +8,5 @@ Fabricator(:follower, :class_name => "TentD::Model::Follower") do |f|
       { :entity => f[:entity], :licenses => f[:licenses], :servers => ["https://example.com"] }
     }.to_json
   }
+  f.updated_at { Time.now }
 end

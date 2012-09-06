@@ -60,7 +60,9 @@ describe TentD::Model::Following do
       it 'should return additional attribtues' do
         expect(following.as_json(:app => true)).to eq(public_attributes.merge(
           :profile => following.profile,
-          :licenses => following.licenses
+          :licenses => following.licenses,
+          :updated_at => following.updated_at.to_time.to_i,
+          :created_at => following.updated_at.to_time.to_i
         ))
       end
     end
