@@ -83,7 +83,7 @@ module TentD
         def action(env)
           return env unless group = env.notify_instance
           post = Model::Post.create(
-            :type => 'https://tent.io/types/post/group',
+            :type => 'https://tent.io/types/post/group/v0.1.0',
             :entity => env['tent.entity'],
             :content => {
               :id => group.public_id,

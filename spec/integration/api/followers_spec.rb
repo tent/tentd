@@ -110,7 +110,7 @@ describe TentD::API::Followers do
         }).to change(TentD::Model::Post, :count).by(1)
 
         post = TentD::Model::Post.last
-        expect(post.type).to eq('https://tent.io/types/post/follower')
+        expect(post.type).to eq('https://tent.io/types/post/follower/v0.1.0')
         expect(post.content['action']).to eq('create')
       end
 
@@ -451,7 +451,7 @@ describe TentD::API::Followers do
         }).to change(TentD::Model::Post, :count).by(1)
 
         post = TentD::Model::Post.last
-        expect(post.type).to eq('https://tent.io/types/post/follower')
+        expect(post.type).to eq('https://tent.io/types/post/follower/v0.1.0')
         expect(post.content['action']).to eq('delete')
       end
     end

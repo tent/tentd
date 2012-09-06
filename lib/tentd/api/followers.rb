@@ -137,7 +137,7 @@ module TentD
         def action(env)
           return env unless follower = env.notify_instance
           post = Model::Post.create(
-            :type => 'https://tent.io/types/post/follower',
+            :type => 'https://tent.io/types/post/follower/v0.1.0',
             :entity => env['tent.entity'],
             :content => {
               :id => follower.public_id,
