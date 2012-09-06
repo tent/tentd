@@ -3,6 +3,7 @@ module TentD
     class Group
       include DataMapper::Resource
       include RandomPublicId
+      include Serializable
 
       storage_names[:default] = "groups"
 
@@ -13,10 +14,8 @@ module TentD
 
       has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy, :parent_key => :public_id
 
-      def as_json(options = {})
-        attributes = super
-        attributes[:id] = attributes.delete(:public_id)
-        attributes
+      def self.public_attributes
+        [:name]
       end
     end
   end

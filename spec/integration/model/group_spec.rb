@@ -1,8 +1,9 @@
 require 'spec_helper'
 
 describe TentD::Model::Group do
+  let(:group) { Fabricate(:group) }
+
   it 'should set random_uid for public_id' do
-    group = Fabricate(:group)
     expect(group.public_id).to be_a(String)
   end
 
@@ -14,10 +15,15 @@ describe TentD::Model::Group do
   end
 
   describe '#as_json' do
-    it 'should set id to public_id' do
-      group = Fabricate(:group)
-      expect(group.as_json[:id]).to eq(group.public_id)
-      expect(group.as_json).to_not have_key(:public_id)
+    let(:public_attributes) do
+      {
+        :id => group.public_id,
+        :name => group.name
+      }
+    end
+
+    it 'should return public attributes' do
+      expect(group.as_json).to eq(public_attributes)
     end
   end
 end
