@@ -32,11 +32,6 @@ describe TentD::Model::App do
       end
     end
 
-    context 'with options[:self]' do
-      let(:options) { { :self => true } }
-      context &with_mac_keys
-    end
-
     context 'with options[:mac]' do
       let(:options) { { :mac => true } }
       context &with_mac_keys

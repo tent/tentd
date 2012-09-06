@@ -217,7 +217,7 @@ describe TentD::API::Followings do
       context 'and read_secrets scope authorized' do
         before {
           authorize!(:read_followings, :read_secrets)
-          params['read_secrets'] = true
+          params['secrets'] = true
         }
 
         it 'should return all followings with mac keys' do
@@ -338,7 +338,7 @@ describe TentD::API::Followings do
       context 'when read_secrets scope authorized' do
         before {
           authorize!(:read_followings, :read_secrets)
-          params['read_secrets'] = true
+          params['secrets'] = true
         }
 
         it 'should return following with mac keys' do

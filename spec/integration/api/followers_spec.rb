@@ -190,11 +190,11 @@ describe TentD::API::Followers do
       context 'when read_secrets authorized' do
         before { authorize!(:read_followers, :read_secrets) }
 
-        context 'when read_secrets param set to true' do
+        context 'when secrets param set to true' do
           it 'should return a list of followers with mac keys' do
             TentD::Model::Follower.all.destroy!
             followers = 2.times.map { Fabricate(:follower, :public => false) }
-            json_get '/followers?read_secrets=true', params, env
+            json_get '/followers?secrets=true', params, env
             whitelist = %w{ mac_key_id mac_key mac_algorithm }
             body = JSON.parse(last_response.body)
             body.each do |f|
@@ -206,7 +206,7 @@ describe TentD::API::Followers do
           end
         end
 
-        context 'when read_secrets param not set', &authorized_full
+        context 'when secrets param not set', &authorized_full
       end
     end
   end
@@ -233,8 +233,8 @@ describe TentD::API::Followers do
       context 'when read_secrets scope authorized' do
         before { authorize!(:read_followers, :read_secrets) }
 
-        context 'with read_secrets param' do
-          before { params['read_secrets'] = true }
+        context 'with secrets param' do
+          before { params['secrets'] = true }
 
           it 'should respond with follower json with mac_key' do
             json_get "/followers/#{follower.public_id}", params, env
@@ -247,7 +247,7 @@ describe TentD::API::Followers do
           end
         end
 
-        context 'without read_secrets param', &authorized
+        context 'without secrets param', &authorized
       end
 
       context 'when no follower exists with :id' do
@@ -267,8 +267,8 @@ describe TentD::API::Followers do
         context &authorized
       end
 
-      context 'with read_secrets param' do
-        before { params['read_secrets'] = true }
+      context 'with secrets param' do
+        before { params['secrets'] = true }
         context &authorized
       end
 

@@ -57,12 +57,12 @@ describe TentD::API::Apps do
 
       context 'when read_secrets scope authorized' do
         before { authorize!(:read_apps, :read_secrets) }
-        context 'with read_secrets param' do
-          before { params['read_secrets'] = true }
+        context 'with secrets param' do
+          before { params['secrets'] = true }
           context '', &with_mac_key
         end
 
-        context 'without read_secrets param', &without_mac_key
+        context 'without secrets param', &without_mac_key
       end
 
       context 'when read_secrets scope unauthorized', &without_mac_key
@@ -113,7 +113,7 @@ describe TentD::API::Apps do
           before { authorize!(:read_apps, :read_secrets) }
 
           context 'with read secrets param' do
-            before { params['read_secrets'] = true }
+            before { params['secrets'] = true }
 
             it 'should return app with mac_key' do
               app = _app
@@ -146,22 +146,7 @@ describe TentD::API::Apps do
       let(:_app) { Fabricate(:app) }
       examples = proc do
         context 'app with :id exists' do
-          context 'with read_secrets params' do
-            before { params['read_secrets'] = true }
-            it 'should return app with mac_key' do
-              app = _app
-              json_get "/apps/#{app.public_id}", params, env
-              expect(last_response.status).to eq(200)
-              body = JSON.parse(last_response.body)
-              whitelist = %w{ mac_key_id mac_key mac_algorithm }
-              whitelist.each { |key|
-                expect(body).to have_key(key)
-              }
-              expect(body['id']).to eq(app.public_id)
-            end
-          end
-
-          context 'without read_secrets params', &without_mac_key
+          context 'without secrets param', &without_mac_key
         end
 
         context 'app with :id does not exist' do
@@ -170,14 +155,6 @@ describe TentD::API::Apps do
             expect(last_response.status).to eq(403)
           end
         end
-      end
-
-      context 'when AppAuthorization' do
-        before do
-          env['current_auth'] = Fabricate(:app_authorization, :app => _app)
-        end
-
-        context &examples
       end
 
       context 'when App' do

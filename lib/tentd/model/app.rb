@@ -49,7 +49,7 @@ module TentD
       def as_json(options = {})
         attributes = super
 
-        if options[:self] || options[:mac]
+        if options[:mac]
           [:mac_key, :mac_key_id, :mac_algorithm].each { |key|
             attributes[key] = send(key)
           }
