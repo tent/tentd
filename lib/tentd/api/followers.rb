@@ -140,6 +140,7 @@ module TentD
             :type => 'https://tent.io/types/post/follower',
             :entity => env['tent.entity'],
             :content => {
+              :id => follower.public_id,
               :entity => follower.entity,
               :action => env.notify_action
             }
