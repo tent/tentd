@@ -24,10 +24,6 @@ module TentD
         app_authorization || follower
       end
 
-      def kind
-        app_authorization ? :app : :follower
-      end
-
       def self.notify_all(type, post_id)
         all(:type => [type, 'all'], :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
           next unless Post.get(post_id, :fields => [:id, :original, :public]).can_notify?(subscription.subject)
@@ -39,7 +35,7 @@ module TentD
         post = Post.get(post_id)
         client = TentClient.new(nil, subject.auth_details)
         permissions = subject.respond_to?(:scopes) && subject.scopes.include?(:read_permissions)
-        client.post.create(post.to_json(:kind => kind, :permissions => permissions), :url => subject.notification_url)
+        client.post.create(post.to_json(:app => !!app_authorization, :permissions => permissions), :url => subject.notification_url)
       end
 
       private

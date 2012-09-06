@@ -1,4 +1,5 @@
 require 'securerandom'
+require 'tentd/core_ext/hash/slice'
 
 module TentD
   module Model
@@ -30,6 +31,24 @@ module TentD
 
       def self.public_attributes
         [:id, :post_types, :profile_info_types, :scopes, :notification_url]
+      end
+
+
+      def update_from_params(data)
+        _post_types = post_types
+
+        saved = update(data.slice(:post_types, :profile_info_types, :scopes, :notification_url))
+
+        if saved && data[:post_types] && data[:post_types] != _post_types
+          notification_subscriptions.all(:type.not => post_types).destroy
+
+          data[:post_types].each do |type|
+            next if notification_subscriptions.first(:type => type)
+            notification_subscriptions.create(:type => type)
+          end
+        end
+
+        saved
       end
 
       def token_exchange!

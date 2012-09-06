@@ -359,6 +359,63 @@ describe TentD::API::Apps do
     end
   end
 
+  describe 'PUT /apps/:app_id/authorizations/:auth_id' do
+    let!(:_app) { Fabricate(:app) }
+    let!(:app_auth) { Fabricate(:app_authorization, :post_types => [], :profile_info_types => [], :notification_url => "http://example.com/notification", :app => _app) }
+
+    context 'when authorized via scope' do
+      before { authorize!(:write_apps) }
+
+      context 'update params unrelated to notification subscription' do
+        it 'should update app authorization' do
+          data = {
+            :notification_url => "http://example.com/webhooks/notifications",
+            :profile_info_types => ["https://tent.io/types/info/basic"],
+            :scopes => %w{ read_posts read_apps }
+          }
+          json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", data, env
+          expect(last_response.status).to eq(200)
+
+          app_auth.reload
+          data.each_pair do |key, val|
+            expect(app_auth.send(key)).to eq(data[key])
+          end
+        end
+      end
+
+      context 'update post_types' do
+        it 'should update notification subscriptions' do
+          data = {
+            :post_types => ["https://tent.io/types/post/status"]
+          }
+          expect(lambda {
+            json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", data, env
+            expect(last_response.status).to eq(200)
+          }).to change(TentD::Model::NotificationSubscription, :count).by(1)
+
+          expect(lambda {
+            json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", data, env
+            expect(last_response.status).to eq(200)
+          }).to_not change(TentD::Model::NotificationSubscription, :count)
+
+          app_auth.reload
+          expect(app_auth.post_types).to eq(data[:post_types])
+
+          expect(lambda {
+            data[:post_types] = []
+            json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", data, env
+            expect(last_response.status).to eq(200)
+          }).to change(TentD::Model::NotificationSubscription, :count).by(-1)
+        end
+      end
+
+      it 'should return 404 unless app and authorization exist' do
+        json_put "/apps/app-id/authorizations/auth-id", params, env
+        expect(last_response.status).to eq(404)
+      end
+    end
+  end
+
   describe 'DELETE /apps/:app_id/authorizations/:auth_id' do
     let!(:_app) { Fabricate(:app) }
     let!(:app_auth) { Fabricate(:app_authorization, :app => _app) }
