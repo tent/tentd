@@ -59,7 +59,11 @@ module TentD
       class Create < Middleware
         def action(env)
           group_attributes = env.params[:data]
-          env['response'] = Model::Group.create!(group_attributes)
+          if group = Model::Group.create(group_attributes)
+            env.response = group
+            env.notify_action = 'create'
+            env.notify_instance = group
+          end
           env
         end
       end
@@ -68,7 +72,26 @@ module TentD
         def action(env)
           if (group = Model::Group.get(env.params.group_id)) && group.destroy
             env.response = ''
+            env.notify_action = 'delete'
+            env.notify_instance = group
           end
+          env
+        end
+      end
+
+      class Notify < Middleware
+        def action(env)
+          return env unless group = env.notify_instance
+          post = Model::Post.create(
+            :type => 'https://tent.io/types/post/group',
+            :entity => env['tent.entity'],
+            :content => {
+              :id => group.public_id,
+              :name => group.name,
+              :action => env.notify_action
+            }
+          )
+          Notifications::TRIGGER_QUEUE << { :type => post.type, :post_id => post.id }
           env
         end
       end
@@ -93,12 +116,14 @@ module TentD
       post '/groups' do |b|
         b.use AuthorizeWrite
         b.use Create
+        b.use Notify
       end
 
       delete '/groups/:group_id' do |b|
         b.use AuthorizeWrite
         b.use GetActualId
         b.use Destroy
+        b.use Notify
       end
     end
   end
