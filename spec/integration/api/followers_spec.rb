@@ -156,10 +156,12 @@ describe TentD::API::Followers do
         TentD::Model::Follower.all.destroy!
         followers = 2.times.map { Fabricate(:follower, :public => true) }
         json_get '/followers', params, env
-        expect(last_response.body).to eq(followers.map { |f|
-            f.as_json(:only => [:id, :entity, :profile, :licenses])
-        }.to_json)
         expect(last_response.status).to eq(200)
+        body = JSON.parse(last_response.body)
+        body_ids = body.map { |i| i['id'] }
+        followers.each do |follower|
+          expect(body_ids).to include(follower.public_id)
+        end
       end
     end
 
