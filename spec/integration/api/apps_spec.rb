@@ -305,11 +305,11 @@ describe TentD::API::Apps do
       end
     end
 
-    context 'when authorized via identity' do
+    context 'when authorized as app' do
       let(:_app) { Fabricate(:app) }
 
       before do
-        env['current_auth'] = Fabricate(:app_authorization, :app => _app)
+        env['current_auth'] = _app
       end
 
       context '', &authorized_examples
@@ -361,7 +361,7 @@ describe TentD::API::Apps do
     context 'when authorized via identity' do
       let(:_app) { Fabricate(:app) }
       before do
-        env['current_auth'] = Fabricate(:app_authorization, :app => _app )
+        env['current_auth'] = _app
       end
 
       context '', &authorized_examples

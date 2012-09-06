@@ -37,12 +37,9 @@ module TentD
 
       class AuthorizeWriteOne < Middleware
         def action(env)
-          if env.params.app_id && env.current_auth && env.current_auth.kind_of?(Model::AppAuthorization) &&
-                 env.current_auth.app_id == env.params.app_id
-            (env.authorized_scopes ||= []) << :read_secrets if env.params.read_secrets.to_s == 'true'
-          else
-            authorize_env!(env, :write_apps)
-          end
+          authorize_env!(env, :write_apps) unless env.params.app_id && env.current_auth &&
+                                                  env.current_auth.kind_of?(Model::App) &&
+                                                  env.current_auth.id == env.params.app_id
           env
         end
       end
