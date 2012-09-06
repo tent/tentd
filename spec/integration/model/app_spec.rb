@@ -12,7 +12,8 @@ describe TentD::Model::App do
         :url => app.url,
         :icon => app.icon,
         :redirect_uris => app.redirect_uris,
-        :scopes => app.scopes
+        :scopes => app.scopes,
+        :authorizations => []
       }
     end
 
