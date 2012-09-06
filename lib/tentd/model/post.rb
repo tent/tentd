@@ -14,8 +14,8 @@ module TentD
       property :entity, String
       property :public, Boolean, :default => false
       property :type, String
-      property :licenses, Array
-      property :content, Json
+      property :licenses, Array, :default => []
+      property :content, Json, :default => {}
       property :published_at, DateTime, :default => lambda { |*args| Time.now }
       property :received_at, DateTime, :default => lambda { |*args| Time.now }
       property :updated_at, DateTime
