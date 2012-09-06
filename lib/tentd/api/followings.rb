@@ -89,7 +89,7 @@ module TentD
 
       class Create < Middleware
         def action(env)
-          env.response = Model::Following.create_from_params(env.params.data.merge(env.follow_data))
+          env.response = Model::Following.create_from_params(env.follow_data.merge(env.params.data))
           env
         end
       end
