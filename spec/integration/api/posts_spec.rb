@@ -417,6 +417,50 @@ describe TentD::API::Posts do
     end
   end
 
+  describe 'DELETE /posts/:post_id' do
+    let(:post) { Fabricate(:post, :original => true) }
+
+    context 'when authorized' do
+      before { authorize!(:write_posts) }
+
+      context 'when post exists' do
+        it 'should delete post and create post deleted notification' do
+          delete "/posts/#{post.public_id}", params, env
+          expect(last_response.status).to eq(200)
+          expect(TentD::Model::Post.get(post.id)).to be_nil
+
+          deleted_post = post
+          post = TentD::Model::Post.last
+          expect(post.content['id']).to eq(deleted_post.public_id)
+          expect(post.type).to eq('https://tent.io/types/post/delete/v0.1.0')
+        end
+      end
+
+      context 'when post is not original' do
+        let(:post) { Fabricate(:post, :original => false) }
+
+        it 'should return 403' do
+          delete "/posts/#{post.public_id}", params, env
+          expect(last_response.status).to eq(403)
+        end
+      end
+
+      context 'when post does not exist' do
+        it 'should return 404' do
+          delete "/posts/post-id", params, env
+          expect(last_response.status).to eq(404)
+        end
+      end
+    end
+
+    context 'when not authorized' do
+      it 'should return 403' do
+        delete "/posts/#{post.public_id}", params, env
+        expect(last_response.status).to eq(403)
+      end
+    end
+  end
+
   describe 'GET /posts/:post_id/attachments/:attachment_name' do
     let(:post) { Fabricate(:post) }
     let(:attachment) { Fabricate(:post_attachment, :post => post) }

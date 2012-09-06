@@ -162,6 +162,18 @@ module TentD
         end
       end
 
+      class Destroy < Middleware
+        def action(env)
+          authorize_env!(env, :write_posts)
+          if (post = TentD::Model::Post.get(env.params.post_id)) && post.destroy
+            raise Unauthorized unless post.original
+            env.response = ''
+            env.notify_deleted_post = post
+          end
+          env
+        end
+      end
+
       class CreateAttachments < Middleware
         def action(env)
           return env unless env.params.attachments.kind_of?(Array) && env.response
@@ -177,7 +189,17 @@ module TentD
 
       class Notify < Middleware
         def action(env)
-          return env unless post = env.response
+          if deleted_post = env.notify_deleted_post
+            post = Model::Post.create(
+              :type => 'https://tent.io/types/post/delete/v0.1.0',
+              :entity => env['tent.entity'],
+              :content => {
+                :id => deleted_post.public_id
+              }
+            )
+          else
+            return env unless (post = env.response) && post.kind_of?(Model::Post)
+          end
           Notifications::TRIGGER_QUEUE << { :type => post.type, :post_id => post.id }
           env
         end
@@ -217,6 +239,12 @@ module TentD
       post '/posts' do |b|
         b.use CreatePost
         b.use CreateAttachments
+        b.use Notify
+      end
+
+      delete '/posts/:post_id' do |b|
+        b.use GetActualId
+        b.use Destroy
         b.use Notify
       end
     end
