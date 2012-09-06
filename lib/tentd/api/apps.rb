@@ -12,6 +12,15 @@ module TentD
               env.params.app_id = nil
             end
           end
+
+          if env.params.auth_id
+            if app_auth = Model::AppAuthorization.first(:public_id => env.params.auth_id)
+              env.params.auth_id = app_auth.id
+            else
+              env.params.auth_id = nil
+            end
+          end
+
           env
         end
       end

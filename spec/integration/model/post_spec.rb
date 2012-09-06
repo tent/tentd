@@ -371,7 +371,7 @@ describe TentD::Model::Post do
 
     context "with app authorization" do
       it "should be true for a public post" do
-        expect(post.can_notify?(Fabricate(:app_authorization))).to be_true
+        expect(post.can_notify?(Fabricate(:app_authorization, :app => Fabricate(:app)))).to be_true
       end
 
       describe "with private post" do

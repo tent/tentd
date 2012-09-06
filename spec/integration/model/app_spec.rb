@@ -47,8 +47,8 @@ describe TentD::Model::App do
     end
 
     context 'with options[:app]' do
-      let(:authorization) { Fabricate(:app_authorization) }
-      let(:app) { Fabricate(:app, :authorizations => [authorization]) }
+      let!(:app) { Fabricate(:app) }
+      let!(:authorization) { Fabricate(:app_authorization, :app => app) }
 
       it 'should return authorizations' do
         options = { :app => true }

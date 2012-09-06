@@ -1,12 +1,12 @@
 require 'spec_helper'
 
 describe TentD::Model::AppAuthorization do
-  let(:app_authorization) { Fabricate(:app_authorization) }
+  let(:app_authorization) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
 
   describe '#as_json' do
     let(:app_attributes) do
       {
-        :id => app_authorization.id,
+        :id => app_authorization.public_id,
         :post_types => app_authorization.post_types,
         :profile_info_types => app_authorization.profile_info_types,
         :scopes => app_authorization.scopes,

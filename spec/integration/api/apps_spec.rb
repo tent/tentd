@@ -377,7 +377,7 @@ describe TentD::API::Apps do
             :profile_info_types => ["https://tent.io/types/info/basic"],
             :scopes => %w{ read_posts read_apps }
           }
-          json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", data, env
+          json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", data, env
           expect(last_response.status).to eq(200)
 
           app_auth.reload
@@ -393,12 +393,12 @@ describe TentD::API::Apps do
             :post_types => ["https://tent.io/types/post/status"]
           }
           expect(lambda {
-            json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", data, env
+            json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", data, env
             expect(last_response.status).to eq(200)
           }).to change(TentD::Model::NotificationSubscription, :count).by(1)
 
           expect(lambda {
-            json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", data, env
+            json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", data, env
             expect(last_response.status).to eq(200)
           }).to_not change(TentD::Model::NotificationSubscription, :count)
 
@@ -407,7 +407,7 @@ describe TentD::API::Apps do
 
           expect(lambda {
             data[:post_types] = []
-            json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", data, env
+            json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", data, env
             expect(last_response.status).to eq(200)
           }).to change(TentD::Model::NotificationSubscription, :count).by(-1)
         end
@@ -429,7 +429,7 @@ describe TentD::API::Apps do
       it 'should delete app authorization' do
         expect(lambda {
           expect(lambda {
-            delete "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", params, env
+            delete "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", params, env
           }).to_not change(TentD::Model::App, :count)
           expect(last_response.status).to eq(200)
         }).to change(TentD::Model::AppAuthorization, :count).by(-1)
@@ -438,7 +438,7 @@ describe TentD::API::Apps do
       it 'should return 404 unless app and authorization exist' do
         expect(lambda {
           expect(lambda {
-            delete "/apps/app-id/authorizations/#{app_auth.id}", params, env
+            delete "/apps/app-id/authorizations/#{app_auth.public_id}", params, env
             expect(last_response.status).to eq(404)
           }).to_not change(TentD::Model::App, :count)
         }).to_not change(TentD::Model::AppAuthorization, :count)
@@ -456,7 +456,7 @@ describe TentD::API::Apps do
       it 'it should return 403' do
         expect(lambda {
           expect(lambda {
-            delete "/apps/#{_app.public_id}/authorizations/#{app_auth.id}", params, env
+            delete "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", params, env
           }).to_not change(TentD::Model::App, :count)
           expect(last_response.status).to eq(403)
         }).to_not change(TentD::Model::AppAuthorization, :count)

@@ -27,7 +27,7 @@ describe TentD::Model::NotificationSubscription do
     end
 
     context "to an app" do
-      let(:subscription) { Fabricate(:notification_subscription, :app_authorization => Fabricate(:app_authorization)) }
+      let(:subscription) { Fabricate(:notification_subscription, :app_authorization => Fabricate(:app_authorization, :app => Fabricate(:app))) }
 
       it 'should notify about a post' do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])

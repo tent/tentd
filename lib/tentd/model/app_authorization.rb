@@ -5,6 +5,7 @@ module TentD
   module Model
     class AppAuthorization
       include DataMapper::Resource
+      include RandomPublicId
       include Serializable
 
       storage_names[:default] = 'app_authorizations'
@@ -30,7 +31,7 @@ module TentD
       end
 
       def self.public_attributes
-        [:id, :post_types, :profile_info_types, :scopes, :notification_url]
+        [:post_types, :profile_info_types, :scopes, :notification_url]
       end
 
       def self.create_from_params(data)
