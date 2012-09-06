@@ -104,8 +104,6 @@ describe TentD::API::Followers do
       end
 
       it 'should create post (notification)' do
-        notification_subscription.class.any_instance.expects(:notify_about).once
-
         expect(lambda {
           json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com'
           expect(last_response.status).to eq(200)

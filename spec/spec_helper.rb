@@ -8,6 +8,7 @@ require 'tentd'
 require 'fabrication'
 require 'tentd/core_ext/hash/slice'
 require 'girl_friday'
+require 'tentd/notifications'
 
 Dir["#{File.dirname(__FILE__)}/support/*.rb"].each { |f| require f }
 
@@ -20,6 +21,7 @@ RSpec.configure do |config|
   config.include JsonRequest
   config.mock_with :mocha
   config.before(:suite) do
+    TentD::Notifications::TRIGGER_QUEUE = []
     GirlFriday::WorkQueue.immediate!
     # DataMapper::Logger.new(STDOUT, :debug)
     DataMapper.setup(:default, ENV['TEST_DATABASE_URL'] || 'postgres://localhost/tent_server_test')
