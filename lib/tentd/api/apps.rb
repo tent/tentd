@@ -50,7 +50,7 @@ module TentD
       class GetOne < Middleware
         def action(env)
           if app = Model::App.get(env.params.app_id)
-            env.response = app.as_json(:authorized_scopes => env.authorized_scopes)
+            env.response = app
           end
           env
         end
@@ -58,16 +58,15 @@ module TentD
 
       class GetAll < Middleware
         def action(env)
-          env.response = Model::App.all.map { |app|
-            attrs = app.as_json(:authorized_scopes => env.authorized_scopes)
-          }
+          env.response = Model::App.all
           env
         end
       end
 
       class Create < Middleware
         def action(env)
-          env.response = Model::App.create_from_params(env.params.data).as_json
+          env.authorized_scopes << :self
+          env.response = Model::App.create_from_params(env.params.data)
           env
         end
       end
@@ -87,7 +86,7 @@ module TentD
               :post_types => env.params.data.post_types.to_a.map { |url| URI.decode(url) },
               :profile_info_types => env.params.data.profile_info_types.to_a.map { |url| URI.decode(url) },
             }))
-            env.response = authorization.as_json
+            env.response = authorization
           end
           env
         end
@@ -107,7 +106,7 @@ module TentD
       class Update < Middleware
         def action(env)
           if app = Model::App.update_from_params(env.params.app_id, env.params.data)
-            env.response = app.as_json(:authorized_scopes => env.authorized_scopes)
+            env.response = app
           end
           env
         end

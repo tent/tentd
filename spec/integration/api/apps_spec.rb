@@ -30,10 +30,10 @@ describe TentD::API::Apps do
           expect(last_response.status).to eq(200)
 
           body = JSON.parse(last_response.body)
+          whitelist = %w{ mac_key_id mac_key mac_algorithm }
           body.each { |actual|
-            app = TentD::Model::App.first(:public_id => actual['id'])
-            [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta].each { |key|
-              expect(actual[key.to_s].to_json).to eq(app.send(key).to_json)
+            whitelist.each { |key|
+              expect(actual).to have_key(key)
             }
           }
         end
@@ -46,10 +46,10 @@ describe TentD::API::Apps do
           json_get '/apps', params, env
           expect(last_response.status).to eq(200)
           body = JSON.parse(last_response.body)
+          blacklist = %w{ mac_key_id mac_key mac_algorithm }
           body.each { |actual|
-            app = TentD::Model::App.first(:public_id => actual['id'])
-            [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_algorithm].each { |key|
-              expect(actual[key.to_s].to_json).to eq(app.send(key).to_json)
+            blacklist.each { |key|
+              expect(actual).to_not have_key(key)
             }
           }
         end
@@ -96,8 +96,9 @@ describe TentD::API::Apps do
         json_get "/apps/#{app.public_id}", params, env
         expect(last_response.status).to eq(200)
         body = JSON.parse(last_response.body)
-        [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_algorithm].each { |key|
-          expect(body[key.to_s].to_json).to eq(app.send(key).to_json)
+        blacklist = %w{ mac_key_id mac_key mac_algorithm }
+        blacklist.each { |key|
+          expect(body).to_not have_key(key)
         }
         expect(body['id']).to eq(app.public_id)
       end
@@ -119,8 +120,9 @@ describe TentD::API::Apps do
               json_get "/apps/#{app.public_id}", params, env
               expect(last_response.status).to eq(200)
               body = JSON.parse(last_response.body)
-              [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_timestamp_delta, :mac_algorithm].each { |key|
-                expect(body[key.to_s].to_json).to eq(app.send(key).to_json)
+              whitelist = %w{ mac_key_id mac_key mac_algorithm }
+              whitelist.each { |key|
+                expect(body).to have_key(key)
               }
               expect(body['id']).to eq(app.public_id)
             end
@@ -151,8 +153,9 @@ describe TentD::API::Apps do
               json_get "/apps/#{app.public_id}", params, env
               expect(last_response.status).to eq(200)
               body = JSON.parse(last_response.body)
-              [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_timestamp_delta, :mac_algorithm].each { |key|
-                expect(body[key.to_s].to_json).to eq(app.send(key).to_json)
+              whitelist = %w{ mac_key_id mac_key mac_algorithm }
+              whitelist.each { |key|
+                expect(body).to have_key(key)
               }
               expect(body['id']).to eq(app.public_id)
             end
@@ -203,12 +206,10 @@ describe TentD::API::Apps do
 
       app = TentD::Model::App.last
       expect(last_response.status).to eq(200)
-      data.slice(:name, :description, :url, :icon, :redirect_uris, :scopes).each_pair do |key, val|
-        expect(app.send(key)).to eq(val)
-      end
       body = JSON.parse(last_response.body)
-      [:name, :description, :url, :icon, :redirect_uris, :scopes, :mac_key_id, :mac_key, :mac_algorithm].each { |key|
-        expect(body[key.to_s].to_json).to eq(app.send(key).to_json)
+      whitelist = %w{ mac_key_id mac_key mac_algorithm }
+      whitelist.each { |key|
+        expect(body).to have_key(key)
       }
     end
   end
@@ -251,12 +252,11 @@ describe TentD::API::Apps do
           json_post "/apps/#{app.public_id}/authorizations", data, env
           expect(last_response.status).to eq(200)
           expect(authorization.reload.token_code).to_not eq(data[:code])
-          expect(last_response.body).to eq({
-            :access_token => authorization.mac_key_id,
-            :mac_key => authorization.mac_key,
-            :mac_algorithm => authorization.mac_algorithm,
-            :token_type => 'mac'
-          }.to_json)
+          body = JSON.parse(last_response.body)
+          whitelist = %w{ access_token mac_key mac_algorithm token_type }
+          whitelist.each { |key|
+            expect(body).to have_key(key)
+          }
         end
       end
 
@@ -284,10 +284,8 @@ describe TentD::API::Apps do
           json_put "/apps/#{app.public_id}", data, env
           expect(last_response.status).to eq(200)
           app.reload
-          body = JSON.parse(last_response.body)
           data.slice(:name, :scopes, :url, :icon, :redirect_uris).each_pair do |key, val|
             expect(app.send(key).to_json).to eq(val.to_json)
-            expect(body[key.to_s].to_json).to eq(val.to_json)
           end
         end
       end

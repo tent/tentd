@@ -6,6 +6,7 @@ module TentD
     class App
       include DataMapper::Resource
       include RandomPublicId
+      include Serializable
 
       storage_names[:default] = 'apps'
 
@@ -37,22 +38,25 @@ module TentD
         app
       end
 
+      def self.public_attributes
+        [:name, :description, :url, :icon, :scopes, :redirect_uris]
+      end
+
       def auth_details
         attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
       end
 
       def as_json(options = {})
-        authorized_scopes = options.delete(:authorized_scopes)
-        attributes = super(options)
-        attributes[:id] = attributes.delete(:public_id)
-        blacklist = [:created_at, :updated_at]
-        if authorized_scopes
-          unless authorized_scopes.include?(:read_secrets)
-            blacklist << [:mac_key, :mac_timestamp_delta]
-          end
+        attributes = super
+
+        if options[:self] || options[:mac]
+          [:mac_key, :mac_key_id, :mac_algorithm].each { |key|
+            attributes[key] = send(key)
+          }
         end
-        blacklist.flatten.each { |key| attributes.delete(key) }
-        attributes.merge(:authorizations => authorizations.all.map(&:as_json))
+
+        Array(options[:exclude]).each { |k| attributes.delete(k) if k }
+        attributes
       end
     end
   end
