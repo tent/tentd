@@ -49,5 +49,19 @@ describe TentD::Model::App do
         expect(app.as_json(:exclude => [:id])).to eq(attribtues)
       end
     end
+
+    context 'with options[:app]' do
+      let(:authorization) { Fabricate(:app_authorization) }
+      let(:app) { Fabricate(:app, :authorizations => [authorization]) }
+
+      it 'should return authorizations' do
+        options = { :app => true }
+        expect(app.as_json(options)).to eq(public_attributes.merge(
+          :authorizations => [authorization.as_json(options)],
+          :created_at => app.created_at.to_time.to_i,
+          :updated_at => app.updated_at.to_time.to_i
+        ))
+      end
+    end
   end
 end

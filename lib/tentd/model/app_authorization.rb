@@ -4,6 +4,7 @@ module TentD
   module Model
     class AppAuthorization
       include DataMapper::Resource
+      include Serializable
 
       storage_names[:default] = 'app_authorizations'
 
@@ -25,6 +26,10 @@ module TentD
 
       def auth_details
         attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
+      end
+
+      def self.public_attributes
+        [:id, :post_types, :profile_info_types, :scopes, :notification_url]
       end
 
       def token_exchange!

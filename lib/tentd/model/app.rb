@@ -55,6 +55,12 @@ module TentD
           }
         end
 
+        if options[:app]
+          authorization_options = options.dup
+          authorization_options.delete(:self)
+          attributes[:authorizations] = authorizations.all.map { |a| a.as_json(authorization_options) }
+        end
+
         Array(options[:exclude]).each { |k| attributes.delete(k) if k }
         attributes
       end
