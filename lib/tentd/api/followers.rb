@@ -63,6 +63,8 @@ module TentD
           if follower = Model::Follower.create_follower(env.params[:data].merge('profile' => env['profile']))
             env.authorized_scopes << :read_secrets
             env.authorized_scopes << :self
+            env.notify_action = 'create'
+            env.notify_instance = follower
             env.response = follower
           end
           env
@@ -123,8 +125,26 @@ module TentD
       class Destroy < Middleware
         def action(env)
           if (follower = Model::Follower.get(env.params[:follower_id])) && follower.destroy
-            env['response'] = ''
+            env.notify_action = 'delete'
+            env.notify_instance = follower
+            env.response = ''
           end
+          env
+        end
+      end
+
+      class Notify < Middleware
+        def action(env)
+          return env unless follower = env.notify_instance
+          post = Model::Post.create(
+            :type => 'https://tent.io/types/post/follower',
+            :entity => env['tent.entity'],
+            :content => {
+              :entity => follower.entity,
+              :action => env.notify_action
+            }
+          )
+          Notifications::TRIGGER_QUEUE << { :type => post.type, :post_id => post.id }
           env
         end
       end
@@ -133,6 +153,7 @@ module TentD
         b.use Discover
         b.use Create
         b.use Import
+        b.use Notify
       end
 
       get '/followers/:follower_id' do |b|
@@ -156,6 +177,7 @@ module TentD
         b.use GetActualId
         b.use AuthorizeWriteOne
         b.use Destroy
+        b.use Notify
       end
     end
   end

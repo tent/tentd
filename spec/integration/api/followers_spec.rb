@@ -28,6 +28,19 @@ describe TentD::API::Followers do
   let(:follower) { Fabricate(:follower) }
   let(:follower_entity_url) { "https://alex.example.org" }
 
+  let(:notification_subscription) do
+    Fabricate(:notification_subscription, 
+              :type => 'all',
+              :app_authorization => Fabricate(:app_authorization,
+                                              :scopes => [:read_posts],
+                                              :post_types => ['all'],
+                                              :app => Fabricate(:app)))
+  end
+
+  def stub_notification_http!
+    http_stubs.post('/notifications') { [200, {}, []] }
+  end
+
   describe 'POST /followers' do
     let(:follower_data) do
       {
@@ -74,6 +87,7 @@ describe TentD::API::Followers do
         http_stubs.get('/tent/profile') {
           [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, tent_profile(follower_entity_url)]
         }
+        stub_notification_http!
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
       end
 
@@ -87,6 +101,19 @@ describe TentD::API::Followers do
         %w{ mac_key_id mac_key mac_algorithm }.each { |key|
           expect(body[key]).to eq(follow.send(key))
         }
+      end
+
+      it 'should create post (notification)' do
+        notification_subscription.class.any_instance.expects(:notify_about).once
+
+        expect(lambda {
+          json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com'
+          expect(last_response.status).to eq(200)
+        }).to change(TentD::Model::Post, :count).by(1)
+
+        post = TentD::Model::Post.last
+        expect(post.type).to eq('https://tent.io/types/post/follower')
+        expect(post.content['action']).to eq('create')
       end
 
       it 'should create notification subscription for each type given' do
@@ -122,6 +149,7 @@ describe TentD::API::Followers do
 
     context 'when write_secrets scope authorized' do
       before { authorize!(:write_followers, :write_secrets) }
+      before { stub_notification_http! }
 
       it 'should create follower without discovery' do
         expect(lambda { json_post '/followers', follower_data, env }).
@@ -410,8 +438,23 @@ describe TentD::API::Followers do
     authorized = proc do
       it 'should delete follower' do
         follower # create follower
-        expect(lambda { delete "/followers/#{follower.public_id}", params, env }).to change(TentD::Model::Follower, :count).by(-1)
-        expect(last_response.status).to eq(200)
+        expect(lambda {
+          delete "/followers/#{follower.public_id}", params, env
+          expect(last_response.status).to eq(200)
+        }).to change(TentD::Model::Follower, :count).by(-1)
+      end
+
+      it 'should create post (notification)' do
+        follower # create follower
+
+        expect(lambda {
+          delete "/followers/#{follower.public_id}", params, env
+          expect(last_response.status).to eq(200)
+        }).to change(TentD::Model::Post, :count).by(1)
+
+        post = TentD::Model::Post.last
+        expect(post.type).to eq('https://tent.io/types/post/follower')
+        expect(post.content['action']).to eq('delete')
       end
     end
 
