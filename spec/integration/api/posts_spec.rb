@@ -354,6 +354,25 @@ describe TentD::API::Posts do
         expect(body['app']).to eq('url' => application.url, 'name' => application.name)
       end
 
+      it 'should create post with mentions' do
+        post_attributes = Hashie::Mash.new(p.attributes)
+        post_attributes.delete(:id)
+        post_attributes.merge!(
+          :mentions => [
+            { :entity => "https://johndoe.example.com" },
+            { :entity => "https://alexsmith.example.org", :post => "post-uid" }
+          ]
+        )
+
+        expect(lambda {
+          json_post "/posts", post_attributes, env
+          expect(last_response.status).to eq(200)
+        }).to change(TentD::Model::Post, :count).by(1)
+
+        post = TentD::Model::Post.last
+        expect(post.mentions).to eq(post_attributes.mentions)
+      end
+
       it 'should create post with multipart attachments' do
         post_attributes = p.attributes
         post_attributes.delete(:id)

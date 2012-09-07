@@ -16,6 +16,7 @@ module TentD
       property :type, String
       property :licenses, Array, :default => []
       property :content, Json, :default => {}
+      property :mentions, Json, :default => [], :lazy => false
       property :published_at, DateTime, :default => lambda { |*args| Time.now }
       property :received_at, DateTime, :default => lambda { |*args| Time.now }
       property :updated_at, DateTime
@@ -55,7 +56,7 @@ module TentD
       end
 
       def self.write_attributes
-        public_attributes + [:known_entity, :original, :public]
+        public_attributes + [:known_entity, :original, :public, :mentions]
       end
 
       def can_notify?(app_or_follower)
