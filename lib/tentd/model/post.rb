@@ -55,7 +55,7 @@ module TentD
       end
 
       def self.write_attributes
-        public_attributes + [:known_entity, :original]
+        public_attributes + [:known_entity, :original, :public]
       end
 
       def can_notify?(app_or_follower)

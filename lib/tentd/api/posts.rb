@@ -110,7 +110,7 @@ module TentD
 
         def whitelisted_attributes(env)
           attrs = Model::Post.write_attributes
-          attrs += [:app_id, :public] if env.current_auth.respond_to?(:app)
+          attrs += [:app_id] if env.current_auth.respond_to?(:app)
           attrs += [:received_at] if env.authorized_scopes.include?(:import_posts)
           attrs
         end
