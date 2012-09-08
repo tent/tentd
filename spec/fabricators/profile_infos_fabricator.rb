@@ -3,9 +3,9 @@ Fabricator(:profile_info, :class_name => 'TentD::Model::ProfileInfo') do |f|
   f.public true
   f.type do |attrs|
     if attrs[:tent]
-      "https://tent.io"
+      "https://tent.io/v0.1.0"
     else
-      "https://tent.io/types/info-types/basic-info"
+      "https://tent.io/types/info-types/basic-info/v0.1.0"
     end
   end
   f.content do |attrs|

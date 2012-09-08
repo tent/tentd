@@ -24,18 +24,20 @@ module TentD
       end
 
       def self.get_profile(authorized_scopes = [], current_auth = nil)
-        if (authorized_scopes.include?(:read_profile) || authorized_scopes.include?(:write_profile)) && current_auth.respond_to?(:profile_info_types)
-          current_auth.profile_info_types.include?('all') ? all : all(:type => current_auth.profile_info_types) + all(:public => true)
+        h = if (authorized_scopes.include?(:read_profile) || authorized_scopes.include?(:write_profile)) && current_auth.respond_to?(:profile_info_types)
+          current_auth.profile_info_types.include?('all') ? all : all(:type => current_auth.profile_info_types.map { |t| TentType.new(t).uri }) + all(:public => true)
         else
           all(:public => true)
         end.inject({}) do |memo, info|
           memo["#{info.type}/v#{info.type_version}"] = info.content
           memo
         end
+        h
       end
 
       def self.update_profile(type, data)
-        if (infos = all(:type => type)) && (info = infos.pop)
+        type = TentType.new(type)
+        if (infos = all(:type => type.uri)) && (info = infos.pop)
           infos.destroy
           info.update(:content => data)
         else

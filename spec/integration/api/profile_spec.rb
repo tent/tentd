@@ -19,7 +19,7 @@ describe TentD::API::Profile do
     )
   end
 
-  let(:basic_info_type) { "https://tent.io/types/info/basic" }
+  let(:basic_info_type) { "https://tent.io/types/info/basic/v0.1.0" }
   let(:basic_info_content) do
     {
       "name" => "John Smith",
@@ -27,7 +27,7 @@ describe TentD::API::Profile do
     }
   end
 
-  let(:work_history_type) { "https://tent.io/types/info/work-history" }
+  let(:work_history_type) { "https://tent.io/types/info/work-history/v0.1.0" }
   let(:work_history_content) do
     {
       "employers" => ["Foo Corp"]
@@ -59,8 +59,8 @@ describe TentD::API::Profile do
 
           json_get '/profile', params, env
           expect(last_response.body).to eq({
-            "#{ profile_infos.first.type }" => profile_infos.first.content,
-            "#{ profile_infos.last.type }" => profile_infos.last.content
+            "#{ profile_infos.first.full_type }" => profile_infos.first.content,
+            "#{ profile_infos.last.full_type }" => profile_infos.last.content
           }.to_json)
         end
       end
@@ -72,12 +72,12 @@ describe TentD::API::Profile do
           TentD::Model::ProfileInfo.all.destroy
 
           profile_infos = []
-          profile_infos << Fabricate(:profile_info, :public => false, :type => "https://tent.io/types/info/basic-info")
+          profile_infos << Fabricate(:profile_info, :public => false, :type => "https://tent.io/types/info/basic-info/v0.1.0")
           profile_infos << Fabricate(:profile_info, :public => false)
 
           json_get '/profile', params, env
           expect(last_response.body).to eq({
-            "#{ profile_infos.first.type }" => profile_infos.first.content
+            "#{ profile_infos.first.full_type }" => profile_infos.first.content
           }.to_json)
         end
       end
@@ -93,7 +93,7 @@ describe TentD::API::Profile do
 
         json_get '/profile', params, env
         expect(last_response.body).to eq({
-          "#{ profile_infos.first.type }" => profile_infos.first.content
+          "#{ profile_infos.first.full_type }" => profile_infos.first.content
         }.to_json)
       end
     end
@@ -115,8 +115,8 @@ describe TentD::API::Profile do
 
           json_put "/profile/#{url_encode_type(basic_info_type)}", data, env
 
-          expect(info.reload.content).to eq(data)
           expect(last_response.status).to eq(200)
+          expect(info.reload.content).to eq(data)
         end
 
         it 'should create unless exists' do
@@ -131,8 +131,8 @@ describe TentD::API::Profile do
           }).to change(TentD::Model::ProfileInfo, :count).by(1)
 
           info = TentD::Model::ProfileInfo.last
-          expect(info.content).to eq(data)
           expect(last_response.status).to eq(200)
+          expect(info.content).to eq(data)
         end
       end
 

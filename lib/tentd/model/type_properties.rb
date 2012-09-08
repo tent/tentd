@@ -12,9 +12,21 @@ module TentD
           }
 
           before :save do
-            self.type = TentType.new(type).uri unless type == 'all'
+            if type == 'all'
+              self.type_version = nil
+              self.type_view = 'full'
+            else
+              t = TentType.new(type)
+              self.type = t.uri
+              self.type_version = t.version
+              self.type_view = t.view || 'full'
+            end
           end
         end
+      end
+
+      def full_type
+        "#{type}/v#{type_version}"
       end
     end
   end

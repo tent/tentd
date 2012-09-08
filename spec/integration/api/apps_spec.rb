@@ -198,8 +198,8 @@ describe TentD::API::Apps do
       it 'should create app authorization' do
         app = Fabricate(:app)
         scopes = %w{ read_posts write_posts }
-        post_types = %w{ https://tent.io/types/post/status https://tent.io/types/post/photo }
-        profile_info_types = %w{ https://tent.io/types/info/basic https://tent.io/types/info/core }
+        post_types = %w{ https://tent.io/types/post/status/v0.1.0 https://tent.io/types/post/photo/v0.1.0 }
+        profile_info_types = %w{ https://tent.io/types/info/basic/v0.1.0 https://tent.io/types/info/core/v0.1.0 }
         data = {
           :notification_url => "http://example.com/webhooks/notifications",
           :scopes => scopes,
