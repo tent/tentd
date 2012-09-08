@@ -1,6 +1,10 @@
 require 'spec_helper'
 
 describe TentD::Model::NotificationSubscription do
+  def expect_server(env, url)
+    expect(env[:url].to_s).to match(url)
+  end
+
   it 'should parse view from type URI before save' do
     instance = described_class.new(:type => "https://tent.io/types/posts/photo/v0.1.x#meta")
     expect(instance.save).to be_true
@@ -43,6 +47,68 @@ describe TentD::Model::NotificationSubscription do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
         http_stubs.post('/notifications') { [200, {}, nil] }
         expect(subscription.notify_about(post.id)).to be_true
+      end
+    end
+
+    context ".notify_entity(entity, post_id)" do
+      before {
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+      }
+
+      let(:post) { Fabricate(:post) }
+      let(:path_prefix) { URI(server_url).path }
+
+      notification_examples = proc do
+        it "should send notification" do
+          http_stubs.post("#{path_prefix}/posts") { |env|
+            expect_server(env, server_url)
+            [200, {}, '']
+          }
+
+          described_class.notify_entity(entity, post.id)
+
+          http_stubs.verify_stubbed_calls
+        end
+      end
+
+      context "entity exists as follower" do
+        let(:entity) { 'https://example.com/johndoe' }
+        let(:server_url) { 'https://example.org/johndoe/tent' }
+        before { Fabricate(:follower, :entity => entity, :server_urls => server_url) }
+
+        context &notification_examples
+      end
+
+      context "entity exists as following" do
+        let(:entity) { 'https://example.com/alexsmith' }
+        let(:server_url) { 'https://alex.example.org/tent' }
+        before { Fabricate(:following, :entity => entity, :server_urls => server_url) }
+
+        context &notification_examples
+      end
+
+      context "entity is not a follower or following" do
+        let(:entity) { 'https://bob.example.com' }
+        let(:server_url) { 'https://bob.example.org/tent' }
+
+        let(:link_header) { %(<#{server_url}/profile>; rel="%s") % TentClient::PROFILE_REL }
+        let(:tent_profile) { %({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"#{entity}","servers":["#{server_url}"]}}) }
+
+        let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
+        let(:client) { TentClient.new(nil, :faraday_adapter => [:test, http_stubs]) }
+
+        before do 
+          http_stubs.head("/") { |env|
+            expect_server(env, entity)
+            [200, { 'Link' => link_header }, '']
+          }
+          http_stubs.get("#{path_prefix}/profile") { |env|
+            expect_server(env, server_url)
+            [200, { 'Content-Type' => TentClient::MEDIA_TYPE }, tent_profile]
+          }
+        end
+
+        context 'with discovery', &notification_examples
       end
     end
   end

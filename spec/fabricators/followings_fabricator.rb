@@ -1,4 +1,5 @@
 Fabricator(:following, :class_name => "TentD::Model::Following") do
+  transient :server_urls
   entity "https://smith.example.com"
   licenses ["http://creativecommons.org/licenses/by-nc-sa/3.0/", "http://www.gnu.org/copyleft/gpl.html"]
   groups { ["family", "friends"].map {|name| g = Fabricate(:group); g.name = name; g.save!; g.public_id } }
@@ -7,8 +8,8 @@ Fabricator(:following, :class_name => "TentD::Model::Following") do
   mac_algorithm 'hmac-sha-256'
   mac_timestamp_delta Time.now.to_i
   profile { |f|
-    { 'https://tent.io/types/info/core/v0.1.0' =>
-      { :entity => f[:entity], :licenses => f[:licenses], :servers => ["https://example.com"] }
+    { TentD::Model::ProfileInfo::TENT_PROFILE_TYPE_URI =>
+      { :entity => f[:entity], :licenses => f[:licenses], :servers => Array(f[:server_urls] || ["https://example.com"]) }
     }.to_json
   }
   updated_at { Time.now }

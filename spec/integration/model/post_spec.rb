@@ -1,6 +1,47 @@
 require 'spec_helper'
 
 describe TentD::Model::Post do
+  let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
+
+  describe '.create(data)' do
+    context 'when posted on behalf of this server (original)' do
+      class TestNotificationQueue
+        attr_accessor :items
+        def initialize
+          @items = []
+        end
+
+        def <<(item)
+          (@items ||= []) << item
+        end
+      end
+
+      let(:subscribed_follower) { Fabricate(:follower, :entity => 'https://johnsmith.example.com') }
+      let(:other_follower) { Fabricate(:follower, :entity => 'https://marks.example.com') }
+      let(:entity_url) { 'https://alexdoe.example.org' }
+
+      it 'should send notification to all mentioned entities not already subscribed' do
+        post_type = 'https://tent.io/types/post/status/v0.1.0'
+        post_attrs = Fabricate.build(:post).attributes.merge(
+          :type => post_type,
+          :mentions => [
+            { :entity => subscribed_follower.entity },
+            { :entity => other_follower.entity },
+            { :entity => entity_url },
+          ]
+        )
+
+        notification_subscription = Fabricate(:notification_subscription, :follower => subscribed_follower, :type => post_type)
+        queue = TestNotificationQueue.new
+        with_constants "TentD::Notifications::NOTIFY_ENTITY_QUEUE" => queue do
+          expect(lambda {
+            described_class.create(post_attrs)
+          }).to change(queue.items, :size).by(2)
+        end
+      end
+    end
+  end
+
   describe 'find_with_permissions(id, current_auth)' do
     shared_examples 'current_auth param' do
       let(:group) { Fabricate(:group, :name => 'family') }

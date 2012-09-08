@@ -20,8 +20,14 @@ RSpec.configure do |config|
   config.include Rack::Test::Methods
   config.include JsonRequest
   config.mock_with :mocha
+
+  config.around do |suite|
+    with_constants "TentD::Notifications::NOTIFY_ENTITY_QUEUE" => [], "TentD::Notifications::TRIGGER_QUEUE" => [] do
+      suite.run
+    end
+  end
+
   config.before(:suite) do
-    TentD::Notifications::TRIGGER_QUEUE = []
     GirlFriday::WorkQueue.immediate!
     # DataMapper::Logger.new(STDOUT, :debug)
     DataMapper.setup(:default, ENV['TEST_DATABASE_URL'] || 'postgres://localhost/tent_server_test')

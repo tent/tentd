@@ -29,6 +29,21 @@ module TentD
       has n, :attachments, 'TentD::Model::PostAttachment', :constraint => :destroy
       belongs_to :app, 'TentD::Model::App', :required => false
 
+      def self.create(data)
+        post = super
+
+        if post.mentions != [] && post.original
+          post.mentions.each do |mention|
+            follower = Follower.first(:entity => mention[:entity])
+            next if follower && NotificationSubscription.first(:follower => follower, :type => post.type)
+
+            Notifications::NOTIFY_ENTITY_QUEUE << { :entity => mention[:entity], :post_id => post.id }
+          end
+        end
+
+        post
+      end
+
       def self.fetch_with_permissions(params, current_auth)
         super do |params, query, query_bindings|
           if params.since_time
