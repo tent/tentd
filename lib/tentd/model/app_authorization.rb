@@ -20,6 +20,7 @@ module TentD
       property :mac_algorithm, String, :default => 'hmac-sha-256'
       property :mac_timestamp_delta, Integer
       property :notification_url, String
+      property :follow_url, String
       property :created_at, DateTime
       property :updated_at, DateTime
 
