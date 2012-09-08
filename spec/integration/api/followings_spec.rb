@@ -417,7 +417,7 @@ describe TentD::API::Followings do
         end
 
         @http_stub_follow_success = lambda do
-          http_stubs.post('/followers') {
+          http_stubs.post('/tent/followers') {
             expect(true)
             [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, follow_response]
           }
@@ -472,7 +472,7 @@ describe TentD::API::Followings do
         it 'should error' do
           @http_stub_head_success.call
           @http_stub_profile_success.call
-          http_stubs.post('/followers') { [404, {}, 'Not Found'] }
+          http_stubs.post('/tent/followers') { [404, {}, 'Not Found'] }
           TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
           json_post '/followings', following_data, env
