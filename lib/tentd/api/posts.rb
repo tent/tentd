@@ -47,13 +47,13 @@ module TentD
             conditions[:published_at.lt] = Time.at(env.params.before_time.to_i) if env.params.before_time
             if env.params.post_types
               conditions[:type] = env.params.post_types.split(',').map do |type|
-                URI.unescape(type)
+                URI.unescape(TentType.new(type).uri)
               end.select do |type|
                 env.current_auth.post_types.include?('all') ||
                 env.current_auth.post_types.include?(type)
               end
             elsif !env.current_auth.post_types.include?('all')
-              conditions[:type] = env.current_auth.post_types
+              conditions[:type] = env.current_auth.post_types.map { |t| TentType.new(t).uri }
             end
             if env.params.limit
               conditions[:limit] = [env.params.limit.to_i, TentD::API::MAX_PER_PAGE].min

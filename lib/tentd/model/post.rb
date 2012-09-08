@@ -60,7 +60,7 @@ module TentD
             params.post_types = params.post_types.split(',').map { |url| URI.unescape(url) }
             if params.post_types.any?
               query << "AND posts.type IN ?"
-              query_bindings << params.post_types
+              query_bindings << params.post_types.map { |t| TentType.new(t).uri }
             end
           end
         end
