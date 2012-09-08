@@ -24,7 +24,7 @@ module TentD
           if authorize_env?(env, :read_posts)
             conditions = { :id => env.params.post_id }
             unless env.current_auth.post_types.include?('all')
-              conditions[:type] = env.current_auth.post_types
+              conditions[:type] = env.current_auth.post_types.map { |t| TentType.new(t).uri }
             end
             post = Model::Post.first(conditions)
           else
