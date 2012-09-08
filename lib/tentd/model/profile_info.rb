@@ -7,6 +7,7 @@ module TentD
       include TypeProperties
 
       TENT_PROFILE_TYPE_URI = 'https://tent.io/types/info/core/v0.1.0'
+      TENT_PROFILE_TYPE = TentType.new(TENT_PROFILE_TYPE_URI)
 
       self.raise_on_save_failure = true
 
@@ -19,7 +20,7 @@ module TentD
       property :updated_at, DateTime
 
       def self.tent_info(entity_url)
-        first(:type => TentType.new(TENT_PROFILE_TYPE_URI).uri)
+        first(:type => TENT_PROFILE_TYPE.uri, :order => :version.desc)
       end
 
       def self.get_profile(authorized_scopes = [], current_auth = nil)
