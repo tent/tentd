@@ -92,7 +92,7 @@ module TentD
         attributes.merge!(:profile => profile) if options[:app]
 
         if options[:app] || options[:self]
-          types = notification_subscriptions.all.map { |s| "#{s.type}#{'#' + s.view if s.view}" }
+          types = notification_subscriptions.all.map { |s| "#{s.type}#{'#' + s.type_view if s.type_view}" }
           attributes.merge!(:licenses => licenses, :types => types)
         end
 

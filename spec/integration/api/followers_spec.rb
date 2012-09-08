@@ -111,7 +111,7 @@ describe TentD::API::Followers do
 
         post = TentD::Model::Post.last
         expect(post.type).to eq('https://tent.io/types/post/follower')
-        expect(post.version).to eq('0.1.0')
+        expect(post.type_version).to eq('0.1.0')
         expect(post.content['action']).to eq('create')
       end
 
@@ -119,7 +119,7 @@ describe TentD::API::Followers do
         expect(lambda { json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com' }).
           to change(TentD::Model::NotificationSubscription, :count).by(2)
         expect(last_response.status).to eq(200)
-        expect(TentD::Model::NotificationSubscription.last.view).to eq('meta')
+        expect(TentD::Model::NotificationSubscription.last.type_view).to eq('meta')
       end
     end
   end
@@ -159,7 +159,7 @@ describe TentD::API::Followers do
       it 'should create notification subscription for each type given' do
         expect(lambda { json_post '/followers', follower_data, env }).
           to change(TentD::Model::NotificationSubscription, :count).by(2)
-        expect(TentD::Model::NotificationSubscription.last.view).to eq('meta')
+        expect(TentD::Model::NotificationSubscription.last.type_view).to eq('meta')
         expect(last_response.status).to eq(200)
       end
     end
@@ -453,7 +453,7 @@ describe TentD::API::Followers do
 
         post = TentD::Model::Post.last
         expect(post.type).to eq('https://tent.io/types/post/follower')
-        expect(post.version).to eq('0.1.0')
+        expect(post.type_version).to eq('0.1.0')
         expect(post.content['action']).to eq('delete')
       end
     end

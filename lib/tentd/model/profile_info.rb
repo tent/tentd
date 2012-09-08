@@ -20,7 +20,7 @@ module TentD
       property :updated_at, DateTime
 
       def self.tent_info(entity_url)
-        first(:type => TENT_PROFILE_TYPE.uri, :order => :version.desc)
+        first(:type => TENT_PROFILE_TYPE.uri, :order => :type_version.desc)
       end
 
       def self.get_profile(authorized_scopes = [], current_auth = nil)

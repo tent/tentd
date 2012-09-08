@@ -452,7 +452,7 @@ describe TentD::API::Posts do
           post = TentD::Model::Post.last
           expect(post.content['id']).to eq(deleted_post.public_id)
           expect(post.type).to eq('https://tent.io/types/post/delete')
-          expect(post.version).to eq('0.1.0')
+          expect(post.type_version).to eq('0.1.0')
         end
       end
 
