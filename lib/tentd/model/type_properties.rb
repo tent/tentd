@@ -18,8 +18,8 @@ module TentD
             else
               t = TentType.new(type)
               self.type = t.uri
-              self.type_version = t.version
-              self.type_view = t.view || 'full'
+              self.type_version ||= t.version
+              self.type_view ||= (t.view || 'full')
             end
           end
         end
