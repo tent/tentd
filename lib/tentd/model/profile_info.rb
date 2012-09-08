@@ -29,7 +29,7 @@ module TentD
         else
           all(:public => true)
         end.inject({}) do |memo, info|
-          memo[info.type.to_s] = info.content
+          memo["#{info.type}/v#{info.type_version}"] = info.content
           memo
         end
       end
