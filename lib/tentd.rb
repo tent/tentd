@@ -6,6 +6,7 @@ module TentD
   autoload :Action, 'tentd/action'
   autoload :JsonPatch, 'tentd/json_patch'
   autoload :TentVersion, 'tentd/tent_version'
+  autoload :TentType, 'tentd/tent_type'
   autoload :RackRequest, 'tentd/rack_request'
   autoload :Notifications, 'tentd/notifications'
 

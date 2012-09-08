@@ -12,6 +12,16 @@ describe TentD::Model::NotificationSubscription do
     expect(instance.version).to eq("0.1.x")
   end
 
+  it 'should parse view from type URI' do
+    instance = described_class.new(:type => "https://tent.io/types/posts/photo/v0.1.x#meta")
+    expect(instance.view).to eq('meta')
+  end
+
+  it 'should remove version and view from type' do
+    instance = described_class.create(:type => "https://tent.io/types/posts/photo/v0.1.x#meta")
+    expect(instance.type).to eq('https://tent.io/types/posts/photo')
+  end
+
   context "notifications" do
     let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
     let(:post) { Fabricate(:post) }

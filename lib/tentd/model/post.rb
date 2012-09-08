@@ -7,13 +7,13 @@ module TentD
       include Permissible
       include RandomPublicId
       include Serializable
+      include TypeProperties
 
       storage_names[:default] = "posts"
 
       property :id, Serial
       property :entity, String
       property :public, Boolean, :default => false
-      property :type, String
       property :licenses, Array, :default => []
       property :content, Json, :default => {}
       property :mentions, Json, :default => [], :lazy => false

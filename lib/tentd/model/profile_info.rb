@@ -4,6 +4,7 @@ module TentD
   module Model
     class ProfileInfo
       include DataMapper::Resource
+      include TypeProperties
 
       TENT_PROFILE_TYPE_URI = 'https://tent.io/types/info/core/v0.1.0'
 
@@ -13,13 +14,12 @@ module TentD
 
       property :id, Serial
       property :public, Boolean, :default => false
-      property :type, String
       property :content, Json, :default => {}, :lazy => false
       property :created_at, DateTime
       property :updated_at, DateTime
 
       def self.tent_info(entity_url)
-        first(:type => TENT_PROFILE_TYPE_URI)
+        first(:type => TentType.new(TENT_PROFILE_TYPE_URI).uri)
       end
 
       def self.get_profile(authorized_scopes = [], current_auth = nil)
