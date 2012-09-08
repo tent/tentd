@@ -3,6 +3,6 @@ Fabricator(:post_attachment, :class_name => "TentD::Model::PostAttachment") do |
   f.category 'foo-category'
   f.type 'text/plain'
   f.name 'asdf.txt'
-  f.data '12345'
+  f.data "NTQzMjE=\n"
   f.size 5
 end

@@ -489,7 +489,7 @@ describe TentD::API::Posts do
       get "/posts/#{post.public_id}/attachments/#{attachment.name}", {}, 'HTTP_ACCEPT' => attachment.type
       expect(last_response.status).to eq(200)
       expect(last_response.headers['Content-Type']).to eq(attachment.type)
-      expect(last_response.body).to eq(attachment.data)
+      expect(last_response.body).to eq('54321')
     end
 
     it "should 404 if the attachment doesn't exist" do

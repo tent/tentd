@@ -180,7 +180,7 @@ module TentD
           env.params.attachments.each do |attachment|
             Model::PostAttachment.create(:post => env.response, :type => attachment.type,
                                          :category => attachment.name, :name => attachment.filename,
-                                         :data => attachment.tempfile.read, :size => attachment.tempfile.size)
+                                         :data => Base64.encode64(attachment.tempfile.read), :size => attachment.tempfile.size)
           end
           env.response.reload
           env
@@ -211,7 +211,7 @@ module TentD
           type = env['HTTP_ACCEPT'].split(/;|,/).first if env['HTTP_ACCEPT']
           attachment = env.response.attachments.first(:type => type, :name => env.params.attachment_name, :fields => [:data])
           if attachment
-            env.response = attachment.data
+            env.response = Base64.decode64(attachment.data)
             env['response.type'] = type
           else
             env.response = nil

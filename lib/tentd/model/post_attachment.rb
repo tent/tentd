@@ -9,7 +9,7 @@ module TentD
       property :id, Serial
       property :category, String
       property :name, String
-      property :data, BinaryString
+      property :data, Text
       property :size, Integer
       timestamps :at
 
