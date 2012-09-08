@@ -2,11 +2,11 @@ module TentD
   module Model
     class PostAttachment
       include DataMapper::Resource
-      include TypeProperties
 
       storage_names[:default] = "post_attachments"
 
       property :id, Serial
+      property :type, String
       property :category, String
       property :name, String
       property :data, Text
