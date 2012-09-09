@@ -22,6 +22,24 @@ describe TentD::API::Router do
     end
   end
 
+  class PrefixMountedApp
+    def initialize(app)
+      @app = app
+    end
+
+    def call(env)
+      myprefix = '/prefix'
+
+      if env['PATH_INFO'].start_with?(myprefix)
+        env['SCRIPT_NAME'] = env['SCRIPT_NAME'][0..-2] if env['SCRIPT_NAME'].end_with?('/') # strip trailing slash
+        env['SCRIPT_NAME'] += myprefix
+
+        env['PATH_INFO'].sub! myprefix, ''
+        @app.call(env)
+      end
+    end
+  end
+
   class TestApp
     include TentD::API::Router
 
@@ -46,6 +64,16 @@ describe TentD::API::Router do
   end
 
   let(:env) { { 'authorized_scopes' => [] } }
+
+  context "as a mounted app with a prefix" do
+    let(:app) { PrefixMountedApp.new(TestApp.new) }
+
+    it "still matches the path name" do
+      json_get '/prefix/foo/baz', nil, env
+      expect(last_response.status).to eq(200)
+      expect(JSON.parse(last_response.body)['params']['bar']).to eq('baz')
+    end
+  end
 
   it "should extract params" do
     json_get '/foo/baz', nil, env
