@@ -43,7 +43,7 @@ module TentD
           info.content = data
           info.save!
         else
-          info = create(:type_base => type.base, :public => data.delete(:public), :content => data)
+          info = create(:type => type, :public => data.delete(:public), :content => data)
         end
       end
     end
