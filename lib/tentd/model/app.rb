@@ -11,9 +11,9 @@ module TentD
       storage_names[:default] = 'apps'
 
       property :id, Serial
-      property :name, String
+      property :name, String, :required => true
       property :description, Text, :lazy => false
-      property :url, String
+      property :url, String, :required => true
       property :icon, String
       property :redirect_uris, Array, :lazy => false, :default => []
       property :scopes, Json, :default => {}, :lazy => false

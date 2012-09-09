@@ -13,7 +13,7 @@ module TentD
 
       property :id, Serial
       property :groups, Array, :lazy => false, :default => []
-      property :entity, String
+      property :entity, String, :required => true
       property :public, Boolean, :default => false
       property :profile, Json, :default => {}
       property :licenses, Array, :lazy => false, :default => []

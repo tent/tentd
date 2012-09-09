@@ -46,7 +46,7 @@ describe TentD::API::Followers do
       {
         "entity" => follower_entity_url,
         "licenses" => ["http://creativecommons.org/licenses/by-nc-sa/3.0/"],
-        "types" => ["https://tent.io/types/posts/status/v0.1.x#full", "https://tent.io/types/posts/photo/v0.1.x#meta"]
+        "types" => ["https://tent.io/type/posts/status/v0.1.x#full", "https://tent.io/types/post/photo/v0.1.x#meta"]
       }
     end
 
@@ -142,7 +142,7 @@ describe TentD::API::Followers do
         "mac_key" => follower.mac_key,
         "mac_algorithm" => follower.mac_algorithm,
         "mac_timestamp_delta" => follower.mac_timestamp_delta,
-        "types" => ["https://tent.io/types/posts/status/v0.1.x#full", "https://tent.io/types/posts/photo/v0.1.x#meta"]
+        "types" => ["https://tent.io/types/post/status/v0.1.x#full", "https://tent.io/types/post/photo/v0.1.x#meta"]
       }
     end
 

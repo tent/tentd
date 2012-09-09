@@ -12,7 +12,7 @@ module TentD
       belongs_to :follower_access, 'TentD::Model::Follower', :required => false
 
       property :id, Serial
-      property :visible, Boolean
+      property :visible, Boolean, :default => true
     end
   end
 end

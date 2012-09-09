@@ -146,7 +146,7 @@ describe TentD::API::Posts do
 
       context 'when post type is not authorized' do
         it 'should return 404' do
-          post = Fabricate(:post, :public => false, :type => post_type)
+          post = Fabricate(:post, :public => false, :type_base => post_type)
           json_get "/posts/#{post.public_id}", params, env
           expect(last_response.status).to eq(404)
         end
@@ -166,27 +166,22 @@ describe TentD::API::Posts do
     with_params = proc do
       it "should respond with first TentD::API::PER_PAGE posts if no params given" do
         with_constants "TentD::API::PER_PAGE" => 1 do
-          0.upto(TentD::API::PER_PAGE+1).each { Fabricate(:post, :public => post_public?).save! }
+          0.upto(TentD::API::PER_PAGE+1).each { Fabricate(:post, :public => post_public?) }
           json_get '/posts', params, env
           expect(JSON.parse(last_response.body).size).to eq(1)
         end
       end
 
       it "should filter by params[:post_types]" do
-        picture_type_uri = "https://tent.io/types/posts/picture"
-        blog_type_uri = "https://tent.io/types/posts/blog"
+        picture_type_uri = "https://tent.io/types/post/picture"
+        blog_type_uri = "https://tent.io/types/post/blog"
 
-        picture_post = Fabricate(:post, :public => post_public?)
-        picture_post.type = picture_type_uri
-        picture_post.save!
+        picture_post = Fabricate(:post, :public => post_public?, :type_base => picture_type_uri)
         non_picture_post = Fabricate(:post, :public => post_public?)
-        non_picture_post.save!
-        blog_post = Fabricate(:post, :public => post_public?)
-        blog_post.type = blog_type_uri
-        blog_post.save!
+        blog_post = Fabricate(:post, :public => post_public?, :type_base => blog_type_uri)
 
         posts = TentD::Model::Post.all(:type_base => [picture_type_uri, blog_type_uri])
-        post_types = [picture_post, blog_post].map { |p| URI.escape(p.type.uri, "://") }
+        post_types = [picture_post, blog_post].map { |p| URI.encode_www_form_component(p.type.base) }
 
         json_get "/posts?post_types=#{post_types.join(',')}", params, env
         body = JSON.parse(last_response.body)
@@ -310,7 +305,7 @@ describe TentD::API::Posts do
       let(:post_public?) { false }
 
       context 'when post type authorized' do
-        let(:authorized_post_types) { ["https://tent.io/types/posts/status", "https://tent.io/types/posts/picture", "https://tent.io/types/posts/blog"] }
+        let(:authorized_post_types) { ["https://tent.io/types/post/status", "https://tent.io/types/post/picture", "https://tent.io/types/post/blog"] }
 
         context &with_params
       end
@@ -341,7 +336,7 @@ describe TentD::API::Posts do
 
       it "should create post" do
         post_attributes = p.attributes
-        post_attributes.delete(:id)
+        post_attributes[:type] = p.type.uri
         expect(lambda {
           json_post "/posts", post_attributes, env
           expect(last_response.status).to eq(200)
@@ -357,6 +352,7 @@ describe TentD::API::Posts do
       it 'should create post with mentions' do
         post_attributes = Hashie::Mash.new(p.attributes)
         post_attributes.delete(:id)
+        post_attributes[:type] = p.type.uri
         post_attributes.merge!(
           :mentions => [
             { :entity => "https://johndoe.example.com" },
@@ -376,6 +372,7 @@ describe TentD::API::Posts do
       it 'should create post with multipart attachments' do
         post_attributes = p.attributes
         post_attributes.delete(:id)
+        post_attributes[:type] = p.type.uri
         attachments = { :foo => [{ :filename => 'a', :content_type => 'text/plain', :content => 'asdf' },
                                  { :filename => 'a', :content_type => 'application/json', :content => 'asdf123' },
                                  { :filename => 'b', :content_type => 'text/plain', :content => '1234' }],
@@ -403,6 +400,7 @@ describe TentD::API::Posts do
       it 'should allow a post from the follower' do
         post_attributes = p.attributes
         post_attributes.delete(:id)
+        post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes, env
         body = JSON.parse(last_response.body)
         expect(body['id']).to eq(TentD::Model::Post.last.public_id)
@@ -411,6 +409,7 @@ describe TentD::API::Posts do
       it "should not allow a post that isn't from the follower" do
         post_attributes = p.attributes
         post_attributes.delete(:id)
+        post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes.merge(:entity => 'example.org'), env
         expect(last_response.status).to eq(403)
       end
@@ -422,6 +421,7 @@ describe TentD::API::Posts do
       it 'should not allow a post by an entity that is a following' do
         post_attributes = p.attributes
         post_attributes.delete(:id)
+        post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes, env
         expect(last_response.status).to eq(403)
       end
@@ -429,6 +429,7 @@ describe TentD::API::Posts do
       it 'should allow a post by an entity that is not a following' do
         post_attributes = p.attributes
         post_attributes.delete(:id)
+        post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes.merge(:entity => 'example.org'), env
         body = JSON.parse(last_response.body)
         expect(body['id']).to eq(TentD::Model::Post.last.public_id)

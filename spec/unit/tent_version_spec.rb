@@ -3,7 +3,7 @@ require 'spec_helper'
 describe TentD::TentVersion do
   describe '.from_uri' do
     it 'should parse version from URI' do
-      uri = "https://tent.io/types/posts/photo/v0.x.x#meta"
+      uri = "https://tent.io/type/posts/photo/v0.x.x#meta"
       expect(described_class.from_uri(uri)).to eq(described_class.new("0.x.x"))
     end
   end
@@ -55,7 +55,7 @@ describe TentD::TentVersion do
   end
 
   describe '#>(other_instance)' do
-    it 'should return true if grater than other instance' do
+    it 'should return true if greater than other instance' do
       expect(described_class.new("0.2.x") > described_class.new("0.1.9")).to be_true
     end
   end

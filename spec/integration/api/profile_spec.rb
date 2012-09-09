@@ -54,8 +54,8 @@ describe TentD::API::Profile do
           TentD::Model::ProfileInfo.all.destroy
 
           profile_infos = []
-          profile_infos << Fabricate(:profile_info, :public => false, :tent => true)
           profile_infos << Fabricate(:profile_info, :public => false)
+          profile_infos << Fabricate(:basic_profile_info, :public => false)
 
           json_get '/profile', params, env
           expect(last_response.body).to eq({
@@ -66,13 +66,13 @@ describe TentD::API::Profile do
       end
 
       context 'when authorized for specific info types' do
-        let(:authorized_info_types) { ['https://tent.io/types/info/basic-info'] }
+        let(:authorized_info_types) { ['https://tent.io/types/info/basic'] }
 
         it 'should only return authorized info types' do
           TentD::Model::ProfileInfo.all.destroy
 
           profile_infos = []
-          profile_infos << Fabricate(:profile_info, :public => false, :type => "https://tent.io/types/info/basic-info/v0.1.0")
+          profile_infos << Fabricate(:profile_info, :public => false, :type => "https://tent.io/types/info/basic/v0.1.0")
           profile_infos << Fabricate(:profile_info, :public => false)
 
           json_get '/profile', params, env
@@ -88,8 +88,8 @@ describe TentD::API::Profile do
         TentD::Model::ProfileInfo.all.destroy
 
         profile_infos = []
-        profile_infos << Fabricate(:profile_info, :public => true, :tent => true)
-        profile_infos << Fabricate(:profile_info, :public => false)
+        profile_infos << Fabricate(:profile_info, :public => true)
+        profile_infos << Fabricate(:basic_profile_info, :public => false)
 
         json_get '/profile', params, env
         expect(last_response.body).to eq({
@@ -121,7 +121,7 @@ describe TentD::API::Profile do
           expect(info.reload.content).to eq(data)
 
           expect(info.reload.type.uri).to eq(basic_info_type)
-          
+
         end
 
         it 'should create unless exists' do
@@ -230,7 +230,7 @@ describe TentD::API::Profile do
         let(:authorized_info_types) { ['all'] }
 
         context '', &can_update_basic_info_type
-        
+
         it 'should update any info' do
           TentD::Model::ProfileInfo.all.destroy
 

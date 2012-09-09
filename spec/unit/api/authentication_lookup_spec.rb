@@ -10,7 +10,7 @@ describe TentD::API::AuthenticationLookup do
 
   it 'should parse hmac authorization header' do
     TentD::Model::Follower.all.destroy
-    follow = TentD::Model::Follower.create(:mac_key_id => "s:h480djs93hd8")
+    follow = Fabricate(:follower, :mac_key_id => "s:h480djs93hd8")
     env['HTTP_AUTHORIZATION'] = auth_header % 's'
     described_class.new(app).call(env)
     expect(env['hmac']).to eq({
@@ -25,7 +25,7 @@ describe TentD::API::AuthenticationLookup do
 
   it 'should lookup server authentication model' do
     TentD::Model::Follower.all(:mac_key_id => "s:h480djs93hd8").destroy
-    follow = TentD::Model::Follower.create(:mac_key_id => "s:h480djs93hd8")
+    follow = Fabricate(:follower, :mac_key_id => "s:h480djs93hd8")
     expect(follow.saved?).to be_true
     env['HTTP_AUTHORIZATION'] = auth_header % 's'
     described_class.new(app).call(env)
@@ -36,7 +36,7 @@ describe TentD::API::AuthenticationLookup do
 
   it 'should lookup app authentication model' do
     TentD::Model::App.all.destroy
-    authed_app = TentD::Model::App.create(:mac_key_id => "a:h480djs93hd8")
+    authed_app = Fabricate(:app, :mac_key_id => "a:h480djs93hd8")
     expect(authed_app.saved?).to be_true
     env['HTTP_AUTHORIZATION'] = auth_header % 'a'
     described_class.new(app).call(env)
@@ -48,7 +48,7 @@ describe TentD::API::AuthenticationLookup do
   it 'should lookup user authentication model' do
     TentD::Model::AppAuthorization.all.destroy
     authed_user = TentD::Model::AppAuthorization.create(:mac_key_id => "u:h480djs93hd8",
-                                                             :app => TentD::Model::App.create)
+                                                             :app => Fabricate(:app))
     expect(authed_user.saved?).to be_true
     env['HTTP_AUTHORIZATION'] = auth_header % 'u'
     described_class.new(app).call(env)

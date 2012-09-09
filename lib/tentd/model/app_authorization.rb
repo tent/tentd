@@ -69,11 +69,11 @@ module TentD
         saved = update(data.slice(:post_types, :profile_info_types, :scopes, :notification_url))
 
         if saved && data[:post_types] && data[:post_types] != _post_types
-          notification_subscriptions.all(:type_base.not => post_types).destroy
+          notification_subscriptions.all(:type_base.not => post_types.map { |t| TentType.new(t).base }).destroy
 
-          data[:post_types].each do |type|
-            next if notification_subscriptions.first(:type_base => type)
-            notification_subscriptions.create(:type_base => type)
+          data[:post_types].map { |t| TentType.new(t) }.each do |type|
+            next if notification_subscriptions.first(:type_base => type.base)
+            notification_subscriptions.create(:type_base => type.base, :type_version => type.version, :type_view => type.view)
           end
         end
 

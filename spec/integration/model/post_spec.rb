@@ -194,9 +194,9 @@ describe TentD::Model::Post do
       context '[:post_types]' do
         it 'should only return posts type in :post_types' do
           TentD::Model::Post.all.destroy!
-          photo_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/posts/photo")
-          blog_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/posts/blog")
-          status_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/posts/status")
+          photo_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/post/photo")
+          blog_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/post/blog")
+          status_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/post/status")
 
           if create_permissions
             [photo_post, blog_post, status_post].each { |post| @authorize_post.call(post) }
@@ -325,7 +325,8 @@ describe TentD::Model::Post do
   it "should persist with proper serialization" do
     attributes = {
       :entity => "https://example.org",
-      :type => "https://tent.io/types/posts/status",
+      :type_base => "https://tent.io/types/post/status",
+      :type_version => "0.1.0",
       :licenses => ["http://creativecommons.org/licenses/by-nc-sa/3.0/", "http://www.gnu.org/copyleft/gpl.html"],
       :content => {
         "text" => "Voluptate nulla et similique sed dignissimos ea. Dignissimos sint reiciendis voluptas. Aliquid id qui nihil illum omnis. Explicabo ipsum non blanditiis aut aperiam enim ab."

@@ -374,7 +374,7 @@ describe TentD::API::Apps do
         it 'should update app authorization' do
           data = {
             :notification_url => "http://example.com/webhooks/notifications",
-            :profile_info_types => ["https://tent.io/types/info/basic"],
+            :profile_info_types => ["https://tent.io/types/info/basic/v0.1.0"],
             :scopes => %w{ read_posts read_apps }
           }
           json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", data, env
@@ -390,7 +390,7 @@ describe TentD::API::Apps do
       context 'update post_types' do
         it 'should update notification subscriptions' do
           data = {
-            :post_types => ["https://tent.io/types/post/status"]
+            :post_types => ["https://tent.io/types/post/status/v0.1.0"]
           }
           expect(lambda {
             json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", data, env
