@@ -636,4 +636,14 @@ describe TentD::API::Followings do
       http_stubs.verify_stubbed_calls
     end
   end
+
+  describe 'GET /follow' do
+    before { Fabricate(:app_authorization, :app => Fabricate(:app), :scopes => %w{ follow_ui }, :follow_url => 'https://example.com/follow') }
+
+    it 'should redirect to app authoirization with follow_ui scope and follow_url' do
+      get '/follow', { :entity => 'https://johnsmith.example.org' }, env
+      expect(last_response.status).to eq(307)
+      expect(last_response.headers['Location']).to eq("https://example.com/follow?entity=https%3A%2F%2Fjohnsmith.example.org")
+    end
+  end
 end

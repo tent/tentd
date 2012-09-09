@@ -3,6 +3,17 @@ require 'spec_helper'
 describe TentD::Model::AppAuthorization do
   let(:app_authorization) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
 
+  describe '.follow_url' do
+    it 'should find app authorization with follow_ui scope and follow_url' do
+      Fabricate(:app_authorization, :app => Fabricate(:app), :scopes => %w{ follow_ui }, :follow_url => 'https://follow.example.org/awesome-ui')
+      app_auth = Fabricate(:app_authorization, :app => Fabricate(:app), :scopes => %w{ read_posts follow_ui write_posts }, :follow_url => 'https://follow.example.com')
+      entity = 'https://johndoe.example.org'
+
+      follow_url = described_class.follow_url(entity)
+      expect(follow_url).to eq("#{app_auth.follow_url}?entity=#{URI.encode_www_form_component(entity)}")
+    end
+  end
+
   describe '#as_json' do
     let(:app_attributes) do
       {

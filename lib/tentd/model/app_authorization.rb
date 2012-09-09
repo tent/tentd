@@ -27,6 +27,13 @@ module TentD
       belongs_to :app, 'TentD::Model::App'
       has n, :notification_subscriptions, 'TentD::Model::NotificationSubscription', :constraint => :destroy
 
+      before :save do
+        if scopes.to_a.map(&:to_s).include?('follow_ui') && follow_url
+          _auths = self.class.all(:follow_url.not => nil, :id.not => id)
+          _auths.each { |a| a.update(:scopes => a.scopes - ['follow_ui']) }
+        end
+      end
+
       def auth_details
         attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
       end
@@ -45,6 +52,15 @@ module TentD
         end
 
         authorization
+      end
+
+      def self.follow_url(entity)
+        app_auth = all(:follow_url.not => nil).find { |a| a.scopes.map(&:to_sym).include?(:follow_ui) }
+        return unless app_auth
+        uri = URI(app_auth.follow_url)
+        query = "entity=#{URI.encode_www_form_component(entity)}"
+        uri.query ? uri.query += "&#{query}" : uri.query = query
+        uri.to_s
       end
 
       def update_from_params(data)

@@ -164,6 +164,19 @@ module TentD
         end
       end
 
+      class RedirectToFollowUI < Middleware
+        def action(env)
+          if follow_url = Model::AppAuthorization.follow_url(env.params.entity)
+            return [307, { "Location" => follow_url }, []]
+          end
+          env
+        end
+      end
+
+      get '/follow' do |b|
+        b.use RedirectToFollowUI
+      end
+
       get '/followings/:following_id' do |b|
         b.use GetActualId
         b.use GetOne
