@@ -43,3 +43,7 @@ applications, here are some areas that can be worked on:
 
 Please note that we are not looking for Pull Requests that make fundamental
 changes to how the Tent Protocol works.
+
+### Contributors
+
+- [Jonas Schneider](https://github.com/jonasschneider)
