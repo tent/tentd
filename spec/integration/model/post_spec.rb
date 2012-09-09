@@ -90,6 +90,24 @@ describe TentD::Model::Post do
     end
   end
 
+  describe 'changing type' do
+    it 'updates the version and view' do
+      p = Fabricate(:post)
+      p.type = 'http://me.io/sometype/v0.1.0'
+      p.save!
+      expect(p.type_version).to eq('0.1.0')
+
+      p.update type_version: '0.1.0'
+
+      p = TentD::Model::Post.get(p.id)
+
+
+      p.type = 'http://mytype.io/v0.3.0'
+      p.save!
+      expect(p.type_version).to eq('0.3.0')
+    end
+  end
+
   describe 'fetch_with_permissions(params, current_auth)' do
     let(:group) { Fabricate(:group, :name => 'friends') }
     let(:params) { Hash.new }
