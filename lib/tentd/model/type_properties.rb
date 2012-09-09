@@ -3,30 +3,28 @@ module TentD
     module TypeProperties
       def self.included(base)
         base.class_eval do
-          property :type, String
-          property :type_view, String, :default => lambda { |m,p|
-            TentType.new(m.type).view || 'full' unless m.type == 'all'
-          }
-          property :type_version, String, :default => lambda { |m, p|
-            TentType.new(m.type).version.to_s unless m.type == 'all'
-          }
-
-          before :save do
-            if type == 'all'
-              self.type_version = nil
-              self.type_view = 'full'
-            else
-              t = TentType.new(type)
-              self.type = t.uri
-              self.type_version ||= t.version
-              self.type_view ||= (t.view || 'full')
-            end
-          end
+          property :type_base, String
+          property :type_view, String
+          property :type_version, String
         end
       end
 
-      def full_type
-        "#{type}/v#{type_version}"
+      def type
+        TentType.new.tap do |t|
+          t.base = type_base
+          t.version = type_version
+          t.view = type_view
+        end
+      end
+
+      def type=(new_t)
+        if String === new_t
+          new_t = TentType.new(new_t)
+        end
+        
+        self.type_base = new_t.base
+        self.type_version = new_t.version
+        self.type_view = new_t.view
       end
     end
   end

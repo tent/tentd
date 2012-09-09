@@ -90,6 +90,24 @@ describe TentD::Model::Post do
     end
   end
 
+  describe 'changing type' do
+    it 'updates the version and view' do
+      p = Fabricate(:post)
+      p.type = 'http://me.io/sometype/v0.1.0'
+      p.save!
+      expect(p.type_version).to eq('0.1.0')
+
+      p.update type_version: '0.1.0'
+
+      p = TentD::Model::Post.get(p.id)
+
+
+      p.type = 'http://mytype.io/v0.3.0'
+      p.save!
+      expect(p.type_version).to eq('0.3.0')
+    end
+  end
+
   describe 'fetch_with_permissions(params, current_auth)' do
     let(:group) { Fabricate(:group, :name => 'friends') }
     let(:params) { Hash.new }
@@ -176,15 +194,15 @@ describe TentD::Model::Post do
       context '[:post_types]' do
         it 'should only return posts type in :post_types' do
           TentD::Model::Post.all.destroy!
-          photo_post = Fabricate(:post, :public => !create_permissions, :type => "https://tent.io/types/posts/photo")
-          blog_post = Fabricate(:post, :public => !create_permissions, :type => "https://tent.io/types/posts/blog")
-          status_post = Fabricate(:post, :public => !create_permissions, :type => "https://tent.io/types/posts/status")
+          photo_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/posts/photo")
+          blog_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/posts/blog")
+          status_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/posts/status")
 
           if create_permissions
             [photo_post, blog_post, status_post].each { |post| @authorize_post.call(post) }
           end
 
-          params['post_types'] = [blog_post, photo_post].map { |p| URI.escape(p.type.to_s, "://") }.join(',')
+          params['post_types'] = [blog_post, photo_post].map { |p| URI.escape(p.type.uri, "://") }.join(',')
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
           expect(returned_posts.size).to eq(2)
@@ -317,7 +335,11 @@ describe TentD::Model::Post do
     post = described_class.create!(attributes)
     post = described_class.get(post.id)
     attributes.each_pair do |k,v|
-      actual_value = post.send(k)
+      if k == :type
+        actual_value = post.type.uri
+      else
+        actual_value = post.send(k)
+      end
       expect(actual_value).to eq(v)
     end
   end
@@ -328,7 +350,7 @@ describe TentD::Model::Post do
       {
         :id => post.public_id,
         :entity => post.entity,
-        :type => post.type,
+        :type => post.type.uri,
         :licenses => post.licenses,
         :content => post.content,
         :app => { :url => post.app_url, :name => post.app_name },
@@ -424,7 +446,7 @@ describe TentD::Model::Post do
         end
 
         it "should be true with authorized type" do
-          auth = Fabricate.build(:app_authorization, :post_types => [post.type])
+          auth = Fabricate.build(:app_authorization, :post_types => [post.type.base])
           expect(post.can_notify?(auth)).to be_true
         end
 

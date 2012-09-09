@@ -11,7 +11,18 @@ describe TentD::TentType do
     expect(instance.view).to eq('meta')
   end
 
-  it 'should parse base type uri' do
-    expect(instance.uri).to eq('https://tent.io/types/post/status')
+  it 'should parse base' do
+    expect(instance.base).to eq('https://tent.io/types/post/status')
+  end
+
+  it 'should reassemble URI' do
+    instance.version = '0.2.0'
+    expect(instance.uri.to_s).to eq("https://tent.io/types/post/status/v0.2.0#meta")
+  end
+
+  it 'should reassemble URI without version or view' do
+    instance.version = nil
+    instance.view = nil
+    expect(instance.uri.to_s).to eq("https://tent.io/types/post/status")
   end
 end

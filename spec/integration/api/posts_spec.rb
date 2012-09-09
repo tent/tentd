@@ -119,7 +119,7 @@ describe TentD::API::Posts do
       post_type_authorized = proc do
         context 'when post exists' do
           it 'should return post' do
-            post = Fabricate(:post, :public => false, :type => post_type)
+            post = Fabricate(:post, :public => false, :type_base => post_type)
             json_get "/posts/#{post.public_id}", params, env
             expect(last_response.status).to eq(200)
             expect(JSON.parse(last_response.body)['id']).to eq(post.public_id)
@@ -185,8 +185,8 @@ describe TentD::API::Posts do
         blog_post.type = blog_type_uri
         blog_post.save!
 
-        posts = TentD::Model::Post.all(:type => [picture_type_uri, blog_type_uri])
-        post_types = [picture_post, blog_post].map { |p| URI.escape(p.type.to_s, "://") }
+        posts = TentD::Model::Post.all(:type_base => [picture_type_uri, blog_type_uri])
+        post_types = [picture_post, blog_post].map { |p| URI.escape(p.type.uri, "://") }
 
         json_get "/posts?post_types=#{post_types.join(',')}", params, env
         body = JSON.parse(last_response.body)
@@ -451,7 +451,7 @@ describe TentD::API::Posts do
           deleted_post = post
           post = TentD::Model::Post.last
           expect(post.content['id']).to eq(deleted_post.public_id)
-          expect(post.type).to eq('https://tent.io/types/post/delete')
+          expect(post.type.base).to eq('https://tent.io/types/post/delete')
           expect(post.type_version).to eq('0.1.0')
         end
       end

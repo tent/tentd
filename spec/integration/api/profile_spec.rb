@@ -59,8 +59,8 @@ describe TentD::API::Profile do
 
           json_get '/profile', params, env
           expect(last_response.body).to eq({
-            "#{ profile_infos.first.full_type }" => profile_infos.first.content,
-            "#{ profile_infos.last.full_type }" => profile_infos.last.content
+            "#{ profile_infos.first.type.uri }" => profile_infos.first.content,
+            "#{ profile_infos.last.type.uri }" => profile_infos.last.content
           }.to_json)
         end
       end
@@ -77,7 +77,7 @@ describe TentD::API::Profile do
 
           json_get '/profile', params, env
           expect(last_response.body).to eq({
-            "#{ profile_infos.first.full_type }" => profile_infos.first.content
+            "#{ profile_infos.first.type.uri }" => profile_infos.first.content
           }.to_json)
         end
       end
@@ -93,7 +93,7 @@ describe TentD::API::Profile do
 
         json_get '/profile', params, env
         expect(last_response.body).to eq({
-          "#{ profile_infos.first.full_type }" => profile_infos.first.content
+          "#{ profile_infos.first.type.uri }" => profile_infos.first.content
         }.to_json)
       end
     end
@@ -109,6 +109,8 @@ describe TentD::API::Profile do
         it 'should update info type' do
           info = create_info(basic_info_type, basic_info_content, :public => false)
 
+          expect(info.type.uri).to eq(basic_info_type)
+
           data = {
             "name" => "John Doe"
           }
@@ -117,6 +119,9 @@ describe TentD::API::Profile do
 
           expect(last_response.status).to eq(200)
           expect(info.reload.content).to eq(data)
+
+          expect(info.reload.type.uri).to eq(basic_info_type)
+          
         end
 
         it 'should create unless exists' do
