@@ -642,7 +642,7 @@ describe TentD::API::Followings do
 
     it 'should redirect to app authoirization with follow_ui scope and follow_url' do
       get '/follow', { :entity => 'https://johnsmith.example.org' }, env
-      expect(last_response.status).to eq(307)
+      expect(last_response.status).to eq(302)
       expect(last_response.headers['Location']).to eq("https://example.com/follow?entity=https%3A%2F%2Fjohnsmith.example.org")
     end
   end
