@@ -22,7 +22,7 @@ module TentD
         end
 
         def extract_params(env)
-          route = env['request'].script_name
+          route = env[Rack::Mount::Prefix::KEY]
           route = '/' if route.empty?
           return unless match = pattern.match(route)
           values = match.captures.to_a.map { |v| URI.decode_www_form_component(v) if v }
