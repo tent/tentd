@@ -138,6 +138,7 @@ describe TentD::API::Profile do
           info = TentD::Model::ProfileInfo.last
           expect(last_response.status).to eq(200)
           expect(info.content).to eq(data)
+          expect(info.type.version).to eq('0.1.0')
         end
       end
 
