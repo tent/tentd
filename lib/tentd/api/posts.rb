@@ -24,7 +24,7 @@ module TentD
           if authorize_env?(env, :read_posts)
             conditions = { :id => env.params.post_id }
             unless env.current_auth.post_types.include?('all')
-              conditions[:type] = env.current_auth.post_types.map { |t| TentType.new(t).uri }
+              conditions[:type_base] = env.current_auth.post_types.map { |t| TentType.new(t).base }
             end
             post = Model::Post.first(conditions)
           else
@@ -46,14 +46,14 @@ module TentD
             conditions[:published_at.gt] = Time.at(env.params.since_time.to_i) if env.params.since_time
             conditions[:published_at.lt] = Time.at(env.params.before_time.to_i) if env.params.before_time
             if env.params.post_types
-              conditions[:type] = env.params.post_types.split(',').map do |type|
-                URI.unescape(TentType.new(type).uri)
+              conditions[:type_base] = env.params.post_types.split(',').map do |type|
+                URI.unescape(type)
               end.select do |type|
                 env.current_auth.post_types.include?('all') ||
                 env.current_auth.post_types.include?(type)
               end
             elsif !env.current_auth.post_types.include?('all')
-              conditions[:type] = env.current_auth.post_types.map { |t| TentType.new(t).uri }
+              conditions[:type_base] = env.current_auth.post_types.map { |t| TentType.new(t).base }
             end
             if env.params.limit
               conditions[:limit] = [env.params.limit.to_i, TentD::API::MAX_PER_PAGE].min

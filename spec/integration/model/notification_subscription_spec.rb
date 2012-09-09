@@ -23,12 +23,24 @@ describe TentD::Model::NotificationSubscription do
 
   it 'should remove version and view from type' do
     instance = described_class.create(:type => "https://tent.io/types/posts/photo/v0.1.x#meta")
-    expect(instance.type).to eq('https://tent.io/types/posts/photo')
+    expect(instance.type.base).to eq('https://tent.io/types/posts/photo')
   end
 
   context "notifications" do
     let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
     let(:post) { Fabricate(:post) }
+
+    context "to everyone" do
+      let!(:subscription) { Fabricate(:notification_subscription, :follower => Fabricate(:follower)) }
+
+      it 'should notify about a post' do
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+        http_stubs.post('/posts') { [200, {}, nil] }
+
+        described_class.notify_all(post.type, post.id)
+        http_stubs.verify_stubbed_calls
+      end
+    end
 
     context "to a follower" do
       let(:subscription) { Fabricate(:notification_subscription, :follower => Fabricate(:follower)) }
