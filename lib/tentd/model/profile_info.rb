@@ -36,7 +36,8 @@ module TentD
       end
 
       def self.update_profile(type, data)
-        if (infos = all(:type => TentType.new(type).uri)) && (info = infos.pop)
+        type = TentType.new(type)
+        if (infos = all(:type => type.uri)) && (info = infos.pop)
           infos.destroy
           info.update(:content => data)
         else
