@@ -1,11 +1,20 @@
 module TentD
   class TentType
-    attr_reader :version, :view, :uri
+    attr_accessor :version, :view, :base
 
-    def initialize(type_uri)
-      @version = TentVersion.from_uri(type_uri)
-      @view = type_uri.to_s.split('#')[1]
-      @uri = type_uri.to_s.sub(%r{/v[^/]+$}, '')
+    def initialize(uri = nil)
+      if uri
+        @version = TentVersion.from_uri(uri)
+        view_split = uri.to_s.split('#')
+        @view = view_split[1]
+        @base = view_split[0].to_s.sub(%r{/v[^a-z/][^/]*$}, '')
+      end
+    end
+
+    def uri
+      version_part = @version.nil? ? '' : "/v#{@version}"
+      view_part = @view.nil? ? '' : "##{@view}"
+      "#{@base}#{version_part}#{view_part}"
     end
   end
 end

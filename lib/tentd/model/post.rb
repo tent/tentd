@@ -35,7 +35,7 @@ module TentD
         if post.mentions != [] && post.original
           post.mentions.each do |mention|
             follower = Follower.first(:entity => mention[:entity])
-            next if follower && NotificationSubscription.first(:follower => follower, :type => post.type)
+            next if follower && NotificationSubscription.first(:follower => follower, :type_base => post.type.base)
 
             Notifications::NOTIFY_ENTITY_QUEUE << { :entity => mention[:entity], :post_id => post.id }
           end
@@ -59,8 +59,8 @@ module TentD
           if params.post_types
             params.post_types = params.post_types.split(',').map { |url| URI.unescape(url) }
             if params.post_types.any?
-              query << "AND posts.type IN ?"
-              query_bindings << params.post_types.map { |t| TentType.new(t).uri }
+              query << "AND posts.type_base IN ?"
+              query_bindings << params.post_types.map { |t| TentType.new(t).base }
             end
           end
         end
@@ -79,7 +79,7 @@ module TentD
         case app_or_follower
         when AppAuthorization
           app_or_follower.scopes && app_or_follower.scopes.map(&:to_sym).include?(:read_posts) ||
-          app_or_follower.post_types && app_or_follower.post_types.include?(type)
+          app_or_follower.post_types && app_or_follower.post_types.include?(type.base)
         when Follower
           return false unless original
           (permissions.all(:group_public_id => app_or_follower.groups) +
@@ -89,6 +89,7 @@ module TentD
 
       def as_json(options = {})
         attributes = super
+        attributes[:type] = type.uri
         attributes[:app] = { :url => attributes.delete(:app_url), :name => attributes.delete(:app_name) }
         attributes[:attachments] = attachments.all.map { |a| a.as_json }
 

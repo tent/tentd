@@ -23,7 +23,7 @@ describe TentD::Model::NotificationSubscription do
 
   it 'should remove version and view from type' do
     instance = described_class.create(:type => "https://tent.io/types/posts/photo/v0.1.x#meta")
-    expect(instance.type).to eq('https://tent.io/types/posts/photo')
+    expect(instance.type.base).to eq('https://tent.io/types/posts/photo')
   end
 
   context "notifications" do

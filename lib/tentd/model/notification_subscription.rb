@@ -33,6 +33,7 @@ module TentD
           client = TentClient.new
           profile, server_url = client.discover(entity).get_profile
           server_urls = API::CoreProfileData.new(profile).servers
+          #raise [profile, server_url].inspect
           client = TentClient.new(server_urls)
         end
         client.post.create(post.as_json)
