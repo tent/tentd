@@ -30,6 +30,18 @@ describe TentD::Model::NotificationSubscription do
     let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
     let(:post) { Fabricate(:post) }
 
+    context "to everyone" do
+      let!(:subscription) { Fabricate(:notification_subscription, :follower => Fabricate(:follower)) }
+
+      it 'should notify about a post' do
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+        http_stubs.post('/posts') { [200, {}, nil] }
+
+        described_class.notify_all(post.type, post.id)
+        http_stubs.verify_stubbed_calls
+      end
+    end
+
     context "to a follower" do
       let(:subscription) { Fabricate(:notification_subscription, :follower => Fabricate(:follower)) }
 
