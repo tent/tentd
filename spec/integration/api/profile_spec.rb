@@ -117,6 +117,8 @@ describe TentD::API::Profile do
 
           expect(last_response.status).to eq(200)
           expect(info.reload.content).to eq(data)
+
+          expect(TentD::Model::ProfileInfo.first.type).to eq(basic_info_type)
         end
 
         it 'should create unless exists' do
