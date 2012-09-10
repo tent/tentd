@@ -8,7 +8,7 @@ module TentD
       storage_names[:default] = "groups"
 
       property :id, Serial
-      property :name, String, :required => true
+      property :name, Text, :required => true, :lazy => false
       property :created_at, DateTime
       property :updated_at, DateTime
 

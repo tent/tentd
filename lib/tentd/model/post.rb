@@ -12,7 +12,7 @@ module TentD
       storage_names[:default] = "posts"
 
       property :id, Serial
-      property :entity, String
+      property :entity, Text, :lazy => false
       property :public, Boolean, :default => false
       property :licenses, Array, :default => []
       property :content, Json, :default => {}
@@ -20,8 +20,8 @@ module TentD
       property :published_at, DateTime, :default => lambda { |*args| Time.now }
       property :received_at, DateTime, :default => lambda { |*args| Time.now }
       property :updated_at, DateTime
-      property :app_name, String
-      property :app_url, String
+      property :app_name, Text, :lazy => false
+      property :app_url, Text, :lazy => false
       property :original, Boolean, :default => false
       property :known_entity, Boolean
 

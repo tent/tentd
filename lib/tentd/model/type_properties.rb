@@ -3,7 +3,7 @@ module TentD
     module TypeProperties
       def self.included(base)
         base.class_eval do
-          property :type_base, String, :required => true
+          property :type_base, DataMapper::Property::Text, :required => true, :lazy => false
           property :type_view, String
           property :type_version, String, :required => true
         end

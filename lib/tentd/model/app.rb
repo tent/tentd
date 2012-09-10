@@ -11,10 +11,10 @@ module TentD
       storage_names[:default] = 'apps'
 
       property :id, Serial
-      property :name, String, :required => true
+      property :name, Text, :required => true, :lazy => false
       property :description, Text, :lazy => false
-      property :url, String, :required => true
-      property :icon, String
+      property :url, Text, :required => true, :lazy => false
+      property :icon, Text, :lazy => false
       property :redirect_uris, Array, :lazy => false, :default => []
       property :scopes, Json, :default => {}, :lazy => false
       property :mac_key_id, String, :default => lambda { |*args| 'a:' + SecureRandom.hex(4) }, :unique => true
