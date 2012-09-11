@@ -19,6 +19,7 @@ module TentD
         [422, {}, ['Invalid Attributes']]
       rescue
         raise if ENV['RACK_ENV'] == 'test'
+        puts $!.inspect, $@
         [500, {}, ['Internal Server Error']]
       end
     end
