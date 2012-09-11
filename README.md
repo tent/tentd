@@ -11,7 +11,7 @@ expected to change heavily before the Tent 1.0 release.
 ## Requirements
 
 TentD is written using Ruby 1.9 with Rack and Datamapper and is only tested with
-PostgreSQL and Sqlite3. The code needs a few fixes to work with 1.8 and other databases.
+PostgreSQL and Sqlite. The code needs a few fixes to work with 1.8 and other databases.
 
 If you have Ruby 1.9, Bundler, and PostgreSQL installed, this should get the
 tests running:
