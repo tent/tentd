@@ -25,7 +25,7 @@ module TentD
       property :updated_at, DateTime
 
       has n, :authorizations, 'TentD::Model::AppAuthorization', :constraint => :destroy
-      has n, :posts, 'TentD::Model::Post'
+      has n, :posts, 'TentD::Model::Post', :constraint => :set_nil
 
       def self.create_from_params(params)
         create(params.slice(:name, :description, :url, :icon, :redirect_uris, :scopes))
