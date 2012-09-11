@@ -69,6 +69,7 @@ module TentD
 
           builder = Rack::Builder.new(SerializeResponse.new)
           builder.use(Rack::Head)
+          builder.use(UserLookup)
           builder.use(AuthenticationLookup)
           builder.use(AuthenticationVerification)
           builder.use(AuthenticationFinalize)

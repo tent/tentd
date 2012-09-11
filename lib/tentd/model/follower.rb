@@ -8,6 +8,7 @@ module TentD
       include Permissible
       include RandomPublicId
       include Serializable
+      include UserScoped
 
       storage_names[:default] = 'followers'
 
@@ -45,7 +46,7 @@ module TentD
       end
 
       def self.update_follower(id, data, authorized_scopes = [])
-        follower = get(id)
+        follower = first(:id => id)
         return unless follower
         whitelist = ['licenses']
         if authorized_scopes.include?(:write_followers)

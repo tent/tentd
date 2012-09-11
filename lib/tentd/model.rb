@@ -10,6 +10,7 @@ module TentD
     require 'tentd/model/serializable'
     require 'tentd/model/random_public_id'
     require 'tentd/model/type_properties'
+    require 'tentd/model/user_scoped'
     require 'tentd/model/post'
     require 'tentd/model/post_attachment'
     require 'tentd/model/follower'
@@ -20,6 +21,7 @@ module TentD
     require 'tentd/model/profile_info'
     require 'tentd/model/group'
     require 'tentd/model/permission'
+    require 'tentd/model/user'
   end
 end
 

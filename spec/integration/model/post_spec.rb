@@ -94,16 +94,16 @@ describe TentD::Model::Post do
     it 'updates the version and view' do
       p = Fabricate(:post)
       p.type = 'http://me.io/sometype/v0.1.0'
-      p.save!
+      p.save
       expect(p.type_version).to eq('0.1.0')
 
       p.update type_version: '0.1.0'
 
-      p = TentD::Model::Post.get(p.id)
+      p = TentD::Model::Post.first(:id => p.id)
 
 
       p.type = 'http://mytype.io/v0.3.0'
-      p.save!
+      p.save
       expect(p.type_version).to eq('0.3.0')
     end
   end
@@ -333,8 +333,8 @@ describe TentD::Model::Post do
       }
     }
 
-    post = described_class.create!(attributes)
-    post = described_class.get(post.id)
+    post = described_class.create(attributes)
+    post = described_class.first(:id => post.id)
     attributes.each_pair do |k,v|
       if k == :type
         actual_value = post.type.uri

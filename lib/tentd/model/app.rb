@@ -7,6 +7,7 @@ module TentD
       include DataMapper::Resource
       include RandomPublicId
       include Serializable
+      include UserScoped
 
       storage_names[:default] = 'apps'
 
@@ -32,7 +33,7 @@ module TentD
       end
 
       def self.update_from_params(id, params)
-        app = get(id)
+        app = first(:id => id)
         return unless app
         app.update(params.slice(:name, :description, :url, :icon, :redirect_uris, :scopes))
         app

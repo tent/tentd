@@ -8,6 +8,7 @@ module TentD
       include RandomPublicId
       include Serializable
       include TypeProperties
+      include UserScoped
 
       storage_names[:default] = "posts"
 

@@ -194,9 +194,7 @@ describe TentD::API::Posts do
 
       it "should filter by params[:since_id]" do
         since_post = Fabricate(:post, :public => post_public?)
-        since_post.save!
         post = Fabricate(:post, :public => post_public?)
-        post.save!
 
         json_get "/posts?since_id=#{since_post.public_id}", params, env
         body = JSON.parse(last_response.body)
@@ -208,9 +206,7 @@ describe TentD::API::Posts do
       it "should filter by params[:before_id]" do
         TentD::Model::Post.all.destroy!
         post = Fabricate(:post, :public => post_public?)
-        post.save!
         before_post = Fabricate(:post, :public => post_public?)
-        before_post.save!
 
         json_get "/posts?before_id=#{before_post.public_id}", params, env
         body = JSON.parse(last_response.body)
@@ -221,11 +217,8 @@ describe TentD::API::Posts do
 
       it "should filter by both params[:since_id] and params[:before_id]" do
         since_post = Fabricate(:post, :public => post_public?)
-        since_post.save!
         post = Fabricate(:post, :public => post_public?)
-        post.save!
         before_post = Fabricate(:post, :public => post_public?)
-        before_post.save!
 
         json_get "/posts?before_id=#{before_post.public_id}&since_id=#{since_post.public_id}", params, env
         body = JSON.parse(last_response.body)
@@ -237,10 +230,9 @@ describe TentD::API::Posts do
       it "should filter by params[:since_time]" do
         since_post = Fabricate(:post, :public => post_public?)
         since_post.published_at = Time.at(Time.now.to_i + 86400) # 1.day.from_now
-        since_post.save!
         post = Fabricate(:post, :public => post_public?)
         post.published_at = Time.at(Time.now.to_i + (86400 * 2)) # 2.days.from_now
-        post.save!
+        post.save
 
         json_get "/posts?since_time=#{since_post.published_at.to_time.to_i}", params, env
         body = JSON.parse(last_response.body)
@@ -252,10 +244,10 @@ describe TentD::API::Posts do
       it "should filter by params[:before_time]" do
         post = Fabricate(:post, :public => post_public?)
         post.published_at = Time.at(Time.now.to_i - (86400 * 2)) # 2.days.ago
-        post.save!
+        post.save
         before_post = Fabricate(:post, :public => post_public?)
         before_post.published_at = Time.at(Time.now.to_i - 86400) # 1.day.ago
-        before_post.save!
+        before_post.save
 
         json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}", params, env
         body = JSON.parse(last_response.body)
@@ -268,13 +260,13 @@ describe TentD::API::Posts do
         now = Time.at(Time.now.to_i - (86400 * 6)) # 6.days.ago
         since_post = Fabricate(:post, :public => post_public?)
         since_post.published_at = Time.at(now.to_i - (86400 * 3)) # 3.days.ago
-        since_post.save!
+        since_post.save
         post = Fabricate(:post, :public => post_public?)
         post.published_at = Time.at(now.to_i - (86400 * 2)) # 2.days.ago
-        post.save!
+        post.save
         before_post = Fabricate(:post, :public => post_public?)
         before_post.published_at = Time.at(now.to_i - 86400) # 1.day.ago
-        before_post.save!
+        before_post.save
 
         json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}&since_time=#{since_post.published_at.to_time.to_i}", params, env
         body = JSON.parse(last_response.body)
@@ -284,14 +276,14 @@ describe TentD::API::Posts do
       end
 
       it "should set feed length with params[:limit]" do
-        0.upto(2).each { Fabricate(:post, :public => post_public?).save! }
+        0.upto(2).each { Fabricate(:post, :public => post_public?) }
         json_get '/posts?limit=1', params, env
         expect(JSON.parse(last_response.body).size).to eq(1)
       end
 
       it "limit should never exceed TentD::API::MAX_PER_PAGE" do
         with_constants "TentD::API::MAX_PER_PAGE" => 0 do
-          0.upto(2).each { Fabricate(:post, :public => post_public?).save! }
+          0.upto(2).each { Fabricate(:post, :public => post_public?) }
           json_get '/posts?limit=1', params, env
           expect(last_response.body).to eq([].to_json)
         end
@@ -447,7 +439,7 @@ describe TentD::API::Posts do
         it 'should delete post and create post deleted notification' do
           delete "/posts/#{post.public_id}", params, env
           expect(last_response.status).to eq(200)
-          expect(TentD::Model::Post.get(post.id)).to be_nil
+          expect(TentD::Model::Post.first(:id => post.id)).to be_nil
 
           deleted_post = post
           post = TentD::Model::Post.last

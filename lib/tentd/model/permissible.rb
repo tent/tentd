@@ -50,6 +50,9 @@ module TentD
             query_bindings << true
           end
 
+          query << "AND user_id = ?"
+          query_bindings << User.current.id
+
           if properties[:original]
             query << "AND original = ?"
             query_bindings << true
@@ -94,9 +97,10 @@ module TentD
             yield params, query_conditions, query_bindings
           end
 
-          if query_conditions.any?
-            query << "WHERE #{query_conditions.join(' AND ')}"
-          end
+          query_conditions << "#{table_name}.user_id = ?"
+          query_bindings << User.current.id
+
+          query << "WHERE #{query_conditions.join(' AND ')}"
 
           query << "LIMIT ?"
           query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min

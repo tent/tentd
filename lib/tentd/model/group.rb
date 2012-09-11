@@ -4,6 +4,7 @@ module TentD
       include DataMapper::Resource
       include RandomPublicId
       include Serializable
+      include UserScoped
 
       storage_names[:default] = "groups"
 

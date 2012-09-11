@@ -165,7 +165,7 @@ module TentD
       class Destroy < Middleware
         def action(env)
           authorize_env!(env, :write_posts)
-          if (post = TentD::Model::Post.get(env.params.post_id)) && post.destroy
+          if (post = TentD::Model::Post.first(:id => env.params.post_id)) && post.destroy
             raise Unauthorized unless post.original
             env.response = ''
             env.notify_deleted_post = post

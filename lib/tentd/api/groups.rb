@@ -39,7 +39,7 @@ module TentD
 
       class GetOne < Middleware
         def action(env)
-          if group = Model::Group.get(env.params[:group_id])
+          if group = Model::Group.first(:id => env.params[:group_id])
             env['response'] = group
           end
           env
@@ -48,7 +48,7 @@ module TentD
 
       class Update < Middleware
         def action(env)
-          if group = Model::Group.get(env.params[:group_id])
+          if group = Model::Group.first(:id => env.params[:group_id])
             group.update(:name => env.params.data.name)
             env['response'] = group.reload
           end
@@ -70,7 +70,7 @@ module TentD
 
       class Destroy < Middleware
         def action(env)
-          if (group = Model::Group.get(env.params.group_id)) && group.destroy
+          if (group = Model::Group.first(:id => env.params.group_id)) && group.destroy
             env.response = ''
             env.notify_action = 'delete'
             env.notify_instance = group

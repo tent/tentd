@@ -29,7 +29,7 @@ module TentD
       class GetOne < Middleware
         def action(env)
           if authorize_env?(env, :read_followings)
-            if following = Model::Following.get(env.params.following_id)
+            if following = Model::Following.first(:id => env.params.following_id)
               env.following = following
               env.response = following
             end
@@ -100,7 +100,7 @@ module TentD
 
       class Update < Middleware
         def action(env)
-          if following = Model::Following.get(env.params.following_id)
+          if following = Model::Following.first(:id => env.params.following_id)
             following.update_from_params(env.params.data, env.authorized_scopes)
             env.response = following
           end
@@ -110,7 +110,7 @@ module TentD
 
       class Destroy < Middleware
         def action(env)
-          if (following = Model::Following.get(env.params.following_id)) && following.destroy
+          if (following = Model::Following.first(:id => env.params.following_id)) && following.destroy
             env.response = ''
             env.notify_action = 'delete'
             env.notify_instance = following

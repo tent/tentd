@@ -21,7 +21,7 @@ describe TentD::API::Groups do
       before { authorize!(:read_groups) }
 
       it 'should return all groups' do
-        Fabricate(:group, :name => 'chunky-bacon').save!
+        Fabricate(:group, :name => 'chunky-bacon')
 
         get '/groups', params, env
         expect(JSON.parse(last_response.body).size).to eq(TentD::Model::Group.count)
@@ -69,7 +69,7 @@ describe TentD::API::Groups do
         group.name = 'bar-baz'
         expect(group.save).to be_true
         json_put "/groups/#{group.public_id}", group, env
-        actual_group = TentD::Model::Group.get(group.id)
+        actual_group = TentD::Model::Group.first(:id => group.id)
         expect(actual_group.name).to eq(group.name)
         expect(JSON.parse(last_response.body)['id']).to eq(actual_group.public_id)
       end

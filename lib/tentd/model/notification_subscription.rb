@@ -3,6 +3,7 @@ module TentD
     class NotificationSubscription
       include DataMapper::Resource
       include TypeProperties
+      include UserScoped
 
       storage_names[:default] = 'notification_subscriptions'
 
@@ -25,7 +26,7 @@ module TentD
       end
 
       def self.notify_entity(entity, post_id)
-        post = Post.get(post_id)
+        post = Post.first(:id => post_id)
         if follow = Follower.first(:entity => entity) || Following.first(:entity => entity)
           server_urls = API::CoreProfileData.new(follow.profile).servers
           client = TentClient.new(server_urls, follow.auth_details)
@@ -39,7 +40,7 @@ module TentD
       end
 
       def notify_about(post_id)
-        post = Post.get(post_id)
+        post = Post.first(:id => post_id)
         client = TentClient.new(nil, subject.auth_details)
         permissions = subject.respond_to?(:scopes) && subject.scopes.include?(:read_permissions)
         client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions), :url => subject.notification_url)

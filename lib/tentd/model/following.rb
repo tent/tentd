@@ -7,6 +7,7 @@ module TentD
       include Permissible
       include RandomPublicId
       include Serializable
+      include UserScoped
 
       storage_names[:default] = 'followings'
 

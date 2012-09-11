@@ -5,6 +5,7 @@ module TentD
     class ProfileInfo
       include DataMapper::Resource
       include TypeProperties
+      include UserScoped
 
       TENT_PROFILE_TYPE_URI = 'https://tent.io/types/info/core/v0.1.0'
       TENT_PROFILE_TYPE = TentType.new(TENT_PROFILE_TYPE_URI)
@@ -18,6 +19,7 @@ module TentD
       property :content, Json, :default => {}, :lazy => false
       property :created_at, DateTime
       property :updated_at, DateTime
+
 
       def self.tent_info(entity_url)
         first(:type_base => TENT_PROFILE_TYPE.base, :order => :type_version.desc)
@@ -41,7 +43,7 @@ module TentD
           infos.destroy
           info.type = type
           info.content = data
-          info.save!
+          info.save
         else
           info = create(:type => type, :public => data.delete(:public), :content => data)
         end

@@ -32,5 +32,6 @@ RSpec.configure do |config|
     # DataMapper::Logger.new(STDOUT, :debug)
     DataMapper.setup(:default, ENV['TEST_DATABASE_URL'] || 'postgres://localhost/tent_server_test')
     DataMapper.auto_migrate!
+    TentD::Model::User.current = TentD::Model::User.first_or_create
   end
 end

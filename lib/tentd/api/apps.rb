@@ -52,7 +52,7 @@ module TentD
 
       class GetOne < Middleware
         def action(env)
-          if app = Model::App.get(env.params.app_id)
+          if app = Model::App.first(:id => env.params.app_id)
             env.response = app
           end
           env
@@ -84,7 +84,7 @@ module TentD
             end
           end
 
-          if app = Model::App.get(env.params.app_id)
+          if app = Model::App.first(:id => env.params.app_id)
             env.authorized_scopes << :authorization_token
             authorization = app.authorizations.create_from_params(
               :app_id => env.params.app_id,

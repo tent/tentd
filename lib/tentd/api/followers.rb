@@ -124,7 +124,7 @@ module TentD
 
       class Destroy < Middleware
         def action(env)
-          if (follower = Model::Follower.get(env.params[:follower_id])) && follower.destroy
+          if (follower = Model::Follower.first(:id => env.params[:follower_id])) && follower.destroy
             env.notify_action = 'delete'
             env.notify_instance = follower
             env.response = ''

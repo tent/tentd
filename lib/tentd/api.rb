@@ -12,6 +12,7 @@ module TentD
     autoload :Followers, 'tentd/api/followers'
     autoload :Followings, 'tentd/api/followings'
     autoload :CoreProfileData, 'tentd/api/core_profile_data'
+    autoload :UserLookup, 'tentd/api/user_lookup'
     autoload :AuthenticationLookup, 'tentd/api/authentication_lookup'
     autoload :AuthenticationVerification, 'tentd/api/authentication_verification'
     autoload :AuthenticationFinalize, 'tentd/api/authentication_finalize'
