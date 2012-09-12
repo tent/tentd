@@ -38,6 +38,7 @@ module TentD
       end
 
       def self.update_profile(type, data)
+        data = Hashie::Mash.new(data) unless data.kind_of?(Hashie::Mash)
         type = TentType.new(type)
         if (infos = all(:type_base => type.base)) && (info = infos.pop)
           infos.destroy
