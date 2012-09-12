@@ -83,8 +83,9 @@ module TentD
           app_or_follower.post_types && app_or_follower.post_types.include?(type.base)
         when Follower
           return false unless original
-          (permissions.all(:group_public_id => app_or_follower.groups).to_a +
-           permissions.all(:follower_access_id => app_or_follower.id).to_a).any?
+          q = permissions.all(:follower_access_id => app_or_follower.id)
+          q += permissions.all(:group_public_id => app_or_follower.groups) if app_or_follower.groups.any?
+          q.any?
         end
       end
 
