@@ -44,6 +44,7 @@ module TentD
         client = TentClient.new(nil, subject.auth_details)
         permissions = subject.respond_to?(:scopes) && subject.scopes.include?(:read_permissions)
         client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions), :url => subject.notification_url)
+      rescue Faraday::Error::ConnectionFailed
       end
     end
   end
