@@ -32,6 +32,7 @@ module TentD
           _auths = self.class.all(:follow_url.not => nil, :id.not => id)
           _auths.each { |a| a.update(:scopes => a.scopes - ['follow_ui']) }
         end
+        self.notification_url = nil if notification_url.to_s == ''
       end
 
       def auth_details
