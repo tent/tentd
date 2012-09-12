@@ -361,6 +361,36 @@ describe TentD::API::Posts do
         expect(post.mentions).to eq(post_attributes.mentions)
       end
 
+      it 'should create post with permissions' do
+        TentD::Model::Group.all.destroy
+        TentD::Model::Follower.all.destroy
+        group = Fabricate(:group)
+        follower = Fabricate(:follower)
+
+        post_attributes = p.attributes
+        post_attributes.delete(:id)
+        post_attributes[:type] = p.type.uri
+        post_attributes.merge!(
+          :permissions => {
+            :public => false,
+            :groups => [{ id: group.public_id }],
+            :entities => {
+              follower.entity => true
+            }
+          }
+        )
+
+        expect(lambda {
+          expect(lambda {
+            json_post "/posts", post_attributes, env
+            expect(last_response.status).to eq(200)
+          }).to change(TentD::Model::Post, :count).by(1)
+        }).to change(TentD::Model::Permission, :count).by(2)
+
+        post = TentD::Model::Post.last
+        expect(post.public).to be_false
+      end
+
       it 'should create post with multipart attachments' do
         post_attributes = p.attributes
         post_attributes.delete(:id)

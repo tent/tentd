@@ -146,7 +146,7 @@ module TentD
             permissions.groups.each do |g|
               next unless g.id
               group = Model::Group.first(:public_id => g.id, :fields => [:id])
-              post.permissions << Model::Permission.new(:group => group) if group
+              post.permissions.create(:group => group) if group
             end
           end
 
@@ -155,7 +155,7 @@ module TentD
               next unless visible
               followers = Model::Follower.all(:entity => entity, :fields => [:id])
               followers.each do |follower|
-                post.permissions << Model::Permission.new(:follower => follower)
+                post.permissions.create(:follower_access => follower)
               end
             end
           end
