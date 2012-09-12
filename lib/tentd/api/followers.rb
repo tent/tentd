@@ -46,6 +46,7 @@ module TentD
       class Discover < Middleware
         def action(env)
           return env if env.authorized_scopes.include?(:write_followers)
+          return [406, {}, ['Can not follow self']] if Model::User.current.entity == env.params.data.entity
           client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
           profile, profile_url = client.discover(env.params[:data]['entity']).get_profile
           return [404, {}, ['Not Found']] unless profile

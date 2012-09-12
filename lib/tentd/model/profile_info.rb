@@ -21,8 +21,8 @@ module TentD
       property :updated_at, DateTime
 
 
-      def self.tent_info(entity_url)
-        first(:type_base => TENT_PROFILE_TYPE.base, :order => :type_version.desc)
+      def self.tent_info
+        User.current.profile_infos.first(:type_base => TENT_PROFILE_TYPE.base, :order => :type_version.desc)
       end
 
       def self.get_profile(authorized_scopes = [], current_auth = nil)

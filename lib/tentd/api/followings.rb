@@ -75,7 +75,7 @@ module TentD
           client = ::TentClient.new(env.server_url, :faraday_adapter => TentD.faraday_adapter)
           res = client.follower.create(
             :entity => env['tent.entity'],
-            :licenses => Model::ProfileInfo.tent_info(env['tent.entity']).content['licenses']
+            :licenses => Model::ProfileInfo.tent_info.content['licenses']
           )
           case res.status
           when 200...300

@@ -42,6 +42,7 @@ describe TentD::API::Followers do
   end
 
   describe 'POST /followers' do
+    before { env['tent.entity'] = 'https://smith.example.com' }
     let(:follower_data) do
       {
         "entity" => follower_entity_url,
@@ -57,7 +58,7 @@ describe TentD::API::Followers do
       }
       TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
-      json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com'
+      json_post '/followers', follower_data, env
       http_stubs.verify_stubbed_calls
     end
 
@@ -66,7 +67,7 @@ describe TentD::API::Followers do
       http_stubs.get('/') { [404, {}, 'Not Found'] }
       TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
-      json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com'
+      json_post '/followers', follower_data, env
       expect(last_response.status).to eq(404)
     end
 
@@ -77,8 +78,21 @@ describe TentD::API::Followers do
       }
       TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
-      json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com'
+      json_post '/followers', follower_data, env
       expect(last_response.status).to eq(409)
+    end
+
+    it 'should fail if entity is self' do
+      user = TentD::Model::User.first_or_create
+      info = TentD::Model::ProfileInfo.first_or_create(:type_base => TentD::Model::ProfileInfo::TENT_PROFILE_TYPE.base, :type_version => TentD::Model::ProfileInfo::TENT_PROFILE_TYPE.version, :user_id => user.id)
+      info.update(:content => { :entity => follower_entity_url })
+      TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+      expect(lambda {
+        json_post '/followers', follower_data, env
+        expect(last_response.status).to eq(406)
+      }).to_not change(TentD::Model::Follower, :count)
+      info.destroy
+      user.destroy
     end
 
     context 'when discovery success' do
@@ -92,7 +106,7 @@ describe TentD::API::Followers do
       end
 
       it 'should create follower db record and respond with hmac secret' do
-        expect(lambda { json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com' }).
+        expect(lambda { json_post '/followers', follower_data, env }).
           to change(TentD::Model::Follower, :count).by(1)
         expect(last_response.status).to eq(200)
         follow = TentD::Model::Follower.last
@@ -105,7 +119,7 @@ describe TentD::API::Followers do
 
       it 'should create post (notification)' do
         expect(lambda {
-          json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com'
+          json_post '/followers', follower_data, env
           expect(last_response.status).to eq(200)
         }).to change(TentD::Model::Post, :count).by(1)
 
@@ -116,7 +130,7 @@ describe TentD::API::Followers do
       end
 
       it 'should create notification subscription for each type given' do
-        expect(lambda { json_post '/followers', follower_data, 'tent.entity' => 'smith.example.com' }).
+        expect(lambda { json_post '/followers', follower_data, env }).
           to change(TentD::Model::NotificationSubscription, :count).by(2)
         expect(last_response.status).to eq(200)
         expect(TentD::Model::NotificationSubscription.last.type_view).to eq('meta')
