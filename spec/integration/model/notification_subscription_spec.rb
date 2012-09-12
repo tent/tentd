@@ -26,6 +26,18 @@ describe TentD::Model::NotificationSubscription do
     expect(instance.type.base).to eq('https://tent.io/types/post/photo')
   end
 
+  it 'should create if type is all' do
+    expect(lambda {
+      described_class.create(:type => 'all')
+    }).to change(described_class, :count).by(1)
+  end
+
+  it 'should require type_version unless type_base set to all' do
+    expect(lambda {
+      described_class.create(:type => 'https://tent.io/types/post/photo')
+    }).to_not change(described_class, :count)
+  end
+
   context "notifications" do
     let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
     let(:post) { Fabricate(:post) }
