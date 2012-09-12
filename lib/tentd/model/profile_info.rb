@@ -31,7 +31,7 @@ module TentD
         else
           all(:public => true)
         end.inject({}) do |memo, info|
-          memo[info.type.uri] = info.content
+          memo[info.type.uri] = info.content.merge(:public => !!info.public)
           memo
         end
         h
@@ -42,6 +42,7 @@ module TentD
         if (infos = all(:type_base => type.base)) && (info = infos.pop)
           infos.destroy
           info.type = type
+          info.public = data.delete(:public)
           info.content = data
           info.save
         else
