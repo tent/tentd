@@ -32,6 +32,7 @@ module TentD
           :remote_id => params.id,
           :entity => params.entity,
           :groups => params.groups.to_a.map { |g| g['id'] },
+          :profile => params.profile || {},
           :mac_key_id => params.mac_key_id,
           :mac_key => params.mac_key,
           :mac_algorithm => params.mac_algorithm

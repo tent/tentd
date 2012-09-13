@@ -89,7 +89,7 @@ module TentD
 
       class Create < Middleware
         def action(env)
-          if following = Model::Following.create_from_params(env.follow_data.merge(env.params.data))
+          if following = Model::Following.create_from_params(env.follow_data.merge(env.params.data).merge(:profile => env.profile))
             env.response = following
             env.notify_action = 'create'
             env.notify_instance = following
