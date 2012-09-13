@@ -588,15 +588,21 @@ describe TentD::API::Followings do
   end
 
   describe 'DELETE /followings/:id' do
-    let!(:following) { Fabricate(:following) }
+    let!(:following) { Fabricate(:following, :remote_id => '12345678') }
+    let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
 
     context 'when write_followings scope authorized' do
       before { authorize!(:write_followings) }
 
       context 'when exists' do
         it 'should delete following' do
+          http_stubs.delete("/followers/#{following.remote_id}") { |env|
+            [200, {} ['']]
+          }
+          TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
           expect(lambda { delete "/followings/#{following.public_id}", params, env }).
             to change(TentD::Model::Following, :count).by(-1)
+          http_stubs.verify_stubbed_calls
         end
       end
 

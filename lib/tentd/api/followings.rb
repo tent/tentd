@@ -110,10 +110,15 @@ module TentD
 
       class Destroy < Middleware
         def action(env)
-          if (following = Model::Following.first(:id => env.params.following_id)) && following.destroy
-            env.response = ''
-            env.notify_action = 'delete'
-            env.notify_instance = following
+          if (following = Model::Following.first(:id => env.params.following_id))
+            client = ::TentClient.new(following.core_profile.servers, following.auth_details)
+            res = client.follower.delete(following.remote_id)
+            following.destroy
+            if (200...300).to_a.include?(res.status)
+              env.response = ''
+              env.notify_action = 'delete'
+              env.notify_instance = following
+            end
           end
           env
         end
