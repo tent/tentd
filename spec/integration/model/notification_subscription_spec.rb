@@ -1,10 +1,6 @@
 require 'spec_helper'
 
 describe TentD::Model::NotificationSubscription do
-  def expect_server(env, url)
-    expect(env[:url].to_s).to match(url)
-  end
-
   it 'should parse view from type URI before save' do
     instance = described_class.new(:type => "https://tent.io/types/post/photo/v0.1.x#meta")
     expect(instance.save).to be_true
