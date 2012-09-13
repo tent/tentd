@@ -31,9 +31,10 @@ module TentD
       belongs_to :app, 'TentD::Model::App', :required => false
 
       def self.create(data)
+        data[:mentions] ||= []
         post = super
 
-        if post.mentions != [] && post.original
+        if post.mentions.to_a.any? && post.original
           post.mentions.each do |mention|
             follower = Follower.first(:entity => mention[:entity])
             next if follower && NotificationSubscription.first(:follower => follower, :type_base => post.type.base)
