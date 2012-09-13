@@ -45,6 +45,12 @@ module TentD
             conditions[:id.lt] = env.params.before_id if env.params.before_id
             conditions[:published_at.gt] = Time.at(env.params.since_time.to_i) if env.params.since_time
             conditions[:published_at.lt] = Time.at(env.params.before_time.to_i) if env.params.before_time
+            if env.params.mentioned_post && env.params.mentioned_entity
+              conditions[:mentions] = {
+                :mentioned_post_id => env.params.mentioned_post,
+                :entity => env.params.mentioned_entity
+              }
+            end
             if env.params.post_types
               conditions[:type_base] = env.params.post_types.split(',').map do |type|
                 URI.unescape(type)

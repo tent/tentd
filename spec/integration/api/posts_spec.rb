@@ -192,6 +192,19 @@ describe TentD::API::Posts do
         }
       end
 
+      it "should filter by params[:mentioned_post]" do
+        mentioned_post = Fabricate(:post, :public => post_public?)
+        post = Fabricate(:post, :public => post_public?, :mentions => [
+          Fabricate(:mention, :mentioned_post_id => mentioned_post.public_id, :entity => mentioned_post.entity)
+        ])
+
+        json_get "/posts?mentioned_post=#{mentioned_post.public_id}&mentioned_entity=#{URI.encode_www_form_component(mentioned_post.entity)}", params, env
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(1)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids).to include(post.public_id)
+      end
+
       it "should filter by params[:since_id]" do
         since_post = Fabricate(:post, :public => post_public?)
         post = Fabricate(:post, :public => post_public?)

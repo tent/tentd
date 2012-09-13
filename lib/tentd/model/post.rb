@@ -70,6 +70,16 @@ module TentD
               query_bindings << params.post_types.map { |t| TentType.new(t).base }
             end
           end
+
+          if params.mentioned_post && params.mentioned_entity
+            select = query.shift
+            query.unshift "INNER JOIN mentions ON mentions.post_id = posts.id"
+            query.unshift select
+
+            query << "AND mentions.entity = ? AND mentions.mentioned_post_id = ?"
+            query_bindings << params.mentioned_entity
+            query_bindings << params.mentioned_post
+          end
         end
       end
 
