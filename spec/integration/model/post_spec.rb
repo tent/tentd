@@ -465,7 +465,7 @@ describe TentD::Model::Post do
 
       describe "with private post" do
         let(:post) { Fabricate(:post, :public => false) }
-        let(:follower) { Fabricate(:follower) }
+        let(:follower) { Fabricate(:follower, :groups => [Fabricate(:group).public_id]) }
 
         it "should be true for permission group" do
           TentD::Model::Permission.create(:group_public_id => follower.groups.first, :post_id => post.id)
@@ -479,6 +479,31 @@ describe TentD::Model::Post do
 
         it "should be false if unauthorized" do
           expect(post.can_notify?(follower)).to be_false
+        end
+      end
+    end
+
+    context "with following" do
+      it "should be true for a public post" do
+        expect(post.can_notify?(Fabricate(:following))).to be_true
+      end
+
+      context "with private post" do
+        let(:post) { Fabricate(:post, :public => false) }
+        let(:following) { Fabricate(:following, :groups => [Fabricate(:group).public_id]) }
+
+        it "should be true for permission group" do
+          Fabricate(:permission, :group_public_id => following.groups.first, :post_id => post.id)
+          expect(post.can_notify?(following)).to be_true
+        end
+
+        it "should be true for explicit permission" do
+          Fabricate(:permission, :following => following, :post_id => post.id)
+          expect(post.can_notify?(following)).to be_true
+        end
+
+        it "should be false if unauthorized" do
+          expect(post.can_notify?(following)).to be_false
         end
       end
     end

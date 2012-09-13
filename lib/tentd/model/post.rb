@@ -75,17 +75,24 @@ module TentD
         public_attributes + [:known_entity, :original, :public, :mentions]
       end
 
-      def can_notify?(app_or_follower)
+      def can_notify?(app_or_follow)
         return true if public
-        case app_or_follower
+        case app_or_follow
         when AppAuthorization
-          app_or_follower.scopes && app_or_follower.scopes.map(&:to_sym).include?(:read_posts) ||
-          app_or_follower.post_types && app_or_follower.post_types.include?(type.base)
+          app_or_follow.scopes && app_or_follow.scopes.map(&:to_sym).include?(:read_posts) ||
+          app_or_follow.post_types && app_or_follow.post_types.include?(type.base)
         when Follower
           return false unless original
-          q = permissions.all(:follower_access_id => app_or_follower.id)
-          q += permissions.all(:group_public_id => app_or_follower.groups) if app_or_follower.groups.any?
+          q = permissions.all(:follower_access_id => app_or_follow.id)
+          q += permissions.all(:group_public_id => app_or_follow.groups) if app_or_follow.groups.any?
           q.any?
+        when Following
+          return false unless original
+          q = permissions.all(:following => app_or_follow)
+          q += permissions.all(:group_public_id => app_or_follow.groups) if app_or_follow.groups.any?
+          q.any?
+        else
+          false
         end
       end
 
