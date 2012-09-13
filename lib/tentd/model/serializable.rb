@@ -22,7 +22,7 @@ module TentD
         end
 
         if options[:groups] && respond_to?(:groups)
-          attributes[:groups] = groups.uniq
+          attributes[:groups] = groups.to_a.uniq
         end
 
         attributes
