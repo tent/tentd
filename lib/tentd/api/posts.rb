@@ -157,6 +157,10 @@ module TentD
               followers.each do |follower|
                 post.permissions.create(:follower_access => follower)
               end
+              followings = Model::Following.all(:entity => entity, :fields => [:id])
+              followings.each do |following|
+                post.permissions.create(:following => following)
+              end
             end
           end
         end

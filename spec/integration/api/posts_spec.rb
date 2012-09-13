@@ -364,8 +364,10 @@ describe TentD::API::Posts do
       it 'should create post with permissions' do
         TentD::Model::Group.all.destroy
         TentD::Model::Follower.all.destroy
+        TentD::Model::Following.all.destroy
         group = Fabricate(:group)
-        follower = Fabricate(:follower)
+        follower = Fabricate(:follower, :entity => 'https://john321.example.org')
+        following = Fabricate(:following, :entity => 'https://smith123.example.com')
 
         post_attributes = p.attributes
         post_attributes.delete(:id)
@@ -375,7 +377,8 @@ describe TentD::API::Posts do
             :public => false,
             :groups => [{ id: group.public_id }],
             :entities => {
-              follower.entity => true
+              follower.entity => true,
+              following.entity => true
             }
           }
         )
@@ -385,7 +388,7 @@ describe TentD::API::Posts do
             json_post "/posts", post_attributes, env
             expect(last_response.status).to eq(200)
           }).to change(TentD::Model::Post, :count).by(1)
-        }).to change(TentD::Model::Permission, :count).by(2)
+        }).to change(TentD::Model::Permission, :count).by(3)
 
         post = TentD::Model::Post.last
         expect(post.public).to be_false
