@@ -354,6 +354,7 @@ describe TentD::Model::Post do
         :type => post.type.uri,
         :licenses => post.licenses,
         :content => post.content,
+        :mentions => [],
         :app => { :url => post.app_url, :name => post.app_name },
         :attachments => [],
         :permissions => { :public => post.public },

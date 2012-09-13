@@ -345,11 +345,12 @@ describe TentD::API::Posts do
         post_attributes = Hashie::Mash.new(p.attributes)
         post_attributes.delete(:id)
         post_attributes[:type] = p.type.uri
+        mentions = [
+          { :entity => "https://johndoe.example.com" },
+          { :entity => "https://alexsmith.example.org", :post => "post-uid" }
+        ]
         post_attributes.merge!(
-          :mentions => [
-            { :entity => "https://johndoe.example.com" },
-            { :entity => "https://alexsmith.example.org", :post => "post-uid" }
-          ]
+          :mentions => mentions
         )
 
         expect(lambda {
@@ -358,7 +359,7 @@ describe TentD::API::Posts do
         }).to change(TentD::Model::Post, :count).by(1)
 
         post = TentD::Model::Post.last
-        expect(post.mentions).to eq(post_attributes.mentions)
+        expect(post.as_json[:mentions]).to eq(mentions)
       end
 
       it 'should create post with permissions' do

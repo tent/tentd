@@ -11,6 +11,7 @@ module TentD
     require 'tentd/model/random_public_id'
     require 'tentd/model/type_properties'
     require 'tentd/model/user_scoped'
+    require 'tentd/model/mention'
     require 'tentd/model/post'
     require 'tentd/model/post_attachment'
     require 'tentd/model/follower'

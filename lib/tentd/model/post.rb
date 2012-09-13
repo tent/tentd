@@ -17,7 +17,6 @@ module TentD
       property :public, Boolean, :default => false
       property :licenses, Array, :default => []
       property :content, Json, :default => {}
-      property :mentions, Json, :default => [], :lazy => false
       property :published_at, DateTime, :default => lambda { |*args| Time.now }
       property :received_at, DateTime, :default => lambda { |*args| Time.now }
       property :updated_at, DateTime
@@ -28,18 +27,24 @@ module TentD
 
       has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy
       has n, :attachments, 'TentD::Model::PostAttachment', :constraint => :destroy
+      has n, :mentions, 'TentD::Model::Mention', :constraint => :destroy
       belongs_to :app, 'TentD::Model::App', :required => false
 
       def self.create(data)
-        data[:mentions] ||= []
+        mentions = data.delete(:mentions)
         post = super
+
+        mentions.to_a.each do |mention|
+          next unless mention[:entity]
+          post.mentions.create(:entity => mention[:entity], :mentioned_post_id => mention[:post])
+        end
 
         if post.mentions.to_a.any? && post.original
           post.mentions.each do |mention|
-            follower = Follower.first(:entity => mention[:entity])
+            follower = Follower.first(:entity => mention.entity)
             next if follower && NotificationSubscription.first(:follower => follower, :type_base => post.type.base)
 
-            Notifications::NOTIFY_ENTITY_QUEUE << { :entity => mention[:entity], :post_id => post.id }
+            Notifications::NOTIFY_ENTITY_QUEUE << { :entity => mention.entity, :post_id => post.id }
           end
         end
 
@@ -102,6 +107,12 @@ module TentD
         attributes[:type] = type.uri
         attributes[:app] = { :url => attributes.delete(:app_url), :name => attributes.delete(:app_name) }
         attributes[:attachments] = attachments.all.map { |a| a.as_json }
+
+        attributes[:mentions] = mentions.map do |mention|
+          h = { :entity => mention.entity }
+          h[:post] = mention.mentioned_post_id if mention.mentioned_post_id
+          h
+        end
 
         if options[:app]
           attributes[:known_entity] = known_entity
