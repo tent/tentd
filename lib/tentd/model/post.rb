@@ -80,6 +80,8 @@ module TentD
             query_bindings << params.mentioned_entity
             query_bindings << params.mentioned_post
           end
+
+          query << "ORDER BY posts.published_at DESC"
         end
       end
 

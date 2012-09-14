@@ -205,6 +205,18 @@ describe TentD::API::Posts do
         expect(body_ids).to include(post.public_id)
       end
 
+      it "should order by published_at desc" do
+        TentD::Model::Post.all.destroy
+        first_post = Fabricate(:post, :public => post_public?, :published_at => Time.at(Time.now.to_i-86400)) # 1.day.ago
+        latest_post = Fabricate(:post, :public => post_public?, :published_at => Time.at(Time.now.to_i+86400)) # 1.day.from_now
+
+        json_get "/posts", params, env
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(2)
+        expect(body.first['id']).to eq(latest_post.public_id)
+        expect(body.last['id']).to eq(first_post.public_id)
+      end
+
       it "should filter by params[:since_id]" do
         since_post = Fabricate(:post, :public => post_public?)
         post = Fabricate(:post, :public => post_public?)
@@ -217,7 +229,7 @@ describe TentD::API::Posts do
       end
 
       it "should filter by params[:before_id]" do
-        TentD::Model::Post.all.destroy!
+        TentD::Model::Post.all.destroy
         post = Fabricate(:post, :public => post_public?)
         before_post = Fabricate(:post, :public => post_public?)
 

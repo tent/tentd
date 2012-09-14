@@ -66,6 +66,7 @@ module TentD
             else
               conditions[:limit] = TentD::API::PER_PAGE
             end
+            conditions[:order] = :published_at.desc
             if conditions[:limit] == 0
               env.response = []
             else

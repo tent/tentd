@@ -119,6 +119,19 @@ describe TentD::Model::Post do
         end
       end
 
+      it 'should order by published_at desc' do
+        TentD::Model::Post.all.destroy
+        latest_post = Fabricate(:post, :public => !create_permissions, :published_at => Time.at(Time.now.to_i+86400)) # 1.day.from_now
+        first_post = Fabricate(:post, :public => !create_permissions, :published_at => Time.at(Time.now.to_i-86400)) # 1.day.ago
+
+        if create_permissions
+          [first_post, latest_post].each { |post| @authorize_post.call(post) }
+        end
+
+        returned_post = described_class.fetch_with_permissions(params, current_auth)
+        expect(returned_post.map(&:public_id)).to eq([latest_post.public_id, first_post.public_id])
+      end
+
       context '[:since_id]' do
         it 'should only return posts with ids > :since_id' do
           TentD::Model::Post.all.destroy!
