@@ -87,6 +87,7 @@ module TentD
           set_publicity(env.params.data)
           parse_times(env.params.data)
           data = env.params[:data].slice(*whitelisted_attributes(env))
+          data.public_id = env.params.data.id if env.params.data.id
           post = Model::Post.create(data)
           assign_permissions(post, env.params.data.permissions)
           env['response'] = post

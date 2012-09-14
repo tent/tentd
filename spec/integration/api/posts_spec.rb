@@ -464,11 +464,13 @@ describe TentD::API::Posts do
 
       it 'should allow a post from the follower' do
         post_attributes = p.attributes
-        post_attributes.delete(:id)
+        post_attributes[:id] = rand(36 ** 6).to_s(36)
         post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes, env
         body = JSON.parse(last_response.body)
-        expect(body['id']).to eq(TentD::Model::Post.last.public_id)
+        post = TentD::Model::Post.last
+        expect(body['id']).to eq(post.public_id)
+        expect(post.public_id).to eq(post_attributes[:id])
       end
 
       it "should not allow a post that isn't from the follower" do
@@ -493,11 +495,13 @@ describe TentD::API::Posts do
 
       it 'should allow a post by an entity that is not a following' do
         post_attributes = p.attributes
-        post_attributes.delete(:id)
+        post_attributes[:id] = rand(36 ** 6).to_s(36)
         post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes.merge(:entity => 'example.org'), env
         body = JSON.parse(last_response.body)
-        expect(body['id']).to eq(TentD::Model::Post.last.public_id)
+        post = TentD::Model::Post.last
+        expect(body['id']).to eq(post.public_id)
+        expect(post.public_id).to eq(post_attributes[:id])
       end
     end
   end
