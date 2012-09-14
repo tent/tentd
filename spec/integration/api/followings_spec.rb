@@ -45,6 +45,19 @@ describe TentD::API::Followings do
         expect(body_ids).to eq([last_following.public_id, first_following.public_id])
       end
 
+      context '[:entity]' do
+        it 'should only return followings with matching entity uri' do
+          other = Fabricate(:following)
+          following = Fabricate(:following, :public => true, :entity => 'https://123smith.example.org')
+
+          json_get "/followings?entity=#{URI.encode_www_form_component(following.entity)}"
+          expect(last_response.status).to eq(200)
+          body = JSON.parse(last_response.body)
+          expect(body.size).to eq(1)
+          expect(body.first['id']).to eq(following.public_id)
+        end
+      end
+
       context '[:since_id]' do
         it 'should only return followings with id > :since_id' do
           since_following = Fabricate(:following, :public => !create_permissions?)

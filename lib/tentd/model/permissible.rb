@@ -93,6 +93,11 @@ module TentD
             query_bindings << params.before_id.to_i
           end
 
+          if params.entity
+            query_conditions << "#{table_name}.entity IN ?"
+            query_bindings << Array(params.entity)
+          end
+
           if block_given?
             yield params, query_conditions, query_bindings
           end
@@ -122,6 +127,11 @@ module TentD
             if params.before_id
               query << "AND #{table_name}.id < ?"
               query_bindings << params.before_id.to_i
+            end
+
+            if params.entity
+              query << "AND #{table_name}.entity IN ?"
+              query_bindings << Array(params.entity)
             end
 
             if block_given?
