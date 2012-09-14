@@ -23,8 +23,71 @@ describe TentD::API::Groups do
       it 'should return all groups' do
         Fabricate(:group, :name => 'chunky-bacon')
 
-        get '/groups', params, env
-        expect(JSON.parse(last_response.body).size).to eq(TentD::Model::Group.count)
+        with_constants "TentD::API::PER_PAGE" => TentD::Model::Group.count + 1 do
+          json_get '/groups', params, env
+          expect(JSON.parse(last_response.body).size).to eq(TentD::Model::Group.count)
+        end
+      end
+
+      it 'should order by id desc' do
+        TentD::Model::Group.all.destroy
+        first_group = Fabricate(:group)
+        last_group = Fabricate(:group)
+
+        json_get '/groups', params, env
+        body = JSON.parse(last_response.body)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids).to eq([last_group.public_id, first_group.public_id])
+      end
+
+      context 'with params' do
+        it 'should filter by before_id' do
+          TentD::Model::Group.all.destroy
+          group = Fabricate(:group)
+          before_group = Fabricate(:group)
+
+          params[:before_id] = before_group.public_id
+          json_get '/groups', params, env
+          expect(last_response.status).to eq(200)
+
+          body = JSON.parse(last_response.body)
+          body_ids = body.map { |i| i['id'] }
+          expect(body_ids).to eq([group.public_id])
+        end
+
+        it 'should filter by since_id' do
+          since_group = Fabricate(:group)
+          group = Fabricate(:group)
+
+          params[:since_id] = since_group.public_id
+          json_get '/groups', params, env
+          expect(last_response.status).to eq(200)
+
+          body = JSON.parse(last_response.body)
+          body_ids = body.map { |i| i['id'] }
+          expect(body_ids).to eq([group.public_id])
+        end
+
+        it 'should support limit' do
+          2.times { Fabricate(:group) }
+          params[:limit] = 1
+
+          json_get '/groups', params, env
+          expect(last_response.status).to eq(200)
+
+          body = JSON.parse(last_response.body)
+          expect(body.size).to eq(1)
+        end
+
+        it 'should never return more than TentD::API::MAX_PER_PAGE groups' do
+          Fabricate(:group)
+          with_constants "TentD::API::MAX_PER_PAGE" => 0 do
+            params[:limit] = 1
+            json_get '/groups', params, env
+            expect(last_response.status).to eq(200)
+            expect(JSON.parse(last_response.body).size).to eq(0)
+          end
+        end
       end
     end
 

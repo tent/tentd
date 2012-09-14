@@ -19,11 +19,13 @@ module TentD
 
       class GetActualId < Middleware
         def action(env)
-          if env.params.group_id
-            if g = Model::Group.first(:public_id => env.params.group_id)
-              env.params.group_id = g.id
-            else
-              env.params.group_id = nil
+          [:group_id, :before_id, :since_id].each do |id_key|
+            if env.params[id_key]
+              if g = Model::Group.first(:public_id => env.params[id_key])
+                env.params[id_key] = g.id
+              else
+                env.params[id_key] = nil
+              end
             end
           end
           env
@@ -32,7 +34,17 @@ module TentD
 
       class GetAll < Middleware
         def action(env)
-          env['response'] = Model::Group.all
+          conditions = {}
+          conditions[:id.lt] = env.params.before_id if env.params.before_id
+          conditions[:id.gt] = env.params.since_id if env.params.since_id
+          conditions[:limit] = [env.params.limit.to_i, MAX_PER_PAGE].min if env.params.limit
+          conditions[:limit] ||= PER_PAGE
+          conditions[:order] = :id.desc
+          if conditions[:limit] == 0
+            env.response = []
+          else
+            env.response = Model::Group.all(conditions)
+          end
           env
         end
       end
@@ -98,6 +110,7 @@ module TentD
 
       get '/groups' do |b|
         b.use AuthorizeRead
+        b.use GetActualId
         b.use GetAll
       end
 
