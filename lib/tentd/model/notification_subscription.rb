@@ -27,6 +27,7 @@ module TentD
 
       def self.notify_entity(entity, post_id)
         post = Post.first(:id => post_id)
+        return if post.entity == entity
         if follow = Follower.first(:entity => entity) || Following.first(:entity => entity)
           return unless post.can_notify?(follow)
           server_urls = API::CoreProfileData.new(follow.profile).servers
