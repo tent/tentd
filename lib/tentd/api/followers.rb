@@ -5,10 +5,12 @@ module TentD
 
       class GetActualId < Middleware
         def action(env)
-          if env.params.follower_id && (follower = Model::Follower.first(:public_id => env.params.follower_id, :fields => [:id]))
-            env.params.follower_id = follower.id
-          else
-            env.params.follower_id = nil
+          [:follower_id, :before_id, :since_id].each do |id_key|
+            if env.params[id_key] && (f = Model::Follower.first(:public_id => env.params[id_key], :fields => [:id]))
+              env.params[id_key] = f.id
+            else
+              env.params[id_key] = nil
+            end
           end
           env
         end
@@ -166,6 +168,7 @@ module TentD
 
       get '/followers' do |b|
         b.use AuthorizeReadMany
+        b.use GetActualId
         b.use GetMany
       end
 
