@@ -102,6 +102,8 @@ module TentD
 
           query << "WHERE #{query_conditions.join(' AND ')}"
 
+          query << "ORDER BY id DESC" unless query.find { |q| q =~ /^order/i }
+
           query << "LIMIT ?"
           query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min
 
@@ -125,6 +127,8 @@ module TentD
             if block_given?
               yield params, query, query_bindings
             end
+
+            query << "ORDER BY id DESC" unless query.find { |q| q =~ /^order/i }
 
             query << "LIMIT ?"
             query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min

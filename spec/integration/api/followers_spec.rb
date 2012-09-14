@@ -193,6 +193,17 @@ describe TentD::API::Followers do
 
   describe 'GET /followers' do
     authorized_permissible = proc do
+      it 'should order id desc' do
+        TentD::Model::Follower.all.destroy
+        first_follower = Fabricate(:follower, :public => true)
+        last_follower = Fabricate(:follower, :public => true)
+
+        json_get "/followers", params, env
+        body = JSON.parse(last_response.body)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids).to eq([last_follower.public_id, first_follower.public_id])
+      end
+
       it 'should return a list of followers' do
         TentD::Model::Follower.all.destroy!
         followers = 2.times.map { Fabricate(:follower, :public => true) }

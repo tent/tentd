@@ -34,6 +34,17 @@ describe TentD::API::Followings do
     end
 
     with_params = proc do
+      it 'should order id desc' do
+        TentD::Model::Following.all.destroy
+        first_following = Fabricate(:following, :public => true)
+        last_following = Fabricate(:following, :public => true)
+
+        json_get "/followings", params, env
+        body = JSON.parse(last_response.body)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids).to eq([last_following.public_id, first_following.public_id])
+      end
+
       context '[:since_id]' do
         it 'should only return followings with id > :since_id' do
           since_following = Fabricate(:following, :public => !create_permissions?)
