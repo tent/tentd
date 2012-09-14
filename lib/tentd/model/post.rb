@@ -13,7 +13,7 @@ module TentD
       storage_names[:default] = "posts"
 
       property :id, Serial
-      property :entity, Text, :lazy => false
+      property :entity, Text, :lazy => false, :unique_index => :upublic_id
       property :public, Boolean, :default => false
       property :licenses, Array, :default => []
       property :content, Json, :default => {}

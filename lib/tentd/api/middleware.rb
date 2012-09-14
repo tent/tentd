@@ -15,7 +15,7 @@ module TentD
         response.kind_of?(Hash) ? @app.call(response) : response
       rescue Unauthorized
         [403, {}, ['Unauthorized']]
-      rescue DataMapper::SaveFailureError
+      rescue DataMapper::SaveFailureError, DataObjects::IntegrityError
         [422, {}, ['Invalid Attributes']]
       rescue
         raise if ENV['RACK_ENV'] == 'test'
