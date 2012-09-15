@@ -8,7 +8,7 @@ module DataMapper
 
       def load(value)
         return value if value.kind_of? ::Array
-        value[1..-2].split(',').map { |v| v[1..-2] } unless value.nil?
+        value[1..-2].split(',').map { |v| v[0,1] == '"' ? v[1..-2] : v  } unless value.nil?
       end
 
       def dump(value)
