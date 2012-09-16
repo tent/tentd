@@ -154,13 +154,6 @@ describe TentD::API::Posts do
     end
   end
 
-  # Params:
-  # - post_types
-  # - since_id
-  # - before_id
-  # - since_time
-  # - before_time
-  # - limit
   describe 'GET /posts' do
     let(:post_public?) { true }
     with_params = proc do
