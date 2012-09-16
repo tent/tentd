@@ -8,6 +8,7 @@ module TentD
       property :id, Serial
 
       has n, :posts, 'TentD::Model::Post'
+      has n, :post_versions, 'TentD::Model::PostVersion'
       has n, :apps, 'TentD::Model::App'
       has n, :followings, 'TentD::Model::Following'
       has n, :followers, 'TentD::Model::Follower'

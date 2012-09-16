@@ -30,6 +30,20 @@ module TentD
       has n, :mentions, 'TentD::Model::Mention', :constraint => :destroy
       belongs_to :app, 'TentD::Model::App', :required => false
 
+      has n, :versions, 'TentD::Model::PostVersion', :constraint => :destroy
+
+      after :create do |post|
+        attrs = post.attributes
+        attrs.delete(:id)
+        latest = post.versions.all(:order => :version.desc, :fields => [:version]).first
+        attrs[:version] = latest ? latest.version + 1 : 1
+        version = post.versions.create(attrs)
+      end
+
+      def latest_version
+        versions.all(:order => :version.desc).first
+      end
+
       def self.create(data)
         mentions = data.delete(:mentions)
         post = super

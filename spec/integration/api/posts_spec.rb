@@ -446,7 +446,7 @@ describe TentD::API::Posts do
           expect(lambda {
             multipart_post('/posts', post_attributes, attachments, env)
           }).to change(TentD::Model::Post, :count).by(1)
-        }).to change(TentD::Model::PostAttachment, :count).by(4)
+        }).to change(TentD::Model::PostAttachment, :count).by(8) # 4 on post, 4 on post_version
         body = JSON.parse(last_response.body)
         expect(body['id']).to eq(TentD::Model::Post.last.public_id)
       end
