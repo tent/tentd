@@ -363,6 +363,7 @@ describe TentD::Model::Post do
     let(:public_attributes) do
       {
         :id => post.public_id,
+        :version => post.latest_version(:fields => [:version]).version,
         :entity => post.entity,
         :type => post.type.uri,
         :licenses => post.licenses,
