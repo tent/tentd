@@ -280,6 +280,7 @@ module TentD
         b.use GetActualId
         b.use Update
         b.use CreateAttachments
+        b.use Notify
       end
 
       delete '/posts/:post_id' do |b|
