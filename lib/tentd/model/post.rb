@@ -32,7 +32,9 @@ module TentD
 
       has n, :versions, 'TentD::Model::PostVersion', :constraint => :destroy
 
-      after :create do |post|
+      after :create, :create_version!
+
+      def create_version!(post = self)
         attrs = post.attributes
         attrs.delete(:id)
         latest = post.versions.all(:order => :version.desc, :fields => [:version]).first
@@ -40,17 +42,37 @@ module TentD
         version = post.versions.create(attrs)
       end
 
-      def latest_version
-        versions.all(:order => :version.desc).first
+      def latest_version(options = {})
+        versions.all({ :order => :version.desc }.merge(options)).first
+      end
+
+      def update(data)
+        mentions = data.delete(:mentions)
+        last_version = latest_version(:fields => [:id])
+        res = super(data)
+
+        create_version! # after update hook doe not fire
+
+        current_version = latest_version(:fields => [:id])
+
+        if mentions.to_a.any?
+          Mention.all(:post_id => self.id).update(:post_id => nil, :post_version_id => last_version.id)
+          mentions.each do |mention|
+            next unless mention[:entity]
+            self.mentions.create(:entity => mention[:entity], :mentioned_post_id => mention[:post], :post_version_id => current_version.id)
+          end
+        end
+
+        res
       end
 
       def self.create(data)
         mentions = data.delete(:mentions)
-        post = super
+        post = super(data)
 
         mentions.to_a.each do |mention|
           next unless mention[:entity]
-          post.mentions.create(:entity => mention[:entity], :mentioned_post_id => mention[:post])
+          post.mentions.create(:entity => mention[:entity], :mentioned_post_id => mention[:post], :post_version_id => post.latest_version(:fields => [:id]).id)
         end
 
         if post.mentions.to_a.any? && post.original

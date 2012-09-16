@@ -369,9 +369,11 @@ describe TentD::API::Posts do
         post_attributes = p.attributes
         post_attributes[:type] = p.type.uri
         expect(lambda {
-          json_post "/posts", post_attributes, env
-          expect(last_response.status).to eq(200)
-        }).to change(TentD::Model::Post, :count).by(1)
+          expect(lambda {
+            json_post "/posts", post_attributes, env
+            expect(last_response.status).to eq(200)
+          }).to change(TentD::Model::Post, :count).by(1)
+        }).to change(TentD::Model::PostVersion, :count).by(1)
         post = TentD::Model::Post.last
         expect(post.app_name).to eq(application.name)
         expect(post.app_url).to eq(application.url)
@@ -399,6 +401,7 @@ describe TentD::API::Posts do
 
         post = TentD::Model::Post.last
         expect(post.as_json[:mentions]).to eq(mentions)
+        expect(post.mentions.map(&:id)).to eq(post.latest_version.mentions.map(&:id))
       end
 
       it 'should create post with permissions' do
@@ -444,11 +447,16 @@ describe TentD::API::Posts do
                         :bar => { :filename => 'bar.html', :content_type => 'text/html', :content => '54321' } }
         expect(lambda {
           expect(lambda {
-            multipart_post('/posts', post_attributes, attachments, env)
-          }).to change(TentD::Model::Post, :count).by(1)
-        }).to change(TentD::Model::PostAttachment, :count).by(8) # 4 on post, 4 on post_version
+            expect(lambda {
+              multipart_post('/posts', post_attributes, attachments, env)
+            }).to change(TentD::Model::Post, :count).by(1)
+          }).to change(TentD::Model::PostVersion, :count).by(1)
+        }).to change(TentD::Model::PostAttachment, :count).by(4)
         body = JSON.parse(last_response.body)
         expect(body['id']).to eq(TentD::Model::Post.last.public_id)
+
+        post = TentD::Model::Post.last
+        expect(post.attachments.map(&:id)).to eq(post.latest_version.attachments.map(&:id))
       end
     end
 
@@ -570,6 +578,98 @@ describe TentD::API::Posts do
     it "should 404 if the post doesn't exist" do
       get "/posts/asdf/attachments/asdf"
       expect(last_response.status).to eq(404)
+    end
+  end
+
+  describe 'PUT /posts/:post_id' do
+    let(:post) { Fabricate(:post) }
+
+    context 'when authorized' do
+      before { authorize!(:write_posts) }
+
+      it 'should update post' do
+        Fabricate(:post_attachment, :post => post)
+        Fabricate(:mention, :post => post)
+
+        post_attributes = {
+          :content => {
+            "text" => "Foo Bar Baz"
+          },
+          :entity => "#{post.entity}/foo/bar",
+          :public => !post.public,
+          :licenses => post.licenses.to_a + ['https://license.example.org']
+        }
+
+        expect(lambda {
+          expect(lambda {
+            expect(lambda {
+              json_put "/posts/#{post.public_id}", post_attributes, env
+              expect(last_response.status).to eq(200)
+
+              post.reload
+              expect(post.content).to eq(post_attributes[:content])
+              expect(post.licenses).to eq(post_attributes[:licenses])
+              expect(post.public).to_not eq(post_attributes[:public])
+              expect(post.entity).to_not eq(post_attributes[:entity])
+            }).to change(post.versions, :count).by(1)
+          }).to_not change(post.mentions, :count)
+        }).to_not change(post.attachments, :count)
+      end
+
+      it 'should update mentions' do
+        existing_mentions = 2.times.map { Fabricate(:mention, :post => post) }
+        post_attributes = {
+          :mentions => [
+            { :entity => "https://johndoe.example.com" },
+            { :entity => "https://alexsmith.example.org", :post => "post-uid" }
+          ]
+        }
+
+        expect(lambda {
+          expect(lambda {
+            json_put "/posts/#{post.public_id}", post_attributes, env
+            expect(last_response.status).to eq(200)
+
+            existing_mentions.each do |m|
+              m.reload
+              expect(m.post_version_id).to_not be_nil
+              expect(m.post_id).to be_nil
+            end
+          }).to change(TentD::Model::Mention, :count).by(2)
+        }).to change(post.versions, :count).by(1)
+      end
+
+      it 'should update attachments' do
+        existing_attachments = 2.times.map { Fabricate(:post_attachment, :post => post) }
+        attachments = { :foo => [{ :filename => 'a', :content_type => 'text/plain', :content => 'asdf' },
+                                 { :filename => 'a', :content_type => 'application/json', :content => 'asdf123' },
+                                 { :filename => 'b', :content_type => 'text/plain', :content => '1234' }],
+                        :bar => { :filename => 'bar.html', :content_type => 'text/html', :content => '54321' } }
+        expect(lambda {
+          expect(lambda {
+            expect(lambda {
+              multipart_put("/posts/#{post.public_id}", {}, attachments, env)
+              expect(last_response.status).to eq(200)
+
+              existing_attachments.each do |a|
+                a.reload
+                expect(a.post_version_id).to_not be_nil
+                expect(a.post_id).to be_nil
+              end
+            }).to change(TentD::Model::Post, :count).by(0)
+          }).to change(TentD::Model::PostVersion, :count).by(1)
+        }).to change(TentD::Model::PostAttachment, :count).by(4)
+
+        post.reload
+        expect(post.attachments.map(&:id)).to eq(post.latest_version.attachments.map(&:id))
+      end
+    end
+
+    context 'when not authorized' do
+      it 'should return 403' do
+        json_put "/posts/#{post.public_id}", params, env
+        expect(last_response.status).to eq(403)
+      end
     end
   end
 end

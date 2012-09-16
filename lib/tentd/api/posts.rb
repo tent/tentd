@@ -175,6 +175,23 @@ module TentD
         end
       end
 
+      class Update < Middleware
+        def action(env)
+          authorize_env!(env, :write_posts)
+          if post = TentD::Model::Post.first(:id => env.params.post_id)
+            version = post.latest_version(:fields => [:id])
+            post.update(env.params.data.slice(:content, :licenses, :mentions))
+
+            if env.params.attachments.kind_of?(Array)
+              Model::PostAttachment.all(:post_id => post.id).update(:post_id => nil, :post_version_id => version.id)
+            end
+
+            env.response = post
+          end
+          env
+        end
+      end
+
       class Destroy < Middleware
         def action(env)
           authorize_env!(env, :write_posts)
@@ -190,8 +207,12 @@ module TentD
       class CreateAttachments < Middleware
         def action(env)
           return env unless env.params.attachments.kind_of?(Array) && env.response
+          post = env.response
+          version = post.latest_version(:fields => [:id])
           env.params.attachments.each do |attachment|
-            Model::PostAttachment.create(:post => env.response, :type => attachment.type,
+            Model::PostAttachment.create(:post => post,
+                                         :post_version => version,
+                                         :type => attachment.type,
                                          :category => attachment.name, :name => attachment.filename,
                                          :data => Base64.encode64(attachment.tempfile.read), :size => attachment.tempfile.size)
           end
@@ -253,6 +274,12 @@ module TentD
         b.use CreatePost
         b.use CreateAttachments
         b.use Notify
+      end
+
+      put '/posts/:post_id' do |b|
+        b.use GetActualId
+        b.use Update
+        b.use CreateAttachments
       end
 
       delete '/posts/:post_id' do |b|

@@ -14,16 +14,6 @@ module TentD
 
       validates_presence_of :post_id, :if => lambda { |m| m.post_version_id.nil? }
       validates_presence_of :post_version_id, :if => lambda { |m| m.post_id.nil? }
-
-      after :create do |mention|
-        if mention.post
-          attrs = mention.attributes
-          attrs.delete(:id)
-          attrs[:post_version] = mention.post.versions.all(:order => :version.desc, :fields => [:id]).first
-          attrs.delete(:post_id)
-          Mention.create(attrs)
-        end
-      end
     end
   end
 end

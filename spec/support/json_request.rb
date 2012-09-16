@@ -23,6 +23,12 @@ module JsonRequest
                        'HTTP_ACCEPT' =>  TentD::API::MEDIA_TYPE }.merge(rack_env)
   end
 
+  def multipart_put(path, json, parts, rack_env = {})
+    body = build_json_part(json) + build_parts(parts) + "--#{Rack::Multipart::MULTIPART_BOUNDARY}--\r"
+    put path, body, { 'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Multipart::MULTIPART_BOUNDARY}",
+                       'HTTP_ACCEPT' =>  TentD::API::MEDIA_TYPE }.merge(rack_env)
+  end
+
   private
 
   def build_json_part(json)
