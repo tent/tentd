@@ -26,7 +26,7 @@ module TentD
         Thread.current[:user]
       end
 
-      def entity
+      def profile_entity
         info = profile_infos.first(:type_base => ProfileInfo::TENT_PROFILE_TYPE.base, :order => :type_version.desc)
         info.content['entity'] if info
       end
