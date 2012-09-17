@@ -1,6 +1,3 @@
-require 'girl_friday'
-require 'tentd/notifications'
-
 module TentD
   class Notifications
     def self.trigger(msg)
