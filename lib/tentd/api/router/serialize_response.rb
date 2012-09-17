@@ -28,7 +28,8 @@ module TentD
             :groups => env.authorized_scopes.include?(:read_groups),
             :mac => env.authorized_scopes.include?(:read_secrets),
             :self => env.authorized_scopes.include?(:self),
-            :auth_token => env.authorized_scopes.include?(:authorization_token)
+            :auth_token => env.authorized_scopes.include?(:authorization_token),
+            :view => env.params.view
           }
         end
       end

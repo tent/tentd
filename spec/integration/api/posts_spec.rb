@@ -59,10 +59,39 @@ describe TentD::API::Posts do
         end
 
         context 'when version does not exist' do
-          xit 'should return 404' do
+          it 'should return 404' do
             json_get "/posts/#{post.public_id}?version=12", params, env
             expect(last_response.status).to eq(404)
           end
+        end
+      end
+    end
+
+    with_view = proc do
+      context 'with params[:view] specified' do
+        it 'should return post using specified view' do
+          post.update(
+            :views => {
+              'mini' => {
+                'content' => ['mini_text', 'title']
+              }
+            },
+            :content => {
+              'text' => 'The quick brown fox jumps over the lazy dog',
+              'mini_text' => 'The quick brown fox...',
+              'title' => 'Quick Fox'
+            }
+          )
+
+          json_get "/posts/#{post.public_id}?view=mini", params, env
+          expect(last_response.status).to eq(200)
+
+          body = JSON.parse(last_response.body)
+          expect(body['id']).to eq(post.public_id)
+          expect(body['content']).to eq({
+            'mini_text' => 'The quick brown fox...',
+            'title' => 'Quick Fox'
+          })
         end
       end
     end
@@ -99,6 +128,7 @@ describe TentD::API::Posts do
         end
 
         context &with_version
+        context &with_view
       end
 
       current_auth_examples = proc do
@@ -190,6 +220,7 @@ describe TentD::API::Posts do
         context &post_type_authorized
 
         context &with_version
+        context &with_view
       end
 
       context 'when post type is not authorized' do
