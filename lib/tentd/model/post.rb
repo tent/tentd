@@ -17,6 +17,7 @@ module TentD
       property :public, Boolean, :default => false
       property :licenses, Array, :default => []
       property :content, Json, :default => {}
+      property :views, Json, :default => {}
       property :published_at, DateTime, :default => lambda { |*args| Time.now }
       property :received_at, DateTime, :default => lambda { |*args| Time.now }
       property :updated_at, DateTime

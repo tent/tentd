@@ -25,6 +25,18 @@ module TentD
           attributes[:groups] = groups.to_a.uniq
         end
 
+        if options[:view] && respond_to?(:views) && respond_to?(:content)
+          if keypaths = (views[options[:view]] || {})['content']
+            attributes[:content] = keypaths.inject({}) do |memo, keypath|
+              pointer = JsonPatch::HashPointer.new(content, keypath)
+              memo[pointer.keys.last] = pointer.exists? ? pointer.value : nil
+              memo
+            end
+          else
+            attributes[:content] = {}
+          end
+        end
+
         attributes
       end
     end
