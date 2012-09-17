@@ -431,6 +431,109 @@ describe TentD::Model::Post do
           expect(post.as_json(:exclude => [:published_at])).to eq(expected_attributes)
         end
       end
+
+      context 'with options[:view]' do
+        it 'should return content keys specified by view' do
+          post.update(:views => {
+            'foo' => {
+              'content' => [
+                'foo/bar'
+              ]
+            },
+            'bar' => {
+              'content' => ['baz', 'foo']
+            }
+          }, :content => {
+            'foo' => { 'bar' => { 'baz' => 'ChunkyBacon' } },
+            'baz' => 'FooBar'
+          })
+
+          expect(post.as_json(:view => 'foo')).to eq(public_attributes.merge(
+            :content => {
+              'bar' => { 'baz' => 'ChunkyBacon' }
+            }
+          ))
+
+          expect(post.as_json(:view => 'bar')).to eq(public_attributes.merge(
+            :content => {
+              'foo' => { 'bar' => { 'baz' => 'ChunkyBacon' } },
+              'baz' => 'FooBar'
+            }
+          ))
+        end
+
+        it 'should filter attachments' do
+          first_attachment = Fabricate(:post_attachment,
+                                       :category => 'foo',
+                                       :type => 'text/plain',
+                                       :name => 'foobar.txt',
+                                       :data => 'Chunky Bacon',
+                                       :size => 4)
+          other_attachment = Fabricate(:post_attachment,
+                                       :category => 'bar',
+                                       :type => 'application/javascript',
+                                       :name => 'barbaz.js',
+                                       :data => 'alert("Chunky Bacon")',
+                                       :size => 8)
+          post.attachments << first_attachment
+          post.attachments << other_attachment
+          post.save
+
+          post.update(:views => {
+            'foo' => {
+              'attachments' => [ { 'category' => 'foo' } ]
+            },
+            'text' => {
+              'attachments' => [{ 'type' => 'text/plain' }]
+            },
+            'foobar' => {
+              'attachments' => [{ 'name' => 'foobar.txt' }]
+            },
+            'foojs' => {
+              'attachments' => [{ 'type' => 'application/javascript' }, { 'category' => 'foo' }]
+            },
+            'nothing' => {
+              'attachments' => [{ 'type' => 'text/plain', 'category' => 'bar' }]
+            },
+            'invalid' => {
+              'attachments' => [{ 'id' => first_attachment.id }, { 'category' => 'bar' }]
+            }
+          }, :content => {
+            'foo' => { 'bar' => { 'baz' => 'ChunkyBacon' } },
+            'baz' => 'FooBar'
+          })
+
+          expect(post.as_json(:view => 'foo')).to eq(public_attributes.merge(
+            :attachments => [first_attachment],
+            :content => {}
+          ))
+
+          expect(post.as_json(:view => 'text')).to eq(public_attributes.merge(
+            :attachments => [first_attachment],
+            :content => {}
+          ))
+
+          expect(post.as_json(:view => 'foobar')).to eq(public_attributes.merge(
+            :attachments => [first_attachment],
+            :content => {}
+          ))
+
+          expect(post.as_json(:view => 'foojs')).to eq(public_attributes.merge(
+            :attachments => [first_attachment, other_attachment],
+            :content => {}
+          ))
+
+          expect(post.as_json(:view => 'nothing')).to eq(public_attributes.merge(
+            :attachments => [],
+            :content => {}
+          ))
+
+          expect(post.as_json(:view => 'invalid')).to eq(public_attributes.merge(
+            :attachments => [other_attachment],
+            :content => {}
+          ))
+        end
+      end
     end
 
     context &examples

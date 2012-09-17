@@ -18,6 +18,7 @@ module TentD
       property :public, Boolean, :default => false
       property :licenses, Array, :default => []
       property :content, Json, :default => {}
+      property :views, Json, :default => {}
       property :published_at, DateTime, :default => lambda { |*args| Time.now }
       property :received_at, DateTime, :default => lambda { |*args| Time.now }
       property :updated_at, DateTime
@@ -41,7 +42,6 @@ module TentD
         attributes[:type] = type.uri
         attributes[:version] = version
         attributes[:app] = { :url => attributes.delete(:app_url), :name => attributes.delete(:app_name) }
-        attributes[:attachments] = attachments.all.map { |a| a.as_json }
 
         attributes[:mentions] = mentions.map do |mention|
           h = { :entity => mention.entity }
