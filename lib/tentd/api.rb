@@ -31,7 +31,7 @@ module TentD
 
     class HelloWorld < Middleware
       def action(env)
-        [200, { 'Link' => %(<%sprofile>; rel="%s") % [env['SCRIPT_NAME'], PROFILE_REL] }, ['Tent!']]
+        [200, { 'Link' => %(<%s/profile>; rel="%s") % [env['SCRIPT_NAME'], PROFILE_REL] }, ['Tent!']]
       end
     end
 
