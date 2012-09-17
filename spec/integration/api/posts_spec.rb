@@ -27,6 +27,46 @@ describe TentD::API::Posts do
   let(:params) { Hash.new }
 
   describe 'GET /posts/:post_id' do
+    let(:env) { Hashie::Mash.new }
+    let(:params) { Hashie::Mash.new }
+    with_version = proc do
+      context 'with params[:version] specified' do
+        context 'when version exists' do
+          it 'should return specified post version' do
+            first_version = post.latest_version(:fields => [:version]).version
+            post.update(:content => { 'text' => 'foo bar baz' })
+            latest_version = post.latest_version(:fields => [:version]).version
+            expect(first_version).to_not eq(latest_version)
+
+            json_get "/posts/#{post.public_id}?version=#{first_version}", params, env
+            expect(last_response.status).to eq(200)
+            body = JSON.parse(last_response.body)
+            expect(body['id']).to eq(post.public_id)
+            expect(body['version']).to eq(first_version)
+
+            json_get "/posts/#{post.public_id}?version=#{latest_version}", params, env
+            expect(last_response.status).to eq(200)
+            body = JSON.parse(last_response.body)
+            expect(body['id']).to eq(post.public_id)
+            expect(body['version']).to eq(latest_version)
+
+            json_get "/posts/#{post.public_id}", params, env
+            expect(last_response.status).to eq(200)
+            body = JSON.parse(last_response.body)
+            expect(body['id']).to eq(post.public_id)
+            expect(body['version']).to eq(latest_version)
+          end
+        end
+
+        context 'when version does not exist' do
+          xit 'should return 404' do
+            json_get "/posts/#{post.public_id}?version=12", params, env
+            expect(last_response.status).to eq(404)
+          end
+        end
+      end
+    end
+
     using_permissions = proc do
       not_authenticated = proc do
         it "should find existing post by public_id" do
@@ -51,7 +91,17 @@ describe TentD::API::Posts do
 
       context &not_authenticated
 
-      shared_examples "current_auth" do
+      with_permissions = proc do
+        it 'should return post' do
+          json_get "/posts/#{post.public_id}", params, env
+          expect(last_response.status).to eq(200)
+          expect(JSON.parse(last_response.body)['id']).to eq(post.public_id)
+        end
+
+        context &with_version
+      end
+
+      current_auth_examples = proc do
         context 'when post is not public' do
           let(:group) { Fabricate(:group, :name => 'friends') }
           let(:post) { Fabricate(:post, :public => false) }
@@ -64,13 +114,10 @@ describe TentD::API::Posts do
               else
                 current_auth.permissions.create(:post_id => post.id)
               end
+              env.current_auth = current_auth
             end
 
-            it 'should return post' do
-              json_get "/posts/#{post.public_id}", nil, 'current_auth' => current_auth
-              expect(last_response.status).to eq(200)
-              expect(JSON.parse(last_response.body)['id']).to eq(post.public_id)
-            end
+            context &with_permissions
           end
 
           context 'when has permission via groups' do
@@ -78,19 +125,16 @@ describe TentD::API::Posts do
               post.permissions.create(:group_public_id => group.public_id)
               current_auth.groups = [group.public_id]
               current_auth.save
+              env.current_auth = current_auth
             end
 
-            it 'should return post' do
-              json_get "/posts/#{post.public_id}", nil, 'current_auth' => current_auth
-              expect(last_response.status).to eq(200)
-              expect(JSON.parse(last_response.body)['id']).to eq(post.public_id)
-            end
+            context &with_permissions
           end
 
           context 'when does not have permission' do
             it 'should return 404' do
               post # create post
-              json_get "/posts/#{post.public_id}", nil, 'current_auth' => current_auth
+              json_get "/posts/#{post.public_id}", params, env
               expect(last_response.status).to eq(404)
             end
           end
@@ -100,7 +144,7 @@ describe TentD::API::Posts do
       context 'when Follower' do
         let(:current_auth) { Fabricate(:follower) }
 
-        it_behaves_like "current_auth"
+        context &current_auth_examples
       end
 
       context 'when AppAuthorization' do
@@ -141,7 +185,11 @@ describe TentD::API::Posts do
 
       context 'when all post types authorized' do
         let(:authorized_post_types) { ['all'] }
+        let(:post) { Fabricate(:post, :public => false) }
+
         context &post_type_authorized
+
+        context &with_version
       end
 
       context 'when post type is not authorized' do

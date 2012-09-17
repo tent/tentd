@@ -29,6 +29,35 @@ module TentD
       has n, :attachments, 'TentD::Model::PostAttachment', :constraint => :destroy
       has n, :mentions, 'TentD::Model::Mention', :constraint => :destroy
       belongs_to :app, 'TentD::Model::App', :required => false
+
+      def self.public_attributes
+        Post.public_attributes
+      end
+
+      def as_json(options = {})
+        attributes = super
+        post_attrs = post.as_json(options)
+
+        attributes[:type] = type.uri
+        attributes[:version] = version
+        attributes[:app] = { :url => attributes.delete(:app_url), :name => attributes.delete(:app_name) }
+        attributes[:attachments] = attachments.all.map { |a| a.as_json }
+
+        attributes[:mentions] = mentions.map do |mention|
+          h = { :entity => mention.entity }
+          h[:post] = mention.mentioned_post_id if mention.mentioned_post_id
+          h
+        end
+
+        if options[:app]
+          attributes[:known_entity] = known_entity
+        end
+
+        attributes[:permissions] = post_attrs[:permissions]
+
+        Array(options[:exclude]).each { |k| attributes.delete(k) if k }
+        attributes
+      end
     end
   end
 end

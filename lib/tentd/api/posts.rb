@@ -26,12 +26,25 @@ module TentD
             unless env.current_auth.post_types.include?('all')
               conditions[:type_base] = env.current_auth.post_types.map { |t| TentType.new(t).base }
             end
+
+            if env.params.version
+              conditions[:fields] = [:id]
+            end
+
             post = Model::Post.first(conditions)
           else
             post = Model::Post.find_with_permissions(env.params.post_id, env.current_auth)
           end
           if post
-            env['response'] = post
+            if env.params.version
+              if post_version = post.versions.first(:version => env.params.version.to_i)
+                post = post_version
+              else
+                post = nil
+              end
+            end
+
+            env.response = post
           end
           env
         end
