@@ -21,11 +21,11 @@ module TentD
       def self.notify_all(type, post_id)
         all(:type_base => [type.base, 'all'], :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
           next unless Post.first(:id => post_id, :fields => [:id, :original, :public]).can_notify?(subscription.subject)
-          Notifications.notify(:subscription_id => subscription.id, :post_id => post_id)
+          Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
         end
       end
 
-      def self.notify_entity(entity, post_id)
+      def self.notify_entity(entity, post_id, view='full')
         post = Post.first(:id => post_id)
         return if post.entity == entity
         if follow = Follower.first(:entity => entity) || Following.first(:entity => entity)
@@ -39,14 +39,14 @@ module TentD
           server_urls = API::CoreProfileData.new(profile).servers
           client = TentClient.new(server_urls)
         end
-        client.post.create(post.as_json)
+        client.post.create(post.as_json(:view => view))
       end
 
-      def notify_about(post_id)
+      def notify_about(post_id, view='full')
         post = Post.first(:id => post_id)
         client = TentClient.new(nil, subject.auth_details)
         permissions = subject.respond_to?(:scopes) && subject.scopes.include?(:read_permissions)
-        client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions), :url => subject.notification_url)
+        client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions, :view => view), :url => subject.notification_url)
       rescue Faraday::Error::ConnectionFailed
       end
     end
