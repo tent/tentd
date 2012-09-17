@@ -1,7 +1,7 @@
 require 'tentd/notifications'
 require 'sidekiq'
 
-class TentD
+module TentD
   class Notifications
     def self.queue_job(job, msg)
       const_get(job.to_s.split('_').map(&:capitalize).push('Worker').join).perform_async(msg)
