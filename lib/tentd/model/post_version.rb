@@ -42,7 +42,6 @@ module TentD
         attributes[:type] = type.uri
         attributes[:version] = version
         attributes[:app] = { :url => attributes.delete(:app_url), :name => attributes.delete(:app_name) }
-        attributes[:attachments] = attachments.all.map { |a| a.as_json }
 
         attributes[:mentions] = mentions.map do |mention|
           h = { :entity => mention.entity }

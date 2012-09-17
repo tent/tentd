@@ -25,6 +25,18 @@ module TentD
           attributes[:groups] = groups.to_a.uniq
         end
 
+        if relationships.map(&:name).include?(:attachments)
+          if options[:view] && respond_to?(:views) && (conditions = (views[options[:view]] || {})['attachments'])
+            conditions.map! { |c| c.slice('category', 'name', 'type') }.reject! { |c| c.empty? }
+            attributes[:attachments] = conditions.inject(nil) { |memo, c|
+              q = attachments.all(c)
+              memo ? memo += q : q
+            }
+          else
+            attributes[:attachments] = attachments.all.map { |a| a.as_json }
+          end
+        end
+
         if options[:view] && respond_to?(:views) && respond_to?(:content)
           if keypaths = (views[options[:view]] || {})['content']
             attributes[:content] = keypaths.inject({}) do |memo, keypath|

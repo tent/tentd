@@ -463,18 +463,21 @@ describe TentD::Model::Post do
         end
 
         it 'should filter attachments' do
-          first_attachment = Fabricate(:post_attachment, :post => post,
-                                 :category => 'foo',
-                                 :type => 'text/plain',
-                                 :name => 'foobar.txt',
-                                 :data => 'Chunky Bacon',
-                                 :size => 4)
-          other_attachment = Fabricate(:post_attachment, :post => post,
-                                 :category => 'bar',
-                                 :type => 'application/javascript',
-                                 :name => 'barbaz.js',
-                                 :data => 'alert("Chunky Bacon")',
-                                 :size => 8)
+          first_attachment = Fabricate(:post_attachment,
+                                       :category => 'foo',
+                                       :type => 'text/plain',
+                                       :name => 'foobar.txt',
+                                       :data => 'Chunky Bacon',
+                                       :size => 4)
+          other_attachment = Fabricate(:post_attachment,
+                                       :category => 'bar',
+                                       :type => 'application/javascript',
+                                       :name => 'barbaz.js',
+                                       :data => 'alert("Chunky Bacon")',
+                                       :size => 8)
+          post.attachments << first_attachment
+          post.attachments << other_attachment
+          post.save
 
           post.update(:views => {
             'foo' => {
@@ -491,6 +494,9 @@ describe TentD::Model::Post do
             },
             'nothing' => {
               'attachments' => [{ 'type' => 'text/plain', 'category' => 'bar' }]
+            },
+            'invalid' => {
+              'attachments' => [{ 'id' => first_attachment.id }, { 'category' => 'bar' }]
             }
           }, :content => {
             'foo' => { 'bar' => { 'baz' => 'ChunkyBacon' } },
@@ -498,7 +504,33 @@ describe TentD::Model::Post do
           })
 
           expect(post.as_json(:view => 'foo')).to eq(public_attributes.merge(
-            :attachments => [first_attachment]
+            :attachments => [first_attachment],
+            :content => {}
+          ))
+
+          expect(post.as_json(:view => 'text')).to eq(public_attributes.merge(
+            :attachments => [first_attachment],
+            :content => {}
+          ))
+
+          expect(post.as_json(:view => 'foobar')).to eq(public_attributes.merge(
+            :attachments => [first_attachment],
+            :content => {}
+          ))
+
+          expect(post.as_json(:view => 'foojs')).to eq(public_attributes.merge(
+            :attachments => [first_attachment, other_attachment],
+            :content => {}
+          ))
+
+          expect(post.as_json(:view => 'nothing')).to eq(public_attributes.merge(
+            :attachments => [],
+            :content => {}
+          ))
+
+          expect(post.as_json(:view => 'invalid')).to eq(public_attributes.merge(
+            :attachments => [other_attachment],
+            :content => {}
           ))
         end
       end
