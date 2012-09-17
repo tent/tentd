@@ -611,6 +611,27 @@ describe TentD::API::Posts do
       expect(last_response.body).to eq('54321')
     end
 
+    context 'with params[:version]' do
+      it 'should get specified version of attachment' do
+        post_version = Fabricate(:post_version, :post => post, :public_id => post.public_id, :version => 12)
+        new_attachment = Fabricate(:post_attachment, :post => nil, :post_version => post_version, :data => Base64.encode64('ChunkyBacon'))
+
+        expect(post.latest_version(:fields => [:id]).id).to eq(post_version.id)
+        expect(new_attachment.name).to eq(attachment.name)
+
+        get "/posts/#{post.public_id}/attachments/#{attachment.name}", { :version => post_version.version}, 'HTTP_ACCEPT' => attachment.type
+
+        expect(last_response.status).to eq(200)
+        expect(last_response.headers['Content-Type']).to eq(attachment.type)
+        expect(last_response.body).to eq('ChunkyBacon')
+      end
+
+      it "should return 404 if specified version doesn't exist" do
+        get "/posts/#{post.public_id}/attachments/#{attachment.name}", { :version => 20}, 'HTTP_ACCEPT' => attachment.type
+        expect(last_response.status).to eq(404)
+      end
+    end
+
     it "should 404 if the attachment doesn't exist" do
       get "/posts/#{post.public_id}/attachments/asdf"
       expect(last_response.status).to eq(404)
