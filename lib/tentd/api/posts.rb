@@ -193,7 +193,7 @@ module TentD
           authorize_env!(env, :write_posts)
           if post = TentD::Model::Post.first(:id => env.params.post_id)
             version = post.latest_version(:fields => [:id])
-            post.update(env.params.data.slice(:content, :licenses, :mentions))
+            post.update(env.params.data.slice(:content, :licenses, :mentions, :views))
 
             if env.params.attachments.kind_of?(Array)
               Model::PostAttachment.all(:post_id => post.id).update(:post_id => nil, :post_version_id => version.id)

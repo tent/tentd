@@ -454,6 +454,27 @@ describe TentD::API::Posts do
         expect(body['app']).to eq('url' => application.url, 'name' => application.name)
       end
 
+      it 'should create post with views' do
+        post_attributes = p.attributes
+        post_attributes.delete(:id)
+        post_attributes[:type] = p.type.uri
+        post_attributes[:views] = {
+          'mini' => {
+            'content' => ['mini_text', 'title']
+          }
+        }
+
+        expect(lambda {
+          expect(lambda {
+            json_post "/posts", post_attributes, env
+            expect(last_response.status).to eq(200)
+          }).to change(TentD::Model::Post, :count).by(1)
+        }).to change(TentD::Model::PostVersion, :count).by(1)
+        post = TentD::Model::Post.last
+
+        expect(post.views).to eq(post_attributes[:views])
+      end
+
       it 'should create post with mentions' do
         post_attributes = Hashie::Mash.new(p.attributes)
         post_attributes.delete(:id)
@@ -688,6 +709,9 @@ describe TentD::API::Posts do
           :content => {
             "text" => "Foo Bar Baz"
           },
+          :views => {
+            'mini' => { 'content' => ['mini_text'] }
+          },
           :entity => "#{post.entity}/foo/bar",
           :public => !post.public,
           :licenses => post.licenses.to_a + ['https://license.example.org']
@@ -702,6 +726,7 @@ describe TentD::API::Posts do
               post.reload
               expect(post.content).to eq(post_attributes[:content])
               expect(post.licenses).to eq(post_attributes[:licenses])
+              expect(post.views).to eq(post_attributes[:views])
               expect(post.public).to_not eq(post_attributes[:public])
               expect(post.entity).to_not eq(post_attributes[:entity])
             }).to change(post.versions, :count).by(1)
