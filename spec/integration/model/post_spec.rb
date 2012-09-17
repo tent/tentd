@@ -460,6 +460,13 @@ describe TentD::Model::Post do
               'baz' => 'FooBar'
             }
           ))
+
+          expect(post.as_json(:view => 'full')).to eq(public_attributes)
+
+          expected_attributes = public_attributes.dup
+          expected_attributes.delete(:content)
+          expected_attributes.delete(:attachments)
+          expect(post.as_json(:view => 'meta')).to eq(expected_attributes)
         end
 
         it 'should filter attachments' do
@@ -532,6 +539,15 @@ describe TentD::Model::Post do
             :attachments => [other_attachment],
             :content => {}
           ))
+
+          expect(post.as_json(:view => 'full')).to eq(public_attributes.merge(
+            :attachments => [first_attachment.as_json, other_attachment.as_json]
+          ))
+
+          expected_attributes = public_attributes.dup
+          expected_attributes.delete(:content)
+          expected_attributes.delete(:attachments)
+          expect(post.as_json(:view => 'meta')).to eq(expected_attributes)
         end
       end
     end

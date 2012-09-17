@@ -33,7 +33,7 @@ module TentD
               memo ? memo += q : q
             }
           else
-            attributes[:attachments] = attachments.all.map { |a| a.as_json }
+            attributes[:attachments] = attachments.all.map { |a| a.as_json } unless options[:view] == 'meta'
           end
         end
 
@@ -44,7 +44,9 @@ module TentD
               memo[pointer.keys.last] = pointer.exists? ? pointer.value : nil
               memo
             end
-          else
+          elsif options[:view] == 'meta'
+            attributes.delete(:content)
+          elsif options[:view] != 'full'
             attributes[:content] = {}
           end
         end
