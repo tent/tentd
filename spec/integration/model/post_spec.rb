@@ -11,7 +11,7 @@ describe TentD::Model::Post do
           @items = []
         end
 
-        def <<(item)
+        def push(item)
           (@items ||= []) << item
         end
       end

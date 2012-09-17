@@ -8,12 +8,14 @@ module TentD
   autoload :TentVersion, 'tentd/tent_version'
   autoload :TentType, 'tentd/tent_type'
   autoload :RackRequest, 'tentd/rack_request'
-  autoload :Notifications, 'tentd/notifications'
 
   def self.new(options={})
     if options[:database] || ENV['DATABASE_URL']
       DataMapper.setup(:default, options[:database] || ENV['DATABASE_URL'])
     end
+
+    require "tentd/notifications/#{options[:job_backend] || 'girl_friday'}"
+
     @faraday_adapter = options[:faraday_adapter]
     API.new
   end

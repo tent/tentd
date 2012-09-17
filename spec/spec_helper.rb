@@ -8,7 +8,7 @@ require 'tentd'
 require 'fabrication'
 require 'tentd/core_ext/hash/slice'
 require 'girl_friday'
-require 'tentd/notifications'
+require 'tentd/notifications/girl_friday'
 
 Dir["#{File.dirname(__FILE__)}/support/*.rb"].each { |f| require f }
 

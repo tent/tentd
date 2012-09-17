@@ -1,17 +1,18 @@
 require 'girl_friday'
+require 'tentd/notifications'
 
 module TentD
-  module Notifications
-    TRIGGER_QUEUE = GirlFriday::WorkQueue.new(:notification_trigger) do |msg|
-      Model::NotificationSubscription.notify_all(msg[:type], msg[:post_id])
+  class Notifications
+    def self.trigger(msg)
+      queue_job(:trigger, msg)
     end
 
-    NOTIFY_QUEUE = GirlFriday::WorkQueue.new(:notification) do |msg|
-      Model::NotificationSubscription.first(:id => msg[:subscription_id]).notify_about(msg[:post_id])
+    def self.notify(msg)
+      queue_job(:notify, msg)
     end
 
-    NOTIFY_ENTITY_QUEUE = GirlFriday::WorkQueue.new(:notification) do |msg|
-      Model::NotificationSubscription.notify_entity(msg[:entity], msg[:post_id])
+    def self.notify_entity(msg)
+      queue_job(:notify_entity, msg)
     end
   end
 end

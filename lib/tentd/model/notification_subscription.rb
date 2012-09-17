@@ -21,7 +21,7 @@ module TentD
       def self.notify_all(type, post_id)
         all(:type_base => [type.base, 'all'], :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
           next unless Post.first(:id => post_id, :fields => [:id, :original, :public]).can_notify?(subscription.subject)
-          Notifications::NOTIFY_QUEUE << { :subscription_id => subscription.id, :post_id => post_id }
+          Notifications.notify(:subscription_id => subscription.id, :post_id => post_id)
         end
       end
 

@@ -60,7 +60,7 @@ module TentD
               :types => env.notify_types,
             }
           )
-          Notifications::TRIGGER_QUEUE << { :type => post.type, :post_id => post.id }
+          Notifications.trigger(:type => post.type, :post_id => post.id)
           env
         end
       end

@@ -247,7 +247,7 @@ module TentD
           else
             return env unless (post = env.response) && post.kind_of?(Model::Post)
           end
-          Notifications::TRIGGER_QUEUE << { :type => post.type, :post_id => post.id }
+          Notifications.trigger(:type => post.type, :post_id => post.id)
           env
         end
       end

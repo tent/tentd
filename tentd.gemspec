@@ -24,7 +24,6 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency 'dm-constraints', '~> 1.2.0'
   gem.add_runtime_dependency 'dm-postgres-adapter', '~> 1.2.0'
   gem.add_runtime_dependency 'tent-client'
-  gem.add_runtime_dependency 'girl_friday', '~> 0.10'
 
   gem.add_development_dependency 'rack-test', '~> 0.6.1'
   gem.add_development_dependency 'rspec', '~> 2.11'

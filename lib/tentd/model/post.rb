@@ -81,7 +81,7 @@ module TentD
             follower = Follower.first(:entity => mention.entity)
             next if follower && NotificationSubscription.first(:follower => follower, :type_base => post.type.base)
 
-            Notifications::NOTIFY_ENTITY_QUEUE << { :entity => mention.entity, :post_id => post.id }
+            Notifications.notify_entity(:entity => mention.entity, :post_id => post.id)
           end
         end
 
