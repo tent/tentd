@@ -18,7 +18,7 @@ module TentD
         private
 
         def add_request(env)
-          env['request'] = RackRequest.new(env)
+          env['request'] = Rack::Request.new(env)
         end
 
         def extract_params(env)
@@ -37,15 +37,31 @@ module TentD
           begin
             if env['CONTENT_TYPE'] =~ /\bjson\Z/
               params['data'] = JSON.parse(env['rack.input'].read)
-            elsif env['CONTENT_TYPE'] =~ /\Amultipart/ && params['attachments']
-              data_json = params['attachments'].find { |p| p[:type] == MEDIA_TYPE }
-              params['attachments'].delete(data_json)
-              params['data'] = JSON.parse(data_json[:tempfile].read)
+            elsif env['CONTENT_TYPE'] =~ /\Amultipart/
+              key, data = params.find { |k,p| p[:type] == MEDIA_TYPE }
+              params.delete(key)
+              params['data'] = JSON.parse(data[:tempfile].read)
+              params['attachments'] = get_attachments(params)
             end
           rescue JSON::ParserError
           end
 
           env['params'] = indifferent_params(params)
+        end
+
+        def get_attachments(params)
+          params.inject([]) { |a,(key,value)|
+            if attachment?(value)
+              a << value.merge(:name => key)
+            elsif value.kind_of?(Hash)
+              a += value.select { |k,v| attachment?(v) }.map { |k,v| v.merge(:name => key) }
+            end
+            a
+          }
+        end
+
+        def attachment?(v)
+          v.kind_of?(Hash) && v[:tempfile].kind_of?(Tempfile)
         end
 
         # Enable string or symbol key access to the nested params hash.

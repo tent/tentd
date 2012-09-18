@@ -7,7 +7,6 @@ module TentD
   autoload :JsonPatch, 'tentd/json_patch'
   autoload :TentVersion, 'tentd/tent_version'
   autoload :TentType, 'tentd/tent_type'
-  autoload :RackRequest, 'tentd/rack_request'
 
   def self.new(options={})
     if options[:database] || ENV['DATABASE_URL']

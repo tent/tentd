@@ -37,7 +37,7 @@ module JsonRequest
 
   def build_parts(parts)
     parts.map do |k,v|
-      v.kind_of?(Array) ? v.map { |part| build_part(k, part) } : build_part(k, v)
+      v.kind_of?(Array) ? v.each_with_index.map { |part,i| build_part("#{k}[#{i}]", part) } : build_part(k, v)
     end.join
   end
 
