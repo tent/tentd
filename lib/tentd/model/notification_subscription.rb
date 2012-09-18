@@ -32,14 +32,13 @@ module TentD
         return if post.entity == entity
         if follow = post.user.followers.first(:entity => entity) || post.user.followings.first(:entity => entity)
           return unless post.can_notify?(follow)
-          client = TentClient.new(follow.notification_servers, follow.auth_details)
+          client = TentClient.new(follow.notification_servers, follow.auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
           path = follow.notification_path
         else
           return unless post.public
-          client = TentClient.new
           profile, server_url = client.discover(entity).get_profile
           server_urls = API::CoreProfileData.new(profile).servers
-          client = TentClient.new(server_urls)
+          client = TentClient.new(server_urls, :faraday_adapter => TentD.faraday_adapter)
           path = 'posts'
         end
         client.post.create(post.as_json(:view => view), :url => path)
@@ -47,7 +46,7 @@ module TentD
 
       def notify_about(post_id, view='full')
         post = Post.first(:id => post_id)
-        client = TentClient.new(subject.notification_servers, subject.auth_details)
+        client = TentClient.new(subject.notification_servers, subject.auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
         permissions = subject.respond_to?(:scopes) && subject.scopes.include?(:read_permissions)
         client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions, :view => view), :url => subject.notification_path)
       rescue Faraday::Error::ConnectionFailed
