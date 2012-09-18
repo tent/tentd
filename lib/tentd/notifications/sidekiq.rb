@@ -11,7 +11,7 @@ module TentD
       include Sidekiq::Worker
 
       def perform(msg)
-        Model::NotificationSubscription.notify_all(msg[:type], msg[:post_id])
+        Model::NotificationSubscription.notify_all(msg['type'], msg['post_id'])
       end
     end
 
@@ -19,7 +19,7 @@ module TentD
       include Sidekiq::Worker
 
       def perform(msg)
-        Model::NotificationSubscription.first(:id => msg[:subscription_id]).notify_about(msg[:post_id])
+        Model::NotificationSubscription.first(:id => msg['subscription_id']).notify_about(msg['post_id'])
       end
     end
 
@@ -28,7 +28,7 @@ module TentD
       include Sidekiq::Worker
 
       def perform(msg)
-        Model::NotificationSubscription.notify_entity(msg[:entity], msg[:post_id])
+        Model::NotificationSubscription.notify_entity(msg['entity'], msg['post_id'])
       end
     end
   end
