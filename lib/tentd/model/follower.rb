@@ -79,8 +79,8 @@ module TentD
         API::CoreProfileData.new(profile)
       end
 
-      def notification_url
-        notification_path
+      def notification_servers
+        core_profile.servers
       end
 
       def auth_details

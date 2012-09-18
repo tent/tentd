@@ -39,6 +39,14 @@ module TentD
         attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
       end
 
+      def notification_servers
+        nil
+      end
+
+      def notification_path
+        notification_url
+      end
+
       def self.public_attributes
         [:post_types, :profile_info_types, :scopes, :notification_url]
       end
