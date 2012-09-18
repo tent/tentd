@@ -19,8 +19,10 @@ module TentD
       end
 
       def self.notify_all(type, post_id)
-        all(:type_base => [TentType.new(type).base, 'all'], :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
-          next unless Post.first(:id => post_id, :fields => [:id, :original, :public]).can_notify?(subscription.subject)
+        post = Post.first(:id => post_id, :fields => [:id, :original, :public])
+        post.user.notification_subscriptions.all(:type_base => [TentType.new(type).base, 'all'],
+                                                 :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
+          next unless post.can_notify?(subscription.subject)
           Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
         end
       end
@@ -28,7 +30,7 @@ module TentD
       def self.notify_entity(entity, post_id, view='full')
         post = Post.first(:id => post_id)
         return if post.entity == entity
-        if follow = Follower.first(:entity => entity) || Following.first(:entity => entity)
+        if follow = post.user.followers.first(:entity => entity) || post.user.followings.first(:entity => entity)
           return unless post.can_notify?(follow)
           server_urls = API::CoreProfileData.new(follow.profile).servers
           client = TentClient.new(server_urls, follow.auth_details)
