@@ -267,6 +267,16 @@ module TentD
         end
       end
 
+      class ConfirmFollowing < Middleware
+        def action(env)
+          if Model::Following.first(:public_id => env.params.following_id)
+            [200, { 'Content-Type' => 'text/plain' }, [env.params.challenge]]
+          else
+            [404, {}, []]
+          end
+        end
+      end
+
       get '/posts/:post_id' do |b|
         b.use GetActualId
         b.use GetOne
@@ -287,6 +297,16 @@ module TentD
         b.use CreatePost
         b.use CreateAttachments
         b.use Notify
+      end
+
+      post '/notifications/:following_id' do |b|
+        b.use CreatePost
+        b.use CreateAttachments
+        b.use Notify
+      end
+
+      get '/notifications/:following_id' do |b|
+        b.use ConfirmFollowing
       end
 
       put '/posts/:post_id' do |b|

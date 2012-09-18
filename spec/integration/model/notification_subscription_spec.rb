@@ -44,7 +44,7 @@ describe TentD::Model::NotificationSubscription do
 
       it 'should notify about a post' do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
-        http_stubs.post('/posts') { [200, {}, nil] }
+        http_stubs.post('/notifications/asdf') { [200, {}, nil] }
 
         described_class.notify_all(post.type.uri, post.id)
         http_stubs.verify_stubbed_calls
@@ -56,7 +56,7 @@ describe TentD::Model::NotificationSubscription do
 
       it 'should notify about a post' do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
-        http_stubs.post('/posts') { [200, {}, nil] }
+        http_stubs.post('/notifications/asdf') { [200, {}, nil] }
         expect(subscription.notify_about(post.id)).to be_true
       end
     end
@@ -97,7 +97,16 @@ describe TentD::Model::NotificationSubscription do
         let(:server_url) { 'https://example.org/johndoe/tent' }
         before { Fabricate(:follower, :entity => entity, :server_urls => server_url) }
 
-        context &notification_examples
+        it "should send notification" do
+          http_stubs.post("#{path_prefix}/notifications/asdf") { |env|
+            expect_server(env, server_url)
+            [200, {}, '']
+          }
+
+          described_class.notify_entity(entity, post.id)
+
+          http_stubs.verify_stubbed_calls
+        end
       end
 
       context "entity exists as following" do

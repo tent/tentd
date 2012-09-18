@@ -34,14 +34,16 @@ module TentD
           return unless post.can_notify?(follow)
           server_urls = API::CoreProfileData.new(follow.profile).servers
           client = TentClient.new(server_urls, follow.auth_details)
+          path = follow.notification_url
         else
           return unless post.public
           client = TentClient.new
           profile, server_url = client.discover(entity).get_profile
           server_urls = API::CoreProfileData.new(profile).servers
           client = TentClient.new(server_urls)
+          path = 'posts'
         end
-        client.post.create(post.as_json(:view => view))
+        client.post.create(post.as_json(:view => view), :url => path)
       end
 
       def notify_about(post_id, view='full')

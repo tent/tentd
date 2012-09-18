@@ -37,8 +37,10 @@ describe TentD::API::Followers do
                                               :app => Fabricate(:app)))
   end
 
-  def stub_notification_http!
-    http_stubs.post('/notifications') { [200, {}, []] }
+  def stub_challenge!
+    http_stubs.get('/tent/notifications/asdf') { |env|
+      [200, {}, env[:params]['challenge']]
+    }
   end
 
   describe 'POST /followers' do
@@ -47,7 +49,8 @@ describe TentD::API::Followers do
       {
         "entity" => follower_entity_url,
         "licenses" => ["http://creativecommons.org/licenses/by-nc-sa/3.0/"],
-        "types" => ["https://tent.io/type/posts/status/v0.1.x#full", "https://tent.io/types/post/photo/v0.1.x#meta"]
+        "types" => ["https://tent.io/type/posts/status/v0.1.x#full", "https://tent.io/types/post/photo/v0.1.x#meta"],
+        "notification_path" => "notifications/asdf"
       }
     end
 
@@ -56,6 +59,7 @@ describe TentD::API::Followers do
       http_stubs.get('/tent/profile') {
         [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, tent_profile(follower_entity_url)]
       }
+      stub_challenge!
       TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
       json_post '/followers', follower_data, env
@@ -101,7 +105,7 @@ describe TentD::API::Followers do
         http_stubs.get('/tent/profile') {
           [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, tent_profile(follower_entity_url)]
         }
-        stub_notification_http!
+        stub_challenge!
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
       end
 
@@ -145,12 +149,12 @@ describe TentD::API::Followers do
     }
 
     let(:follower_data) do
-      follower = Fabricate(:follower)
-      follower.destroy
+      follower = Fabricate.build(:follower)
       {
         "entity" => follower_entity_url,
         "groups" => follower.groups,
         "profile" => { "info_type_uri" => { "bacon" => "chunky" } },
+        "notification_path" => follower.notification_path,
         "licenses" => follower.licenses,
         "mac_key_id" => follower.mac_key_id,
         "mac_key" => follower.mac_key,
@@ -162,19 +166,20 @@ describe TentD::API::Followers do
 
     context 'when write_secrets scope authorized' do
       before { authorize!(:write_followers, :write_secrets) }
-      before { stub_notification_http! }
 
       it 'should create follower without discovery' do
-        expect(lambda { json_post '/followers', follower_data, env }).
-          to change(TentD::Model::Follower, :count).by(1)
-        expect(last_response.status).to eq(200)
+        expect(lambda {
+          json_post '/followers', follower_data, env 
+          expect(last_response.status).to eq(200)
+        }).to change(TentD::Model::Follower, :count).by(1)
       end
 
       it 'should create notification subscription for each type given' do
-        expect(lambda { json_post '/followers', follower_data, env }).
-          to change(TentD::Model::NotificationSubscription, :count).by(2)
+        expect(lambda {
+          json_post '/followers', follower_data, env
+          expect(last_response.status).to eq(200)
+        }).to change(TentD::Model::NotificationSubscription, :count).by(2)
         expect(TentD::Model::NotificationSubscription.last.type_view).to eq('meta')
-        expect(last_response.status).to eq(200)
       end
     end
 

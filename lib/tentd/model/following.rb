@@ -24,18 +24,18 @@ module TentD
       property :mac_timestamp_delta, Integer
       property :created_at, DateTime
       property :updated_at, DateTime
+      property :confirmed, Boolean, :default => true
 
       has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy
 
-      def self.create_from_params(params)
-        create(
+      def confirm_from_params(params)
+        update(
           :remote_id => params.id,
-          :entity => params.entity,
-          :groups => params.groups.to_a.map { |g| g['id'] },
           :profile => params.profile || {},
           :mac_key_id => params.mac_key_id,
           :mac_key => params.mac_key,
-          :mac_algorithm => params.mac_algorithm
+          :mac_algorithm => params.mac_algorithm,
+          :confirmed => true
         )
       end
 
@@ -45,6 +45,10 @@ module TentD
 
       def core_profile
         API::CoreProfileData.new(profile)
+      end
+
+      def notification_url
+        'posts'
       end
 
       def auth_details

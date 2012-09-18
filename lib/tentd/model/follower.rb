@@ -18,6 +18,7 @@ module TentD
       property :public, Boolean, :default => false
       property :profile, Json, :default => {}
       property :licenses, Array, :lazy => false, :default => []
+      property :notification_path, Text, :lazy => false, :required => true
       property :mac_key_id, String, :default => lambda { |*args| 's:' + SecureRandom.hex(4) }, :unique => true
       property :mac_key, String, :default => lambda { |*args| SecureRandom.hex(16) }
       property :mac_algorithm, String, :default => 'hmac-sha-256'
@@ -35,9 +36,9 @@ module TentD
 
       def self.create_follower(data, authorized_scopes = [])
         if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
-          follower = create(data.slice(:entity, :groups, :public, :profile, :licenses, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
+          follower = create(data.slice(:entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
         else
-          follower = create(data.slice('entity', 'licenses', 'profile'))
+          follower = create(data.slice('entity', 'licenses', 'profile', 'notification_path'))
         end
         (data.types || ['all']).each do |type_url|
           follower.notification_subscriptions.create(:type => type_url)
@@ -78,9 +79,8 @@ module TentD
         API::CoreProfileData.new(profile)
       end
 
-      # TODO: make this support multiple urls
       def notification_url
-        core_profile.servers.first + '/posts'
+        notification_path
       end
 
       def auth_details

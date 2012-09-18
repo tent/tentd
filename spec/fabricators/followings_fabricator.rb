@@ -13,4 +13,5 @@ Fabricator(:following, :class_name => "TentD::Model::Following") do
     }.to_json
   }
   updated_at { Time.now }
+  confirmed true
 end

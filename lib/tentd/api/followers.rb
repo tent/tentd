@@ -48,6 +48,8 @@ module TentD
       class Discover < Middleware
         def action(env)
           return env if env.authorized_scopes.include?(:write_followers)
+          return [422, {}, ['Invalid notification path']] unless env.params.data.notification_path.kind_of?(String) &&
+                                                                !env.params.data.notification_path.match(%r{\Ahttps?://})
           return [406, {}, ['Can not follow self']] if Model::User.current.profile_entity == env.params.data.entity
           client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
           profile, profile_url = client.discover(env.params[:data]['entity']).get_profile
@@ -57,6 +59,18 @@ module TentD
           return [409, {}, ['Entity Mismatch']] unless profile.entity?(env.params.data.entity)
           env['profile'] = profile
           env
+        end
+      end
+
+      class Confirm < Middleware
+        def action(env)
+          return env if env.authorized_scopes.include?(:write_followers)
+          client = TentClient.new(env.profile.servers, :faraday_adapter => TentD.faraday_adapter)
+          if client.follower.challenge(env.params.data.notification_path)
+            env
+          else
+            [403, {}, ['Unauthorized Follower']]
+          end
         end
       end
 
@@ -155,6 +169,7 @@ module TentD
 
       post '/followers' do |b|
         b.use Discover
+        b.use Confirm
         b.use Create
         b.use Import
         b.use Notify

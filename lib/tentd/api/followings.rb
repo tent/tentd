@@ -29,12 +29,12 @@ module TentD
       class GetOne < Middleware
         def action(env)
           if authorize_env?(env, :read_followings)
-            if following = Model::Following.first(:id => env.params.following_id)
+            if following = Model::Following.first(:id => env.params.following_id, :confirmed => true)
               env.following = following
               env.response = following
             end
           else
-            following = Model::Following.find_with_permissions(env.params.following_id, env.current_auth)
+            following = Model::Following.find_with_permissions(env.params.following_id, env.current_auth) { |p,q,b| q << 'AND followings.confirmed = true' }
             if following
               env.response = following
             else
@@ -48,9 +48,9 @@ module TentD
       class GetMany < Middleware
         def action(env)
           if authorize_env?(env, :read_followings)
-            env.response = Model::Following.fetch_all(env.params)
+            env.response = Model::Following.fetch_all(env.params) { |p,q,b| q << 'followings.confirmed = true' }
           else
-            env.response = Model::Following.fetch_with_permissions(env.params, env.current_auth)
+            env.response = Model::Following.fetch_with_permissions(env.params, env.current_auth) { |p,q,b| q << 'AND followings.confirmed = true' }
           end
           env
         end
@@ -72,10 +72,14 @@ module TentD
 
       class Follow < Middleware
         def action(env)
+          env.following = Model::Following.create(:entity => env.params.data.entity,
+                                                  :groups => env.params.data.groups.to_a.map { |g| g['id'] },
+                                                  :confirmed => false)
           client = ::TentClient.new(env.server_url, :faraday_adapter => TentD.faraday_adapter)
           res = client.follower.create(
             :entity => env['tent.entity'],
-            :licenses => Model::ProfileInfo.tent_info.content['licenses']
+            :licenses => Model::ProfileInfo.tent_info.content['licenses'],
+            :notification_path => "notifications/#{env.following.public_id}"
           )
           case res.status
           when 200...300
@@ -89,10 +93,10 @@ module TentD
 
       class Create < Middleware
         def action(env)
-          if following = Model::Following.create_from_params(env.follow_data.merge(env.params.data).merge(:profile => env.profile))
-            env.response = following
+          if env.following.confirm_from_params(env.follow_data.merge(env.params.data).merge(:profile => env.profile))
+            env.response = env.following
             env.notify_action = 'create'
-            env.notify_instance = following
+            env.notify_instance = env.following
           end
           env
         end
