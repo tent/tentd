@@ -46,7 +46,7 @@ describe TentD::Model::NotificationSubscription do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
         http_stubs.post('/posts') { [200, {}, nil] }
 
-        described_class.notify_all(post.type, post.id)
+        described_class.notify_all(post.type.uri, post.id)
         http_stubs.verify_stubbed_calls
       end
     end
