@@ -36,7 +36,7 @@ module TentD
           path = follow.notification_path
         else
           return unless post.public
-          profile, server_url = client.discover(entity).get_profile
+          profile, server_url = TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter).discover(entity).get_profile
           server_urls = API::CoreProfileData.new(profile).servers
           client = TentClient.new(server_urls, :faraday_adapter => TentD.faraday_adapter)
           path = 'posts'
