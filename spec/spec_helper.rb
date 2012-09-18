@@ -30,7 +30,9 @@ RSpec.configure do |config|
   config.before(:suite) do
     GirlFriday::WorkQueue.immediate!
     # DataMapper::Logger.new(STDOUT, :debug)
-    DataMapper.setup(:default, ENV['TEST_DATABASE_URL'] || 'postgres://localhost/tent_server_test')
+    url = ENV['TEST_DATABASE_URL'] || 'postgres://localhost/tent_server_test'
+    require 'jdbc/sqlite3' if RUBY_ENGINE == 'jruby' && URI(url).scheme == 'sqlite'
+    DataMapper.setup(:default, url)
     DataMapper.auto_migrate!
     TentD::Model::User.current = TentD::Model::User.first_or_create
   end

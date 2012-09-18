@@ -2,7 +2,8 @@ source_key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcFFJQkFBS0NBUUVBM2Nv
 before_script:
   - psql -c 'create database tentd_test;' -U postgres
 env:
-  - TEST_DATABASE_URL=postgres://postgres@localhost/tentd_test
+  - "TEST_DATABASE_URL=postgres://postgres@localhost/tentd_test"
+  - "TEST_DATABASE_URL=sqlite::memory:"
 rvm:
   - 1.9.3
   - jruby-head

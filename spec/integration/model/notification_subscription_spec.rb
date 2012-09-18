@@ -40,9 +40,15 @@ describe TentD::Model::NotificationSubscription do
     before { TentD::Model::NotificationSubscription.all.destroy! }
 
     context "to everyone" do
-      let!(:subscription) { Fabricate(:notification_subscription, :follower => Fabricate(:follower)) }
+      let(:follower) { Fabricate(:follower) }
+      let(:subscription) { Fabricate(:notification_subscription, :follower => follower) }
 
       it 'should notify about a post' do
+        described_class.all.destroy
+        TentD::Model::Follower.all.destroy
+
+        subscription
+
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
         http_stubs.post('/notifications/asdf') { [200, {}, nil] }
 
