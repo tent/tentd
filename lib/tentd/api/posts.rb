@@ -74,14 +74,15 @@ module TentD
               }
             end
             if env.params.post_types
-              conditions[:type_base] = env.params.post_types.split(',').map do |type|
-                URI.unescape(type)
-              end.select do |type|
+              types = env.params.post_types.split(',').map { |t| TentType.new(URI.unescape(t)) }
+
+              non_public_conditions[:type_base] = types.select do |type|
                 env.current_auth.post_types.include?('all') ||
-                env.current_auth.post_types.include?(type)
-              end.map do |type|
-                TentType.new(type).base
-              end
+                env.current_auth.post_types.include?(type.uri)
+              end.map(&:base)
+
+              conditions[:type_base] = types.map(&:base)
+
             elsif !env.current_auth.post_types.include?('all')
               non_public_conditions[:type_base] = env.current_auth.post_types.map { |t| TentType.new(t).base }
             end
@@ -93,18 +94,14 @@ module TentD
             
             if env.params.return_count
               env.response = Model::Post.count(conditions.merge(non_public_conditions))
-              unless env.params.post_types
-                env.response += Model::Post.count(conditions.merge(:public => true))
-              end
+              env.response += Model::Post.count(conditions.merge(:public => true))
             else
               conditions[:order] = :published_at.desc
               if conditions[:limit] == 0
                 env.response = []
               else
                 env.response = Model::Post.all(conditions.merge(non_public_conditions))
-                unless env.params.post_types
-                  env.response += Model::Post.all(conditions.merge(:public => true))
-                end
+                env.response += Model::Post.all(conditions.merge(:public => true))
               end
             end
           else
