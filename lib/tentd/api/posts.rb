@@ -301,6 +301,7 @@ module TentD
 
       class TriggerUpdates < Middleware
         def action(env)
+          post = env.response
           if post && post.following && post.following == env.current_auth
             case post.type.base
             when 'https://tent.io/types/post/profile'
