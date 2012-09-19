@@ -5,5 +5,4 @@ env:
   - TEST_DATABASE_URL=postgres://postgres@localhost/tentd_test
 rvm:
   - 1.9.3
-  - jruby-head
   - rbx-19mode
