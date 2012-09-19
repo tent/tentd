@@ -22,5 +22,9 @@ module TentD
     UPDATE_FOLLOWING_PROFILE_QUEUE = GirlFriday::WorkQueue.new(:update_following_profile) do |msg|
       Model::Following.update_profile(msg[:following_id])
     end
+
+    PROFILE_INFO_UPDATE_QUEUE = GirlFriday::WorkQueue.new(:profile_info_update) do |msg|
+      Model::ProfileInfo.created_update_post(msg[:profile_info_id])
+    end
   end
 end

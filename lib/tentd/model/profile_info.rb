@@ -49,6 +49,24 @@ module TentD
         else
           info = create(:type => type, :public => data.delete(:public), :content => data)
         end
+        info
+      end
+
+      def self.create_update_post(id)
+        first(:id => id).create_update_post
+      end
+
+      def create_update_post
+        post = Model::Post.create(
+          :type => 'https://tent.io/types/post/profile/v0.1.0',
+          :entity => env['tent.entity'],
+          :content => {
+            :action => 'update',
+            :types => env.notify_types,
+          }
+        )
+        Permission.copy(self, post)
+        Notifications.trigger(:type => post.type.uri, :post_id => post.id)
       end
     end
   end

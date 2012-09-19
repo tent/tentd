@@ -13,6 +13,15 @@ module TentD
 
       property :id, Serial
       property :visible, Boolean, :default => true
+
+      def self.copy(from, to)
+        from.permissions.each do |permission|
+          attrs = permission.attributes
+          attrs.delete(:id)
+          to.permissions.create(attrs)
+        end
+        to.update(:public => from.public)
+      end
     end
   end
 end

@@ -22,8 +22,7 @@ module TentD
           data = env.params.data
           type = URI.unescape(env.params.type_url)
           raise Unauthorized unless ['all', type].find { |t| env.current_auth.profile_info_types.include?(t) }
-          Model::ProfileInfo.update_profile(type, data)
-          env.notify_types = [type]
+          env.updated_info = Model::ProfileInfo.update_profile(type, data)
           env
         end
       end
@@ -35,12 +34,11 @@ module TentD
           new_profile_hash = Marshal.load(Marshal.dump(profile_hash)).to_hash # equivalent of recursive dup
           JsonPatch.merge(new_profile_hash, diff_array)
           if new_profile_hash != profile_hash
-            new_profile_hash.each_pair do |type, data|
+            env.updated_info = new_profile_hash.map do |type, data|
               Model::ProfileInfo.update_profile(type, data)
             end
           end
           env.response = new_profile_hash
-          env.notify_types = new_profile_hash.keys
           env
         rescue JsonPatch::ObjectNotFound, JsonPatch::ObjectExists => e
           env['response.status'] = 422
@@ -51,16 +49,10 @@ module TentD
 
       class Notify < Middleware
         def action(env)
-          return env unless env.notify_types
-          post = Model::Post.create(
-            :type => 'https://tent.io/types/post/profile/v0.1.0',
-            :entity => env['tent.entity'],
-            :content => {
-              :action => 'update',
-              :types => env.notify_types,
-            }
-          )
-          Notifications.trigger(:type => post.type.uri, :post_id => post.id)
+          return env unless env.updated_info
+          Array(env.updated_info).each do |info|
+            Notifications.profile_info_update(:profile_info_id => info.id)
+          end
           env
         end
       end
