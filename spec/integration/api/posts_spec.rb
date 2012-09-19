@@ -641,6 +641,27 @@ describe TentD::API::Posts do
           expect(last_response.status).to eq(200)
         end
       end
+
+      describe 'delete post' do
+        let(:following) { Fabricate(:following) }
+        let(:p) { Fabricate(:post, :entity => following.entity, :following => following, :original => false) }
+        let(:post_attributes) {
+          {
+            :type => 'https://tent.io/types/post/delete/v0.1.0',
+            :entity => following.entity,
+            :content => {
+              :id => p.public_id
+            }
+          }
+        }
+
+        it "should trigger a post deletion" do
+          env['current_auth'] = following
+          json_post "/notifications/#{following.public_id}", post_attributes, env
+          expect(last_response.status).to eq(200)
+          expect(TentD::Model::Post.first(:id => p.id)).to be_nil
+        end
+      end
     end
 
     context 'as anonymous' do
