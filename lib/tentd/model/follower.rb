@@ -25,6 +25,7 @@ module TentD
       property :mac_timestamp_delta, Integer
       property :created_at, DateTime
       property :updated_at, DateTime
+      property :deleted_at, ParanoidDateTime
 
       has n, :notification_subscriptions, 'TentD::Model::NotificationSubscription', :constraint => :destroy
 

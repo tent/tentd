@@ -22,6 +22,7 @@ module TentD
       property :published_at, DateTime, :default => lambda { |*args| Time.now }
       property :received_at, DateTime, :default => lambda { |*args| Time.now }
       property :updated_at, DateTime
+      property :deleted_at, ParanoidDateTime
       property :app_name, Text, :lazy => false
       property :app_url, Text, :lazy => false
       property :original, Boolean, :default => false

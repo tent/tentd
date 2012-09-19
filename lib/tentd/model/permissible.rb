@@ -85,6 +85,8 @@ module TentD
           query << "AND user_id = ?"
           query_bindings << User.current.id
 
+          query << "AND #{table_name}.deleted_at IS NULL"
+
           if properties[:original]
             query << "AND original = ?"
             query_bindings << true
@@ -141,6 +143,8 @@ module TentD
 
           query_conditions << "#{table_name}.user_id = ?"
           query_bindings << User.current.id
+
+          query_conditions << "#{table_name}.deleted_at IS NULL"
 
           query << "WHERE #{query_conditions.join(' AND ')}"
 

@@ -6,6 +6,9 @@ module TentD
       storage_names[:default] = 'users'
 
       property :id, Serial
+      property :created_at, DateTime
+      property :updated_at, DateTime
+      property :deleted_at, ParanoidDateTime
 
       has n, :posts, 'TentD::Model::Post'
       has n, :post_versions, 'TentD::Model::PostVersion'

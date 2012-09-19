@@ -24,6 +24,7 @@ module TentD
       property :mac_timestamp_delta, Integer
       property :created_at, DateTime
       property :updated_at, DateTime
+      property :deleted_at, ParanoidDateTime
 
       has n, :authorizations, 'TentD::Model::AppAuthorization', :constraint => :destroy
       has n, :posts, 'TentD::Model::Post', :constraint => :set_nil

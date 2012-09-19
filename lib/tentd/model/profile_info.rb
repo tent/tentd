@@ -20,6 +20,7 @@ module TentD
       property :content, Json, :default => {}, :lazy => false
       property :created_at, DateTime
       property :updated_at, DateTime
+      property :deleted_at, ParanoidDateTime
 
       has n, :permissions, 'TentD::Model::Permission'
 
@@ -45,7 +46,7 @@ module TentD
         type = TentType.new(type)
         perms = data.delete(:permissions)
         if (infos = all(:type_base => type.base)) && (info = infos.pop)
-          infos.destroy
+          infos.to_a.each(&:destroy)
           info.type = type
           info.public = data.delete(:public)
           info.content = data

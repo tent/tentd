@@ -12,6 +12,7 @@ module TentD
       property :name, Text, :required => true, :lazy => false
       property :created_at, DateTime
       property :updated_at, DateTime
+      property :deleted_at, ParanoidDateTime
 
       has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy, :parent_key => :public_id
 
