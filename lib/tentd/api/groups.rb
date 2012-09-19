@@ -32,6 +32,13 @@ module TentD
         end
       end
 
+      class GetCount < Middleware
+        def action(env)
+          env.params.return_count = true
+          env
+        end
+      end
+
       class GetAll < Middleware
         def action(env)
           conditions = {}
@@ -39,11 +46,15 @@ module TentD
           conditions[:id.gt] = env.params.since_id if env.params.since_id
           conditions[:limit] = [env.params.limit.to_i, MAX_PER_PAGE].min if env.params.limit
           conditions[:limit] ||= PER_PAGE
-          conditions[:order] = :id.desc
-          if conditions[:limit] == 0
-            env.response = []
+          if env.params.return_count
+            env.response = Model::Group.count(conditions)
           else
-            env.response = Model::Group.all(conditions)
+            conditions[:order] = :id.desc
+            if conditions[:limit] == 0
+              env.response = []
+            else
+              env.response = Model::Group.all(conditions)
+            end
           end
           env
         end
@@ -111,6 +122,13 @@ module TentD
       get '/groups' do |b|
         b.use AuthorizeRead
         b.use GetActualId
+        b.use GetAll
+      end
+
+      get '/groups/count' do |b|
+        b.use AuthorizeRead
+        b.use GetActualId
+        b.use GetCount
         b.use GetAll
       end
 

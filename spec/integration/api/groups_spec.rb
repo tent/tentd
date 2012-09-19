@@ -16,6 +16,16 @@ describe TentD::API::Groups do
   let(:env) { Hash.new }
   let(:params) { Hash.new }
 
+  describe 'GET /groups/count' do
+    before { authorize!(:read_groups) }
+    it 'should return number of groups' do
+      TentD::Model::Group.all.destroy
+      Fabricate(:group)
+      json_get '/groups/count', params, env
+      expect(last_response.body).to eq(1.to_json)
+    end
+  end
+
   describe 'GET /groups' do
     context 'when read_groups scope authorized' do
       before { authorize!(:read_groups) }
