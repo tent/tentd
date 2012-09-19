@@ -67,7 +67,6 @@ module TentD
             conditions[:published_at.gt] = Time.at(env.params.since_time.to_i) if env.params.since_time
             conditions[:published_at.lt] = Time.at(env.params.before_time.to_i) if env.params.before_time
             conditions[:entity] = env.params.entity if env.params.entity
-            conditions[:original] = true
             if env.params.mentioned_post && env.params.mentioned_entity
               conditions[:mentions] = {
                 :mentioned_post_id => env.params.mentioned_post,
@@ -95,6 +94,7 @@ module TentD
             end
 
             if env.params.return_count
+              conditions[:original] = true
               env.response = Model::Post.all(conditions.merge(non_public_conditions))
               env.response += Model::Post.all(conditions.merge(:public => true))
               env.response = env.response.count
