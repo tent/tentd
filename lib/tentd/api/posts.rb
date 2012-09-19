@@ -80,6 +80,7 @@ module TentD
                 env.current_auth.post_types.include?('all') ||
                 env.current_auth.post_types.include?(type.uri)
               end.map(&:base)
+              non_public_conditions[:type_base] = nil unless non_public_conditions[:type_base].any?
 
               conditions[:type_base] = types.map(&:base)
 
@@ -93,8 +94,9 @@ module TentD
             end
             
             if env.params.return_count
-              env.response = Model::Post.count(conditions.merge(non_public_conditions))
-              env.response += Model::Post.count(conditions.merge(:public => true))
+              env.response = Model::Post.all(conditions.merge(non_public_conditions))
+              env.response += Model::Post.all(conditions.merge(:public => true))
+              env.response = env.response.count
             else
               conditions[:order] = :published_at.desc
               if conditions[:limit] == 0

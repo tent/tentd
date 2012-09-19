@@ -160,11 +160,13 @@ module TentD
               query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min
             end
 
-            res = find_by_sql([query.join(' '), *query_bindings])
             if params.return_count
-              res = res.count
+              DataMapper.repository(:default).adapter.send(:with_connection) do |connection|
+                connection.create_command(query.join(' ')).execute_reader(*query_bindings)
+              end.count
+            else
+              find_by_sql([query.join(' '), *query_bindings])
             end
-            res
           end
         end
 

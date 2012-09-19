@@ -38,7 +38,9 @@ describe TentD::API::Posts do
       it 'should return count of posts with type' do
         TentD::Model::Post.all.destroy
         type = TentD::TentType.new("https://tent.io/types/post/example/v0.1.0")
+        type2 = TentD::TentType.new("https://tent.io/types/post/blog/v0.1.0")
         post = Fabricate(:post, :public => true, :type_base => type.base, :type_version => type.version)
+        post = Fabricate(:post, :public => true, :type_base => type2.base, :type_version => type2.version)
 
         params[:post_types] = type.uri
         json_get '/posts/count', params, env
