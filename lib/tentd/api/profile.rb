@@ -38,11 +38,9 @@ module TentD
               Model::ProfileInfo.update_profile(type, data)
             end
           end
-          env.response = new_profile_hash
           env
         rescue JsonPatch::ObjectNotFound, JsonPatch::ObjectExists => e
           env['response.status'] = 422
-          env.response = profile_hash
           env
         end
       end
@@ -72,6 +70,7 @@ module TentD
         b.use AuthorizeWrite
         b.use Get
         b.use Patch
+        b.use Get
         b.use Notify
       end
     end

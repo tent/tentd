@@ -26,6 +26,34 @@ module TentD
         end
       end
 
+      def assign_permissions(permissions)
+        return unless permissions.kind_of?(Hash)
+
+        if permissions.groups && permissions.groups.kind_of?(Array)
+          permissions.groups.each do |g|
+            next unless g.id
+            group = Model::Group.first(:public_id => g.id, :fields => [:id])
+            self.permissions.create(:group => group) if group
+          end
+        end
+
+        if permissions.entities && permissions.entities.kind_of?(Hash)
+          permissions.entities.each do |entity,visible|
+            next unless visible
+            followers = Model::Follower.all(:entity => entity, :fields => [:id])
+            followers.each do |follower|
+              self.permissions.create(:follower_access => follower)
+            end
+            followings = Model::Following.all(:entity => entity, :fields => [:id])
+            followings.each do |following|
+              self.permissions.create(:following => following)
+            end
+          end
+        end
+
+        self.public = permissions.public unless permissions.public.nil?
+      end
+
       module ClassMethods
         def query_with_permissions(current_auth, params=Hashie::Mash.new)
           query = []

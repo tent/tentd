@@ -24,7 +24,7 @@ module TentD
     end
 
     PROFILE_INFO_UPDATE_QUEUE = GirlFriday::WorkQueue.new(:profile_info_update) do |msg|
-      Model::ProfileInfo.created_update_post(msg[:profile_info_id])
+      Model::ProfileInfo.create_update_post(msg[:profile_info_id])
     end
   end
 end

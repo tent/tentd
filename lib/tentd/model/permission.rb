@@ -10,6 +10,7 @@ module TentD
       belongs_to :following, 'TentD::Model::Following', :required => false
       belongs_to :follower_visibility, 'TentD::Model::Follower', :required => false
       belongs_to :follower_access, 'TentD::Model::Follower', :required => false
+      belongs_to :profile_info, 'TentD::Model::ProfileInfo', :required => false
 
       property :id, Serial
       property :visible, Boolean, :default => true

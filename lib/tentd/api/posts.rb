@@ -93,7 +93,7 @@ module TentD
             else
               conditions[:limit] = TentD::API::PER_PAGE
             end
-            
+
             if env.params.return_count
               env.response = Model::Post.all(conditions.merge(non_public_conditions))
               env.response += Model::Post.all(conditions.merge(:public => true))
@@ -123,7 +123,7 @@ module TentD
           data = env.params[:data].slice(*whitelisted_attributes(env))
           data.public_id = env.params.data.id if env.params.data.id
           post = Model::Post.create(data)
-          assign_permissions(post, env.params.data.permissions)
+          post.assign_permissions(env.params.data.permissions) if post.original
           env['response'] = post
           env
         end

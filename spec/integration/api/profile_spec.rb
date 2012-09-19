@@ -59,8 +59,8 @@ describe TentD::API::Profile do
 
           json_get '/profile', params, env
           expect(last_response.body).to eq({
-            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:public => profile_infos.first.public),
-            "#{ profile_infos.last.type.uri }" => profile_infos.last.content.merge(:public => profile_infos.first.public)
+            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json),
+            "#{ profile_infos.last.type.uri }" => profile_infos.last.content.merge(:permissions => profile_infos.first.permissions_json)
           }.to_json)
         end
       end
@@ -77,7 +77,7 @@ describe TentD::API::Profile do
 
           json_get '/profile', params, env
           expect(last_response.body).to eq({
-            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:public => profile_infos.first.public)
+            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json)
           }.to_json)
         end
       end
@@ -93,7 +93,7 @@ describe TentD::API::Profile do
 
         json_get '/profile', params, env
         expect(last_response.body).to eq({
-          "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:public => profile_infos.first.public)
+          "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json)
         }.to_json)
       end
     end

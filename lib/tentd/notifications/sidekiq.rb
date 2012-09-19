@@ -43,7 +43,7 @@ module TentD
       include Sidekiq::Worker
 
       def perform(msg)
-        Model::ProfileInfo.created_update_post(msg['profile_info_id'])
+        Model::ProfileInfo.create_update_post(msg['profile_info_id'])
       end
     end
   end
