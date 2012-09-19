@@ -11,5 +11,9 @@ module TentD
     def self.notify_entity(msg)
       queue_job(:notify_entity, msg)
     end
+
+    def self.update_following_profile(msg)
+      queue_job(:update_following_profile, msg)
+    end
   end
 end

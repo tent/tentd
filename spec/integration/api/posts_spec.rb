@@ -620,6 +620,27 @@ describe TentD::API::Posts do
         json_post "/posts", post_attributes.merge(:entity => 'example.org'), env
         expect(last_response.status).to eq(403)
       end
+
+      describe 'profile update post' do
+        let(:following) { Fabricate(:following) }
+        let(:post_attributes) {
+          {
+            :type => 'https://tent.io/types/post/profile/v0.1.0',
+            :entity => following.entity,
+            :content => {
+              :action => 'update',
+              :types => ['https://tent.io/types/info/core/v0.1.0'],
+            }
+          }
+        }
+
+        it "should trigger a profile update" do
+          env['current_auth'] = following
+          TentD::Notifications.expects(:update_following_profile).with(:following_id => following.id)
+          json_post "/notifications/#{following.public_id}", post_attributes, env
+          expect(last_response.status).to eq(200)
+        end
+      end
     end
 
     context 'as anonymous' do

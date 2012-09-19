@@ -32,6 +32,14 @@ module TentD
       def servers
         self[version_key][:servers]
       end
+
+      def entity
+        self[version_key][:entity]
+      end
+
+      def licenses
+        self[version_key][:licenses]
+      end
     end
   end
 end

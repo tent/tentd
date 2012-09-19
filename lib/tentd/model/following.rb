@@ -43,6 +43,22 @@ module TentD
         [:remote_id, :entity]
       end
 
+      def self.update_profile(id)
+        first(:id => id).update_profile
+      end
+
+      def update_profile
+        client = TentClient.new(core_profile.servers, auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
+        res = client.profile.get
+        if res.status == 200
+          self.profile = res.body
+          self.licenses = core_profile.licenses
+          self.entity = core_profile.entity
+        end
+        save
+        profile
+      end
+
       def core_profile
         API::CoreProfileData.new(profile)
       end

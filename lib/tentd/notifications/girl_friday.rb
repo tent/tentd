@@ -7,16 +7,20 @@ module TentD
       const_get(job.to_s.upcase+'_QUEUE').push(msg)
     end
 
-    TRIGGER_QUEUE = GirlFriday::WorkQueue.new(:notification_trigger) do |msg|
+    TRIGGER_QUEUE = GirlFriday::WorkQueue.new(:trigger) do |msg|
       Model::NotificationSubscription.notify_all(msg[:type], msg[:post_id])
     end
 
-    NOTIFY_QUEUE = GirlFriday::WorkQueue.new(:notification) do |msg|
+    NOTIFY_QUEUE = GirlFriday::WorkQueue.new(:notify) do |msg|
       Model::NotificationSubscription.first(:id => msg[:subscription_id]).notify_about(msg[:post_id], msg[:view])
     end
 
-    NOTIFY_ENTITY_QUEUE = GirlFriday::WorkQueue.new(:notification) do |msg|
+    NOTIFY_ENTITY_QUEUE = GirlFriday::WorkQueue.new(:notify_entity) do |msg|
       Model::NotificationSubscription.notify_entity(msg[:entity], msg[:post_id])
+    end
+
+    UPDATE_FOLLOWING_PROFILE_QUEUE = GirlFriday::WorkQueue.new(:update_following_profile) do |msg|
+      Model::Following.update_profile(msg[:following_id])
     end
   end
 end

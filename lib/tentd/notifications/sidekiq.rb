@@ -23,12 +23,19 @@ module TentD
       end
     end
 
-
     class NotifyEntityWorker
       include Sidekiq::Worker
 
       def perform(msg)
         Model::NotificationSubscription.notify_entity(msg['entity'], msg['post_id'])
+      end
+    end
+
+    class UpdateFollowingProfileWorker
+      include Sidekiq::Worker
+
+      def perform(msg)
+        Model::Following.update_profile(msg['following_id'])
       end
     end
   end

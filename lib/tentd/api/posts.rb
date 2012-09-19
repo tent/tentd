@@ -299,6 +299,18 @@ module TentD
         end
       end
 
+      class TriggerUpdates < Middleware
+        def action(env)
+          if post && post.following && post.following == env.current_auth
+            case post.type.base
+            when 'https://tent.io/types/post/profile'
+              Notifications.update_following_profile(:following_id => post.following.id)
+            end
+          end
+          env
+        end
+      end
+
       get '/posts/count' do |b|
         b.use GetCount
         b.use GetFeed
@@ -330,6 +342,7 @@ module TentD
         b.use CreatePost
         b.use CreateAttachments
         b.use Notify
+        b.use TriggerUpdates
       end
 
       get '/notifications/:following_id' do |b|

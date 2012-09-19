@@ -1,8 +1,9 @@
 require 'spec_helper'
 
 describe TentD::Model::Following do
+  let(:following) { Fabricate(:following) }
+
   describe "#as_json" do
-    let(:following) { Fabricate(:following) }
     let(:public_attributes) do
       {
         :id => following.public_id,
@@ -65,6 +66,32 @@ describe TentD::Model::Following do
           :created_at => following.updated_at.to_time.to_i
         ))
       end
+    end
+  end
+
+  describe '.update_profile' do
+    let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
+    let(:updated_profile) {
+      {
+        TentD::Model::ProfileInfo::TENT_PROFILE_TYPE_URI => {
+          "licenses" => ["http://creativecommons.org/licenses/by/3.0/"],
+          "entity" => "https://new-server.example.org",
+          "servers" => ["https://new-server.example.org/tent"]
+        }
+      }
+    }
+    before { TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs]) }
+
+    it 'should update a profile' do
+      http_stubs.get('/profile') {
+        [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, updated_profile.to_json]
+      }
+      described_class.update_profile(following.id)
+      following.reload
+
+      expect(following.profile).to eq(updated_profile)
+      expect(following.licenses).to eq(updated_profile.values.first['licenses'])
+      expect(following.entity).to eq(updated_profile.values.first['entity'])
     end
   end
 end
