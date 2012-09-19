@@ -17,9 +17,14 @@ module TentD
         [403, {}, ['Unauthorized']]
       rescue DataMapper::SaveFailureError, DataObjects::IntegrityError
         [422, {}, ['Invalid Attributes']]
-      rescue
-        raise if ENV['RACK_ENV'] == 'test'
-        puts $!.inspect, $@
+      rescue Exception => e
+        if ENV['RACK_ENV'] == 'test'
+          raise
+        elsif defined?(Airbrake)
+          Airbrake.notify_or_ignore(e, :rack_env => env)
+        else
+          puts $!.inspect, $@
+        end
         [500, {}, ['Internal Server Error']]
       end
     end
