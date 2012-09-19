@@ -133,7 +133,7 @@ module TentD
       end
 
       def can_notify?(app_or_follow)
-        return true if public
+        return true if public && original
         case app_or_follow
         when AppAuthorization
           app_or_follow.scopes && app_or_follow.scopes.map(&:to_sym).include?(:read_posts) ||
