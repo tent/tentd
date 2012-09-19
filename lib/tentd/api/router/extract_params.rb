@@ -36,7 +36,7 @@ module TentD
 
           begin
             if env['CONTENT_TYPE'] =~ /\bjson\Z/
-              params['data'] = JSON.parse(env['rack.input'].read)
+              params['data'] = env['data'] || JSON.parse(env['rack.input'].read)
             elsif env['CONTENT_TYPE'] =~ /\Amultipart/
               key, data = params.find { |k,p| p[:type] == MEDIA_TYPE }
               params.delete(key)
