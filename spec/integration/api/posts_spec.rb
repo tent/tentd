@@ -40,11 +40,13 @@ describe TentD::API::Posts do
         type = TentD::TentType.new("https://tent.io/types/post/example/v0.1.0")
         type2 = TentD::TentType.new("https://tent.io/types/post/blog/v0.1.0")
         post = Fabricate(:post, :public => true, :type_base => type.base, :type_version => type.version)
-        post = Fabricate(:post, :public => true, :type_base => type2.base, :type_version => type2.version)
+        post2 = Fabricate(:post, :public => true, :type_base => type.base, :type_version => type.version, :original => false)
+        post3 = Fabricate(:post, :public => true, :type_base => type2.base, :type_version => type2.version)
 
         params[:post_types] = type.uri
         json_get '/posts/count', params, env
         expect(last_response.body).to eq(1.to_json)
+
       end
     end
 
@@ -54,6 +56,11 @@ describe TentD::API::Posts do
       before { authorize!(:read_posts) }
 
       context &it_should_get_count
+
+      context 'when specific types authorized' do
+        let(:authorized_post_types) { %w(https://tent.io/types/post/example/v0.1.0 https://tent.io/types/post/blog/v0.1.0) }
+        context &it_should_get_count
+      end
     end
   end
 
