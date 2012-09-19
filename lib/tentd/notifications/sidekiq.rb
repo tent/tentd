@@ -39,7 +39,7 @@ module TentD
       end
     end
 
-    class ProfileInfoUpdate
+    class ProfileInfoUpdateWorker
       include Sidekiq::Worker
 
       def perform(msg)
