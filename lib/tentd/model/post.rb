@@ -24,12 +24,12 @@ module TentD
       property :app_name, Text, :lazy => false
       property :app_url, Text, :lazy => false
       property :original, Boolean, :default => false
-      property :known_entity, Boolean
 
       has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy
       has n, :attachments, 'TentD::Model::PostAttachment', :constraint => :destroy
       has n, :mentions, 'TentD::Model::Mention', :constraint => :destroy
       belongs_to :app, 'TentD::Model::App', :required => false
+      belongs_to :following, 'TentD::Model::Following', :required => false
 
       has n, :versions, 'TentD::Model::PostVersion', :constraint => :destroy
 
@@ -129,7 +129,7 @@ module TentD
       end
 
       def self.write_attributes
-        public_attributes + [:known_entity, :original, :public, :mentions, :views]
+        public_attributes + [:following_id, :original, :public, :mentions, :views]
       end
 
       def can_notify?(app_or_follow)
@@ -166,7 +166,7 @@ module TentD
         end
 
         if options[:app]
-          attributes[:known_entity] = known_entity
+          attributes[:following_id] = following.public_id if following
         end
 
         Array(options[:exclude]).each { |k| attributes.delete(k) if k }

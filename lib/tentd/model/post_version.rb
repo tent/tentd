@@ -25,11 +25,11 @@ module TentD
       property :app_name, Text, :lazy => false
       property :app_url, Text, :lazy => false
       property :original, Boolean, :default => false
-      property :known_entity, Boolean
 
       has n, :attachments, 'TentD::Model::PostAttachment', :constraint => :destroy
       has n, :mentions, 'TentD::Model::Mention', :constraint => :destroy
       belongs_to :app, 'TentD::Model::App', :required => false
+      belongs_to :following, 'TentD::Model::Following', :required => false
 
       def self.public_attributes
         Post.public_attributes
@@ -50,7 +50,7 @@ module TentD
         end
 
         if options[:app]
-          attributes[:known_entity] = known_entity
+          attributes[:following_id] = following.public_id if following
         end
 
         attributes[:permissions] = post_attrs[:permissions]

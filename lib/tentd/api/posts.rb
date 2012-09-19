@@ -133,19 +133,20 @@ module TentD
         def authorize_post!(env)
           post = env.params.data
           if auth_is_publisher?(env.current_auth, post)
-            post.known_entity = true
+            post.following_id = env.current_auth.id if env.current_auth.kind_of?(Model::Following)
             env.authorized_scopes << :write_posts
           elsif anonymous_publisher?(env.current_auth, post) && post != env['tent.entity']
-            post.known_entity = false
             env.authorized_scopes << :write_posts
           elsif env.authorized_scopes.include?(:import_posts)
             post.entity ||= env['tent.entity']
             post.app ||= env.current_auth.app
-            post.known_entity = nil if post.known_entity.nil?
+            if post.following_id && following = Model::Following.first(:public_id => post.following_id)
+              post.following_id = following.id
+            end
           elsif env.current_auth.respond_to?(:app)
             post.entity = env['tent.entity']
             post.app = env.current_auth.app
-            post.known_entity = nil
+            post.following_id = nil
           end
           post.original = post.entity == env['tent.entity']
           authorize_env!(env, :write_posts)

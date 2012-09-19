@@ -415,11 +415,12 @@ describe TentD::Model::Post do
 
       context 'with options[:app] = true' do
         it 'should return app relevant data' do
+          post.following = Fabricate(:following)
           expect(post.as_json(:app => true)).to eq(public_attributes.merge(
             :received_at => post.received_at.to_time.to_i,
             :updated_at => post.updated_at.to_time.to_i,
             :published_at => post.published_at.to_time.to_i,
-            :known_entity => post.known_entity
+            :following_id => post.following.public_id
           ))
         end
       end
