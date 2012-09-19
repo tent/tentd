@@ -45,6 +45,13 @@ module TentD
         end
       end
 
+      class GetCount < Middleware
+        def action(env)
+          env.params.return_count = true
+          env
+        end
+      end
+
       class GetMany < Middleware
         def action(env)
           if authorize_env?(env, :read_followings)
@@ -184,6 +191,12 @@ module TentD
 
       get '/follow' do |b|
         b.use RedirectToFollowUI
+      end
+
+      get '/followings/count' do |b|
+        b.use GetActualId
+        b.use GetCount
+        b.use GetMany
       end
 
       get '/followings/:following_id' do |b|

@@ -50,10 +50,18 @@ module TentD
         end
       end
 
+      class GetCount < Middleware
+        def action(env)
+          env.params.return_count = true
+          env
+        end
+      end
+
       class GetFeed < Middleware
         def action(env)
           if authorize_env?(env, :read_posts)
             conditions = {}
+            non_public_conditions = {}
             conditions[:id.gt] = env.params.since_id if env.params.since_id
             conditions[:id.lt] = env.params.before_id if env.params.before_id
             conditions[:published_at.gt] = Time.at(env.params.since_time.to_i) if env.params.since_time
@@ -71,20 +79,33 @@ module TentD
               end.select do |type|
                 env.current_auth.post_types.include?('all') ||
                 env.current_auth.post_types.include?(type)
+              end.map do |type|
+                TentType.new(type).base
               end
             elsif !env.current_auth.post_types.include?('all')
-              conditions[:type_base] = env.current_auth.post_types.map { |t| TentType.new(t).base }
+              non_public_conditions[:type_base] = env.current_auth.post_types.map { |t| TentType.new(t).base }
             end
             if env.params.limit
               conditions[:limit] = [env.params.limit.to_i, TentD::API::MAX_PER_PAGE].min
             else
               conditions[:limit] = TentD::API::PER_PAGE
             end
-            conditions[:order] = :published_at.desc
-            if conditions[:limit] == 0
-              env.response = []
+            
+            if env.params.return_count
+              env.response = Model::Post.count(conditions.merge(non_public_conditions))
+              unless env.params.post_types
+                env.response += Model::Post.count(conditions.merge(:public => true))
+              end
             else
-              env.response = Model::Post.all(conditions)
+              conditions[:order] = :published_at.desc
+              if conditions[:limit] == 0
+                env.response = []
+              else
+                env.response = Model::Post.all(conditions.merge(non_public_conditions))
+                unless env.params.post_types
+                  env.response += Model::Post.all(conditions.merge(:public => true))
+                end
+              end
             end
           else
             env.response = Model::Post.fetch_with_permissions(env.params, env.current_auth)
@@ -275,6 +296,11 @@ module TentD
             [404, {}, []]
           end
         end
+      end
+
+      get '/posts/count' do |b|
+        b.use GetCount
+        b.use GetFeed
       end
 
       get '/posts/:post_id' do |b|

@@ -20,6 +20,15 @@ describe TentD::API::Followings do
     http_stubs.post('/notifications') { [200, {}, []] }
   end
 
+  describe 'GET /followings/count' do
+    it 'should return count of followings' do
+      TentD::Model::Following.all.destroy
+      following = Fabricate(:following, :public => true)
+      json_get '/followings/count', params, env
+      expect(last_response.body).to eq(1.to_json)
+    end
+  end
+
   describe 'GET /followings' do
     let(:create_permissions?) { false }
     let(:current_auth) { env['current_auth'] }

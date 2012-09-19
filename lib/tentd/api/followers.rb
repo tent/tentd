@@ -120,6 +120,13 @@ module TentD
         end
       end
 
+      class GetCount < Middleware
+        def action(env)
+          env.params.return_count = true
+          env
+        end
+      end
+
       class GetMany < Middleware
         def action(env)
           if env.full_read_authorized
@@ -173,6 +180,13 @@ module TentD
         b.use Create
         b.use Import
         b.use Notify
+      end
+
+      get '/followers/count' do |b|
+        b.use AuthorizeReadMany
+        b.use GetActualId
+        b.use GetCount
+        b.use GetMany
       end
 
       get '/followers/:follower_id' do |b|

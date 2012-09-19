@@ -27,11 +27,15 @@ module TentD
       end
 
       module ClassMethods
-        def query_with_permissions(current_auth)
+        def query_with_permissions(current_auth, params=Hashie::Mash.new)
           query = []
           query_bindings = []
 
-          query << "SELECT #{table_name}.* FROM #{table_name}"
+          if params.return_count
+            query << "SELECT COUNT(#{table_name}.*) FROM #{table_name}"
+          else
+            query << "SELECT #{table_name}.* FROM #{table_name}"
+          end
 
           if current_auth && current_auth.respond_to?(:permissible_foreign_key)
             query << "LEFT OUTER JOIN permissions ON permissions.#{visibility_permissions_relationship_foreign_key} = #{table_name}.id"
@@ -82,7 +86,12 @@ module TentD
           query_conditions = []
           query_bindings = []
 
-          query << "SELECT #{table_name}.* FROM #{table_name}"
+          if params.return_count
+            query << "SELECT COUNT(#{table_name}.*) FROM #{table_name}"
+          else
+            query << "SELECT #{table_name}.* FROM #{table_name}"
+          end
+
           if params.since_id
             query_conditions << "#{table_name}.id > ?"
             query_bindings << params.since_id.to_i
@@ -107,18 +116,24 @@ module TentD
 
           query << "WHERE #{query_conditions.join(' AND ')}"
 
-          query << "ORDER BY id DESC" unless query.find { |q| q =~ /^order/i }
+          unless params.return_count
+            query << "ORDER BY id DESC" unless query.find { |q| q =~ /^order/i }
 
-          query << "LIMIT ?"
-          query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min
+            query << "LIMIT ?"
+            query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min
+          end
 
-          find_by_sql([query.join(' '), *query_bindings])
+          res = find_by_sql([query.join(' '), *query_bindings])
+          if params.return_count
+            res = res.count
+          end
+          res
         end
 
         def fetch_with_permissions(params, current_auth, &block)
           params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
 
-          query_with_permissions(current_auth) do |query, query_bindings|
+          query_with_permissions(current_auth, params) do |query, query_bindings|
             if params.since_id
               query << "AND #{table_name}.id > ?"
               query_bindings << params.since_id.to_i
@@ -138,12 +153,18 @@ module TentD
               yield params, query, query_bindings
             end
 
-            query << "ORDER BY id DESC" unless query.find { |q| q =~ /^order/i }
+            unless params.return_count
+              query << "ORDER BY id DESC" unless query.find { |q| q =~ /^order/i }
 
-            query << "LIMIT ?"
-            query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min
+              query << "LIMIT ?"
+              query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min
+            end
 
-            find_by_sql([query.join(' '), *query_bindings])
+            res = find_by_sql([query.join(' '), *query_bindings])
+            if params.return_count
+              res = res.count
+            end
+            res
           end
         end
 

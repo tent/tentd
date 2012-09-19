@@ -26,6 +26,25 @@ describe TentD::API::Posts do
   let(:env) { Hash.new }
   let(:params) { Hash.new }
 
+  describe 'GET /posts/count' do
+    it_should_get_count = proc do
+      it 'should return count of posts' do
+        TentD::Model::Post.all.destroy
+        following = Fabricate(:post, :public => true)
+        json_get '/posts/count', params, env
+        expect(last_response.body).to eq(1.to_json)
+      end
+    end
+
+    context &it_should_get_count
+
+    context 'when read_posts scope authorized' do
+      before { authorize!(:read_posts) }
+
+      context &it_should_get_count
+    end
+  end
+
   describe 'GET /posts/:post_id' do
     let(:env) { Hashie::Mash.new }
     let(:params) { Hashie::Mash.new }
@@ -245,15 +264,15 @@ describe TentD::API::Posts do
       end
 
       it "should filter by params[:post_types]" do
-        picture_type_uri = "https://tent.io/types/post/picture"
-        blog_type_uri = "https://tent.io/types/post/blog"
+        picture_type = TentD::TentType.new("https://tent.io/types/post/picture/v0.1.0")
+        blog_type = TentD::TentType.new("https://tent.io/types/post/blog/v0.1.0")
 
-        picture_post = Fabricate(:post, :public => post_public?, :type_base => picture_type_uri)
+        picture_post = Fabricate(:post, :public => post_public?, :type_base => picture_type.base)
         non_picture_post = Fabricate(:post, :public => post_public?)
-        blog_post = Fabricate(:post, :public => post_public?, :type_base => blog_type_uri)
+        blog_post = Fabricate(:post, :public => post_public?, :type_base => blog_type.base)
 
-        posts = TentD::Model::Post.all(:type_base => [picture_type_uri, blog_type_uri])
-        post_types = [picture_post, blog_post].map { |p| URI.encode_www_form_component(p.type.base) }
+        posts = TentD::Model::Post.all(:type_base => [picture_type.base, blog_type.base])
+        post_types = [picture_post, blog_post].map { |p| URI.encode_www_form_component(p.type.uri) }
 
         json_get "/posts?post_types=#{post_types.join(',')}", params, env
         body = JSON.parse(last_response.body)
@@ -408,7 +427,7 @@ describe TentD::API::Posts do
       let(:post_public?) { false }
 
       context 'when post type authorized' do
-        let(:authorized_post_types) { ["https://tent.io/types/post/status", "https://tent.io/types/post/picture", "https://tent.io/types/post/blog"] }
+        let(:authorized_post_types) { ["https://tent.io/types/post/status/v0.1.0", "https://tent.io/types/post/picture/v0.1.0", "https://tent.io/types/post/blog/v0.1.0"] }
 
         context &with_params
       end
@@ -420,9 +439,10 @@ describe TentD::API::Posts do
       end
 
       context 'when post type not authorized' do
+        let(:authorized_post_types) { %w(https://tent.io/types/post/status/v0.1.0) }
         it 'should return empty array' do
           TentD::Model::Post.all.destroy
-          post = Fabricate(:post, :public => false)
+          post = Fabricate(:post, :public => false, :type_base => 'https://tent.io/types/post/repost', :type_version => '0.1.0')
           json_get "/posts", params, env
           expect(last_response.body).to eq([].to_json)
         end

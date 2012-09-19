@@ -118,7 +118,9 @@ module TentD
             query_bindings << params.mentioned_post
           end
 
-          query << "ORDER BY posts.published_at DESC"
+          unless params.return_count
+            query << "ORDER BY posts.published_at DESC"
+          end
         end
       end
 

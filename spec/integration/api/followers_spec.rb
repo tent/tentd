@@ -196,6 +196,15 @@ describe TentD::API::Followers do
     end
   end
 
+  describe 'GET /followers/count' do
+    it 'should return count of followers' do
+      TentD::Model::Follower.all.destroy
+      follower = Fabricate(:follower, :public => true)
+      json_get '/followers/count', params, env
+      expect(last_response.body).to eq(1.to_json)
+    end
+  end
+
   describe 'GET /followers' do
     authorized_permissible = proc do
       it 'should order id desc' do
