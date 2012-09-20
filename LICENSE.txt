@@ -1,4 +1,4 @@
-Copyright (c) 2012 Jonathan Rudenberg and Jesse Stuart
+Copyright (c) 2012 Apollic Software, LLC
 
 MIT License
 
