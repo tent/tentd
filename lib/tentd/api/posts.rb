@@ -266,6 +266,7 @@ module TentD
                 :id => deleted_post.public_id
               }
             )
+            Model::Permission.copy(deleted_post, post)
           else
             return env unless (post = env.response) && post.kind_of?(Model::Post)
           end
