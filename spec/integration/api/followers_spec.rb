@@ -202,6 +202,10 @@ describe TentD::API::Followers do
       follower = Fabricate(:follower, :public => true)
       json_get '/followers/count', params, env
       expect(last_response.body).to eq(1.to_json)
+
+      TentD::Model::Follower.all.destroy
+      json_get '/followers/count', params, env
+      expect(last_response.body).to eq(0.to_json)
     end
   end
 
