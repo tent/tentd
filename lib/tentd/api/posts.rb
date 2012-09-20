@@ -262,6 +262,7 @@ module TentD
             post = Model::Post.create(
               :type => 'https://tent.io/types/post/delete/v0.1.0',
               :entity => env['tent.entity'],
+              :original => true,
               :content => {
                 :id => deleted_post.public_id
               }

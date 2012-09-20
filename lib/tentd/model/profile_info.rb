@@ -66,6 +66,7 @@ module TentD
         post = user.posts.create(
           :type => 'https://tent.io/types/post/profile/v0.1.0',
           :entity => user.profile_entity,
+          :original => true,
           :content => {
             :action => 'update',
             :types => [self.type.uri],
