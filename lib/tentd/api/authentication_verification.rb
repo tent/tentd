@@ -39,7 +39,7 @@ module TentD
         body = env['rack.input'].read
         env['rack.input'].rewind
         request_uri = env.SCRIPT_NAME + (env.QUERY_STRING != '' ? "?#{env.QUERY_STRING}" : '')
-        [time.to_s, nonce, env.REQUEST_METHOD.to_s.upcase, request_uri, env.HTTP_HOST.split(':').first, env.SERVER_PORT, body, nil].join("\n")
+        [time.to_s, nonce, env.REQUEST_METHOD.to_s.upcase, request_uri, env.HTTP_HOST.split(':').first, (env.HTTP_X_FORWARDED_PORT || env.SERVER_PORT), body, nil].join("\n")
       end
 
       def openssl_digest(mac_algorithm)
