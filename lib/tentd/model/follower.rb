@@ -15,7 +15,7 @@ module TentD
       property :id, Serial
       property :groups, Array, :lazy => false, :default => []
       property :entity, Text, :required => true, :lazy => false
-      property :public, Boolean, :default => false
+      property :public, Boolean, :default => true
       property :profile, Json, :default => {}
       property :licenses, Array, :lazy => false, :default => []
       property :notification_path, Text, :lazy => false, :required => true
