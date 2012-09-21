@@ -1,4 +1,4 @@
-# tentd ![Build Status](https://magnum.travis-ci.com/tent/tentd.png?branch=master&token=YmxLSPgdpsxNUMWJpzRx)
+# tentd [![Build Status](https://secure.travis-ci.org/tent/tentd.png)](http://travis-ci.org/tent/tentd)
 
 tentd is an **alpha** implementation of a [Tent Protocol](http://tent.io) server.
 It currently contains **broken code, ugly code, many bugs, and security flaws**.
