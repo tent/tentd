@@ -25,9 +25,13 @@ module TentD
 
         def last_modified(object)
           if object.respond_to?(:updated_at)
-            object.updated_at
+            t = object.updated_at
+            t.respond_to?(:to_time) ? t.to_time : t
           elsif object.kind_of?(Enumerable) && object.first.respond_to?(:updated_at)
-            object.map { |o| o.updated_at }.sort.last
+            object.map { |o|
+              t = o.updated_at
+              t.respond_to?(:to_time) ? t.to_time : t
+            }.sort.last
           end
         end
 
