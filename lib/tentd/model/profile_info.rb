@@ -48,11 +48,10 @@ module TentD
         if (infos = all(:type_base => type.base)) && (info = infos.pop)
           infos.to_a.each(&:destroy)
           info.type = type
-          info.public = data.delete(:public)
           info.content = data
           info.save
         else
-          info = create(:type => type, :public => data.delete(:public), :content => data)
+          info = create(:type => type, :content => data)
         end
         info.assign_permissions(perms)
         info

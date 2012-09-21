@@ -50,8 +50,10 @@ module TentD
             end
           end
         end
-
-        self.public = permissions.public unless permissions.public.nil?
+        unless permissions.public.nil?
+          self.public = permissions.public
+          save
+        end
       end
 
       module ClassMethods
