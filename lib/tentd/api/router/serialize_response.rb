@@ -14,7 +14,10 @@ module TentD
                     else
                       {}
                     end
-          headers.merge!('Access-Control-Allow-Origin' => '*') if env['HTTP_ORIGIN']
+          headers.merge!(
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization',
+          ) if env['HTTP_ORIGIN']
           [status, headers, [response.to_s]]
         end
 
