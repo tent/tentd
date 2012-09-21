@@ -20,7 +20,7 @@ module TentD
       validates_presence_of :post_version_id, :if => lambda { |m| m.post_id.nil? }
 
       def as_json(options = {})
-        super({ :exclude => [:id, :data, :post_id, :created_at, :updated_at] }.merge(options))
+        super({ :only => [:type, :category, :name, :size] }.merge(options))
       end
     end
   end
