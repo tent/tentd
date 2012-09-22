@@ -22,7 +22,7 @@ module TentD
           status, headers, body = @app.call(env)
           headers['Last-Modified'] ||= last_modified_at.httpdate if last_modified_at
           headers['Cache-Control'] ||= cache_control(env.response) if cache_control(env.response)
-          @last_modified = @cache_control = @public = nil
+          @last_modified = @cache_control = nil
           [status, headers, body]
         end
 
@@ -49,7 +49,7 @@ module TentD
         end
 
         def public?(object)
-          @public ||= object.respond_to?(:public) && object.public ||
+          object.respond_to?(:public) && object.public ||
           object.kind_of?(Hash) && (object['public'] || object['permissions'] && object['permissions']['public'])
         end
       end

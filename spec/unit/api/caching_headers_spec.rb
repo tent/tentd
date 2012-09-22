@@ -5,6 +5,9 @@ describe TentD::API::Router::CachingHeaders do
   let(:middleware) { TentD::API::Router::CachingHeaders.new(app) }
   let(:env) { Hashie::Mash.new('REQUEST_METHOD' => 'GET') }
 
+  CACHE_CONTROL_PUBLIC = TentD::API::Router::CachingHeaders::CACHE_CONTROL_PUBLIC
+  CACHE_CONTROL_PRIVATE = TentD::API::Router::CachingHeaders::CACHE_CONTROL_PRIVATE
+
   shared_examples 'conditional get' do
     it 'should respond with a 304 when cached' do
       status, headers, body = middleware.call env.merge('response' => response,
@@ -23,13 +26,13 @@ describe TentD::API::Router::CachingHeaders do
 
   shared_examples 'public response' do
     it 'should set Cache-Control to public' do
-      expect(middleware.call(env.merge('response' => response))[1]['Cache-Control']).to eq('public')
+      expect(middleware.call(env.merge('response' => response))[1]['Cache-Control']).to eq(CACHE_CONTROL_PUBLIC)
     end
   end
 
   shared_examples 'private response' do
     it 'should set Cache-Control to private' do
-      expect(middleware.call(env.merge('response' => response))[1]['Cache-Control']).to eq('private')
+      expect(middleware.call(env.merge('response' => response))[1]['Cache-Control']).to eq(CACHE_CONTROL_PRIVATE)
     end
   end
 
