@@ -4,6 +4,10 @@ module TentD
   class API
     module Router
       class CachingHeaders
+        CACHE_CONTROL = ', max-age=0, must-revalidate'.freeze
+        CACHE_CONTROL_PUBLIC = ('public' + CACHE_CONTROL).freeze
+        CACHE_CONTROL_PRIVATE = ('private' + CACHE_CONTROL).freeze
+
         def initialize(app)
           @app = app
         end
@@ -37,9 +41,9 @@ module TentD
 
         def cache_control(object)
           if object.respond_to?(:public) || object.respond_to?(:permissions)
-            public?(object) ? 'public' : 'private'
+            public?(object) ? CACHE_CONTROL_PUBLIC : CACHE_CONTROL_PRIVATE
           elsif object.kind_of?(Enumerable) && (object.first.respond_to?(:public) || object.first.kind_of?(Hash) && object.first['permissions'])
-            object.map { |o| public?(o) }.uniq == [true] ? 'public' : 'private'
+            object.map { |o| public?(o) }.uniq == [true] ? CACHE_CONTROL_PUBLIC : CACHE_CONTROL_PRIVATE
           end
         end
 
