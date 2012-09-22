@@ -12,7 +12,7 @@ module TentD
           return @app.call(env) unless %w(GET HEAD).include?(env['REQUEST_METHOD'])
           last_modified_at = last_modified(env.response)
           if_modified_since = env['HTTP_IF_MODIFIED_SINCE']
-          if if_modified_since && Time.httpdate(if_modified_since) >= last_modified_at
+          if if_modified_since && last_modified_at && Time.httpdate(if_modified_since) >= last_modified_at
             return [304, {}, nil]
           end
           status, headers, body = @app.call(env)
