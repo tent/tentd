@@ -126,8 +126,8 @@ module TentD
             client = ::TentClient.new(following.core_profile.servers, following.auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
             res = client.follower.delete(following.remote_id)
             following.destroy
+            env.response = ''
             if (200...300).to_a.include?(res.status)
-              env.response = ''
               env.notify_action = 'delete'
               env.notify_instance = following
             end
