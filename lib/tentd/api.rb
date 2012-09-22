@@ -35,24 +35,8 @@ module TentD
       end
     end
 
-    class CorsPreflight < Middleware
-      def action(env)
-        headers = {
-          'Access-Control-Allow-Origin' => '*',
-          'Access-Control-Allow-Methods' => 'GET, POST, HEAD, PUT, DELETE, PATCH, OPTIONS',
-          'Access-Control-Allow-Headers' => 'Content-Type, Authorization',
-          'Access-Control-Max-Age' => '2592000' # 30 days
-        }
-        [200, headers, []]
-      end
-    end
-
     get '/' do |b|
       b.use HelloWorld
-    end
-
-    options %r{/.*} do |b|
-      b.use CorsPreflight
     end
   end
 end

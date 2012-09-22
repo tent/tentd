@@ -26,6 +26,7 @@ module TentD
       autoload :ExtractParams, 'tentd/api/router/extract_params'
       autoload :SerializeResponse, 'tentd/api/router/serialize_response'
       autoload :CachingHeaders, 'tentd/api/router/caching_headers'
+      autoload :CorsHeaders, 'tentd/api/router/cors_headers'
 
       def self.included(base)
         base.extend(ClassMethods)
@@ -69,6 +70,7 @@ module TentD
 
           builder = Rack::Builder.new(SerializeResponse.new)
           builder.use(Rack::Head)
+          builder.use(CorsHeaders)
           builder.use(UserLookup)
           builder.use(AuthenticationLookup)
           builder.use(AuthenticationVerification)
