@@ -65,6 +65,7 @@ module TentD
 
       class Discover < Middleware
         def action(env)
+          return [422, {}, ['Invalid Request Body']] unless env.params.data
           client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
           profile, profile_url = client.discover(env.params.data.entity).get_profile
           return [404, {}, ['Not Found']] unless profile
