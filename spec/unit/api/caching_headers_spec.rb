@@ -13,7 +13,7 @@ describe TentD::API::Router::CachingHeaders do
       status, headers, body = middleware.call env.merge('response' => response,
                                                         'HTTP_IF_MODIFIED_SINCE' => Time.now.httpdate)
       expect(status).to eq(304)
-      expect(body).to be_nil
+      expect(body).to eq([])
     end
 
     it 'should not 304 when not cached' do
