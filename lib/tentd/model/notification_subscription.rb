@@ -1,6 +1,8 @@
 module TentD
   module Model
     class NotificationSubscription
+      NotificationError = Class.new(StandardError)
+
       include DataMapper::Resource
       include TypeProperties
       include UserScoped
@@ -41,15 +43,18 @@ module TentD
           client = TentClient.new(server_urls, :faraday_adapter => TentD.faraday_adapter)
           path = 'posts'
         end
-        client.post.create(post.as_json(:view => view), :url => path)
+        res = client.post.create(post.as_json(:view => view), :url => path)
+        raise NotificationError unless (200...300).include?(res.status)
       end
 
       def notify_about(post_id, view='full')
         post = Post.first(:id => post_id)
         client = TentClient.new(subject.notification_servers, subject.auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
         permissions = subject.respond_to?(:scopes) && subject.scopes.include?(:read_permissions)
-        client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions, :view => view), :url => subject.notification_path)
+        res = client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions, :view => view), :url => subject.notification_path)
+        raise NotificationError unless (200...300).include?(res.status)
       rescue Faraday::Error::ConnectionFailed
+        raise NotificationError
       end
     end
   end
