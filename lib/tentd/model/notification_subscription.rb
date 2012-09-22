@@ -45,6 +45,7 @@ module TentD
         end
         res = client.post.create(post.as_json(:view => view), :url => path)
         raise NotificationError unless (200...300).include?(res.status)
+        res
       end
 
       def notify_about(post_id, view='full')
@@ -53,6 +54,7 @@ module TentD
         permissions = subject.respond_to?(:scopes) && subject.scopes.include?(:read_permissions)
         res = client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions, :view => view), :url => subject.notification_path)
         raise NotificationError unless (200...300).include?(res.status)
+        res
       rescue Faraday::Error::ConnectionFailed
         raise NotificationError
       end
