@@ -28,6 +28,7 @@ module TentD
       autoload :SerializeResponse, 'tentd/api/router/serialize_response'
       autoload :CachingHeaders, 'tentd/api/router/caching_headers'
       autoload :CorsHeaders, 'tentd/api/router/cors_headers'
+      autoload :EtagCheck, 'tentd/api/router/etag_check'
 
       def self.included(base)
         base.extend(ClassMethods)
@@ -71,6 +72,7 @@ module TentD
 
           builder = Rack::Builder.new(SerializeResponse.new)
           builder.use(Rack::Head)
+          builder.use(EtagCheck)
           builder.use(Rack::ETag)
           builder.use(CorsHeaders)
           builder.use(UserLookup)
