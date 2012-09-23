@@ -10,7 +10,13 @@ module TentD
             env.params[key] = nil
             memo
           }
-          posts = Model::Post.all(:public_id => id_mapping.keys, :fields => [:id, :public_id])
+          conditions = { :public_id => id_mapping.keys, :fields => [:id, :public_id] }
+          if env.params.entity
+            conditions[:entity] = env.params.entity
+          elsif env['tent.entity']
+            conditions[:entity] = env['tent.entity']
+          end
+          posts = Model::Post.all(conditions)
           posts.each do |post|
             key = id_mapping[post.public_id]
             env.params[key] = post.id
@@ -323,6 +329,11 @@ module TentD
       end
 
       get '/posts/:post_id' do |b|
+        b.use GetActualId
+        b.use GetOne
+      end
+
+      get '/posts/:entity/:post_id' do |b|
         b.use GetActualId
         b.use GetOne
       end

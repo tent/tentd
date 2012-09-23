@@ -134,6 +134,36 @@ describe TentD::API::Posts do
       end
     end
 
+    with_entity = proc do
+      context 'with params[:entity]' do
+        it 'should return post matching entity and post_id' do
+          post_1 = Fabricate(:post, :entity => 'https://123smith.example.org')
+          post_2 = Fabricate(:post, :entity => 'https://alex4567.example.com', :public_id => post_1.public_id)
+          expect(post_1.public_id).to eq(post_2.public_id)
+
+          json_get "/posts/#{URI.encode_www_form_component(post_2.entity)}/#{post_2.public_id}", params, env
+          body = JSON.parse(last_response.body)
+          expect(body['id']).to eq(post_2.public_id)
+          expect(body['entity']).to eq(post_2.entity)
+        end
+      end
+
+      context 'without params[:entity]' do
+        it 'should return post matching current entity and post_id' do
+          post_1 = Fabricate(:post, :entity => 'https://123smith.example.org')
+          post_2 = Fabricate(:post, :entity => 'https://alex4567.example.com', :public_id => post_1.public_id)
+          expect(post_1.public_id).to eq(post_2.public_id)
+
+          env['tent.entity'] = post_1.entity
+
+          json_get "/posts/#{post_1.public_id}", params, env
+          body = JSON.parse(last_response.body)
+          expect(body['id']).to eq(post_1.public_id)
+          expect(body['entity']).to eq(post_1.entity)
+        end
+      end
+    end
+
     using_permissions = proc do
       not_authenticated = proc do
         it "should find existing post by public_id" do
@@ -167,6 +197,7 @@ describe TentD::API::Posts do
 
         context &with_version
         context &with_view
+        context &with_entity
       end
 
       current_auth_examples = proc do
@@ -259,6 +290,7 @@ describe TentD::API::Posts do
 
         context &with_version
         context &with_view
+        context &with_entity
       end
 
       context 'when post type is not authorized' do
