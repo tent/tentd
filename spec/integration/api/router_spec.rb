@@ -10,7 +10,7 @@ describe TentD::API::Router do
 
   class TestMiddlewarePrematureResponse < TentD::API::Middleware
     def action(env)
-      [200, { 'Content-Type' => 'text/plain' }, 'Premature-Response']
+      [200, { 'Content-Type' => 'text/plain' }, ['Premature-Response']]
     end
   end
 

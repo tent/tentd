@@ -1,5 +1,6 @@
 require 'rack/mount'
 require 'rack/head'
+require 'rack/etag'
 
 class Rack::Mount::RouteSet
   def merge_routes(routes)
@@ -70,6 +71,7 @@ module TentD
 
           builder = Rack::Builder.new(SerializeResponse.new)
           builder.use(Rack::Head)
+          builder.use(Rack::ETag)
           builder.use(CorsHeaders)
           builder.use(UserLookup)
           builder.use(AuthenticationLookup)
@@ -78,7 +80,6 @@ module TentD
           builder.use(ExtractParams, path, params)
           builder.use(Authorization)
           block.call(builder)
-          builder.use(CachingHeaders)
 
           routes.add_route(builder.to_app, :request_method => verb, :path_info => path)
           routes.rehash
