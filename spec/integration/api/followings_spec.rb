@@ -503,6 +503,7 @@ describe TentD::API::Followings do
 
       context 'when follow request fails' do
         it 'should error' do
+          TentD::Model::Following.all.destroy
           @http_stub_head_success.call
           @http_stub_profile_success.call
           http_stubs.post('/tent/followers') { [404, {}, 'Not Found'] }
@@ -513,11 +514,28 @@ describe TentD::API::Followings do
         end
       end
 
+      context 'when already following entity' do
+        before do
+          @http_stub_success.call
+          TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+        end
+
+        it 'should return 409' do
+          TentD::Model::Following.all.destroy
+          Fabricate(:following, :entity => following_data['entity'])
+          expect(lambda {
+            json_post '/followings', following_data, env
+          }).to change(TentD::Model::Following, :count).by(0)
+          expect(last_response.status).to eq(409)
+        end
+      end
+
       context 'when discovery and follow requests success' do
         before do
           @http_stub_success.call
           stub_notification_http!
           TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+          TentD::Model::Following.all.destroy
         end
 
         it 'should create following' do

@@ -80,6 +80,10 @@ module TentD
 
       class Follow < Middleware
         def action(env)
+          if Model::Following.all(:entity => env.params.data.entity).any?
+            return [409, {}, ['Already following']]
+          end
+
           env.following = Model::Following.create(:entity => env.params.data.entity,
                                                   :groups => env.params.data.groups.to_a.map { |g| g['id'] },
                                                   :confirmed => false)
