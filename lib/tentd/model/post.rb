@@ -109,14 +109,20 @@ module TentD
             end
           end
 
-          if params.mentioned_post && params.mentioned_entity
+          if params.mentioned_post || params.mentioned_entity
             select = query.shift
             query.unshift "INNER JOIN mentions ON mentions.post_id = posts.id"
             query.unshift select
 
-            query << "AND mentions.entity = ? AND mentions.mentioned_post_id = ?"
-            query_bindings << params.mentioned_entity
-            query_bindings << params.mentioned_post
+            if params.mentioned_entity
+              query << "AND mentions.entity = ?"
+              query_bindings << params.mentioned_entity
+            end
+
+            if params.mentioned_post
+              query << "AND mentions.mentioned_post_id = ?"
+              query_bindings << params.mentioned_post
+            end
           end
 
           unless params.return_count
