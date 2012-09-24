@@ -633,16 +633,23 @@ describe TentD::API::Posts do
 
     context 'as follower' do
       before { authorize!(:entity => 'https://smith.example.com') }
+      let(:post_attributes) {
+        p.attributes.merge(:id => rand(36 ** 6).to_s(36), :type => p.type.uri)
+      }
 
       it 'should allow a post from the follower' do
-        post_attributes = p.attributes
-        post_attributes[:id] = rand(36 ** 6).to_s(36)
-        post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes, env
         body = JSON.parse(last_response.body)
         post = TentD::Model::Post.last
         expect(body['id']).to eq(post.public_id)
         expect(post.public_id).to eq(post_attributes[:id])
+      end
+
+      it "should silently allow a duplicate post from a follower" do
+        json_post "/posts", post_attributes, env
+        expect(last_response.status).to eq(200)
+        json_post "/posts", post_attributes, env
+        expect(last_response.status).to eq(200)
       end
 
       it "should not allow a post that isn't from the follower" do

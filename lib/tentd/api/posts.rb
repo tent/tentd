@@ -124,8 +124,16 @@ module TentD
           set_publicity(env.params.data)
           parse_times(env.params.data)
           data = env.params[:data].slice(*whitelisted_attributes(env))
-          data.public_id = env.params.data.id if env.params.data.id
-          post = Model::Post.create(data)
+          post = if env.params.data.id
+            data.public_id = env.params.data.id
+            begin
+              Model::Post.create(data)
+            rescue DataObjects::IntegrityError # hack to ignore duplicate posts
+              Model::Post.first(:public_id => data.public_id)
+            end
+          else
+            Model::Post.create(data)
+          end
           post.assign_permissions(env.params.data.permissions) if post.original
           env['response'] = post
           env
@@ -150,6 +158,7 @@ module TentD
             post.entity = env['tent.entity']
             post.app = env.current_auth.app
             post.following_id = nil
+            post.id = nil
           end
           post.original = post.entity == env['tent.entity']
           authorize_env!(env, :write_posts)
