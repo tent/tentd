@@ -99,4 +99,12 @@ describe TentD::API::Router do
     json_get '/premature/response', nil, env
     expect(last_response.body).to eq('Premature-Response')
   end
+
+  it "should handle etags correctly" do
+    json_get '/premature/response'
+    etag = last_response.headers['ETag']
+    expect(etag).to be_true
+    json_get '/premature/response', nil, 'HTTP_IF_NONE_MATCH' => etag
+    expect(last_response.status).to eq(304)
+  end
 end
