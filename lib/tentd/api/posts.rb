@@ -10,7 +10,11 @@ module TentD
             env.params[key] = nil
             memo
           }
-          posts = Model::Post.all(:public_id => id_mapping.keys, :fields => [:id, :public_id, :entity]).to_a
+          scope = Model::Post.default_scope.dup
+          scope.delete(:deleted_at)
+          posts = Model::Post.send(:with_exclusive_scope, scope) { |q|
+            Model::Post.all(:public_id => id_mapping.keys, :fields => [:id, :public_id, :entity]).to_a
+          }
           id_mapping.each_pair do |public_id, key|
             entity = env.params["#{key}_entity"]
             entity ||= env['tent.entity']
