@@ -351,7 +351,6 @@ describe TentD::API::Posts do
         it "should return empty array if mentioned post doesn't match" do
           json_get "/posts?mentioned_post=invalid-post-id-127", {}, env
           body = JSON.parse(last_response.body)
-          puts body.inspect unless body.empty?
           expect(body.size).to eq(0)
         end
       end
