@@ -22,6 +22,7 @@ module TentD
 
       def self.notify_all(type, post_id)
         post = Post.first(:id => post_id, :fields => [:id, :original, :public])
+        return unless post
         post.user.notification_subscriptions.all(:type_base => [TentType.new(type).base, 'all'],
                                                  :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
           next unless post.can_notify?(subscription.subject)
@@ -32,6 +33,8 @@ module TentD
       def self.notify_entity(entity, post_id, view='full')
         post = Post.first(:id => post_id)
         return if post.entity == entity
+        return unless post
+        entity = 'https://' + entity if !entity.match(%r{\Ahttp})
         if follow = post.user.followers.first(:entity => entity) || post.user.followings.first(:entity => entity)
           return unless post.can_notify?(follow)
           client = TentClient.new(follow.notification_servers, follow.auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
@@ -50,6 +53,7 @@ module TentD
 
       def notify_about(post_id, view='full')
         post = Post.first(:id => post_id)
+        return unless post
         client = TentClient.new(subject.notification_servers, subject.auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
         permissions = subject.respond_to?(:scopes) && subject.scopes.include?(:read_permissions)
         res = client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions, :view => view), :url => subject.notification_path)
