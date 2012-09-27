@@ -69,7 +69,6 @@ module TentD
         def action(env)
           if authorize_env?(env, :read_posts)
             conditions = {}
-            non_public_conditions = {}
             conditions[:id.gt] = env.params.since_id if env.params.since_id
             conditions[:id.lt] = env.params.before_id if env.params.before_id
             conditions[:published_at.gt] = Time.at(env.params.since_time.to_i) if env.params.since_time
@@ -80,20 +79,7 @@ module TentD
               conditions[:mentions][:mentioned_post_id] = env.params.mentioned_post if env.params.mentioned_post
               conditions[:mentions][:entity] = env.params.mentioned_entity if env.params.mentioned_entity
             end
-            if env.params.post_types
-              types = env.params.post_types.split(',').map { |t| TentType.new(URI.unescape(t)) }
 
-              non_public_conditions[:type_base] = types.select do |type|
-                env.current_auth.post_types.include?('all') ||
-                env.current_auth.post_types.include?(type.uri)
-              end.map(&:base)
-              non_public_conditions.delete(:type_base) unless non_public_conditions[:type_base].any?
-
-              conditions[:type_base] = types.map(&:base)
-
-            elsif !env.current_auth.post_types.include?('all')
-              non_public_conditions[:type_base] = env.current_auth.post_types.map { |t| TentType.new(t).base }
-            end
             if env.params.limit
               conditions[:limit] = [env.params.limit.to_i, TentD::API::MAX_PER_PAGE].min
             else
@@ -102,22 +88,44 @@ module TentD
 
             if env.params.return_count
               conditions[:original] = true
-              env.response = Model::Post.all(conditions.merge(non_public_conditions))
-              env.response += Model::Post.all(conditions.merge(:public => true)) unless non_public_conditions[:type_base].nil? || non_public_conditions[:type_base].include?(conditions[:type_base])
-              env.response = env.response.count
+              env.response = query_with_public_and_private_types(env.current_auth.post_types, env.params.post_types, conditions).count
             else
               conditions[:order] = :published_at.desc
               if conditions[:limit] == 0
                 env.response = []
               else
-                env.response = Model::Post.all(conditions.merge(non_public_conditions))
-                env.response += Model::Post.all(conditions.merge(:public => true)) unless non_public_conditions[:type_base].nil? || non_public_conditions[:type_base].include?(conditions[:type_base])
+                env.response = query_with_public_and_private_types(env.current_auth.post_types, env.params.post_types, conditions)
               end
             end
           else
             env.response = Model::Post.fetch_with_permissions(env.params, env.current_auth)
           end
           env
+        end
+
+        private
+
+        def query_with_public_and_private_types(allowed_post_types, post_types, conditions)
+          if post_types
+            requested_post_types = post_types.split(',').map { |t| TentType.new(URI.unescape(t)) }
+            requested_allowed_post_types = requested_post_types.select do |type|
+              allowed_post_types.include?('all') ||
+              allowed_post_types.include?(type.uri)
+            end.map(&:base)
+            requested_post_types.map!(&:base)
+          end
+
+          if post_types.nil?
+            private_conditions = allowed_post_types.include?('all') ? {} : { :type_base => allowed_post_types.map { |t| TentType.new(t).base } }
+            Model::Post.all(conditions.merge(private_conditions)) + Model::Post.all(conditions.merge(:public => true))
+          elsif requested_allowed_post_types.empty?
+            Model::Post.all(conditions.merge(:type_base => requested_post_types, :public => true))
+          elsif allowed_post_types.include?('all') || (requested_allowed_post_types & requested_post_types) == requested_post_types
+            Model::Post.all(conditions.merge(:type_base => requested_allowed_post_types))
+          else
+            Model::Post.all(conditions.merge(:type_base => requested_allowed_post_types)) +
+            Model::Post.all(conditions.merge(:type_base => requested_post_types, :public => true))
+          end
         end
       end
 
