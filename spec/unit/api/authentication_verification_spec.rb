@@ -5,10 +5,28 @@ describe TentD::API::AuthenticationVerification do
     TentD::API.new
   end
 
-  it 'should verify mac signature' do
+  it 'should verify legacy mac signature with body' do
     env = Hashie::Mash.new({
       'hmac' => {
         "id" => "s:h480djs93hd8", "ts" => "1336363200", "nonce" => "dj83hs9s", "mac" => "hqpo01mLJLSYDbxmfRgNMEw38Wg=",
+        "secret" => '489dks293j39',
+        'algorithm' => 'hmac-sha-1',
+      },
+      'rack.input' => StringIO.new("asdf\nasdf"),
+      'REQUEST_METHOD' => 'POST',
+      'SCRIPT_NAME' => "/resource/1",
+      'QUERY_STRING' => "b=1&a=2",
+      'HTTP_HOST' => "example.com",
+      'SERVER_PORT' => "80"
+    })
+    described_class.new(app).call(env)
+    expect(env.hmac.verified).to be_true
+  end
+
+  it 'should verify mac signature' do
+    env = Hashie::Mash.new({
+      'hmac' => {
+        "id" => "s:h480djs93hd8", "ts" => "1336363200", "nonce" => "dj83hs9s", "mac" => "SIBz/j9mI1Ba2Y+10wdwbQGv2Yk=",
         "secret" => '489dks293j39',
         'algorithm' => 'hmac-sha-1',
       },
