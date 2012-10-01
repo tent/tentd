@@ -31,7 +31,7 @@ module TentD
           end
         elsif !post.original
           post.user.notification_subscriptions.all(:type_base => [TentType.new(type).base, 'all'],
-                                                   :fields => [:id, :app_authorization_id, :follower_id], :app_id.not => nil).each do |subscription|
+                                                   :fields => [:id, :app_authorization_id, :follower_id], :app_authorization_id.not => nil).each do |subscription|
             next unless post.can_notify?(subscription.subject)
             Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
           end
