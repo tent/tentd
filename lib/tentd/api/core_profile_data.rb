@@ -26,19 +26,19 @@ module TentD
       end
 
       def entity?(entity)
-        self[version_key][:entity] == entity
+        (self[version_key] || {})[:entity] == entity
       end
 
       def servers
-        self[version_key][:servers]
+        (self[version_key] || {})[:servers]
       end
 
       def entity
-        self[version_key][:entity]
+        (self[version_key] || {})[:entity]
       end
 
       def licenses
-        self[version_key][:licenses]
+        (self[version_key] || {})[:licenses]
       end
     end
   end
