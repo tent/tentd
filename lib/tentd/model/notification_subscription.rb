@@ -23,10 +23,18 @@ module TentD
       def self.notify_all(type, post_id)
         post = Post.first(:id => post_id, :fields => [:id, :original, :public])
         return unless post
-        post.user.notification_subscriptions.all(:type_base => [TentType.new(type).base, 'all'],
-                                                 :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
-          next unless post.can_notify?(subscription.subject)
-          Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
+        if post.public
+          post.user.notification_subscriptions.all(:type_base => [TentType.new(type).base, 'all'],
+                                                   :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
+            next unless post.can_notify?(subscription.subject)
+            Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
+          end
+        else
+          post.permissions.all(:follower_access_id.not => nil).follower_access.notification_subscription.all(:type_base => [TentType.new(type).base, 'all'],
+                                                   :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
+            next unless post.can_notify?(subscription.subject)
+            Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
+          end
         end
       end
 
