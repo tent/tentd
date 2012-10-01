@@ -46,8 +46,8 @@ module TentD
 
       def self.notify_entity(entity, post_id, view='full')
         post = Post.first(:id => post_id)
-        return if post.entity == entity
         return unless post
+        return if post.entity == entity
         entity = 'https://' + entity if !entity.match(%r{\Ahttp})
         if follow = post.user.followers.first(:entity => entity) || post.user.followings.first(:entity => entity)
           return unless post.can_notify?(follow)
