@@ -30,7 +30,7 @@ module TentD
             Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
           end
         else
-          post.permissions.all(:follower_access_id.not => nil).follower_access.notification_subscription.all(:type_base => [TentType.new(type).base, 'all'],
+          post.permissions.all(:follower_access_id.not => nil).follower_access.notification_subscriptions.all(:type_base => [TentType.new(type).base, 'all'],
                                                    :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
             next unless post.can_notify?(subscription.subject)
             Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
