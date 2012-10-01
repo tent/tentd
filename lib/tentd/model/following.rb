@@ -45,7 +45,9 @@ module TentD
       end
 
       def self.update_profile(id)
-        first(:id => id).update_profile
+        following = first(:id => id)
+        return unless following
+        following.update_profile
       end
 
       def update_profile
