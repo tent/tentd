@@ -333,7 +333,7 @@ module TentD
             when 'https://tent.io/types/post/profile'
               Notifications.update_following_profile(:following_id => post.following.id)
             when 'https://tent.io/types/post/delete'
-              if deleted_post = Model::Post.first(:public_id => post.content.id, :following_id => env.current_auth.id)
+              if deleted_post = Model::Post.first(:public_id => post.content['id'], :following_id => env.current_auth.id)
                 deleted_post.destroy
               end
             end
