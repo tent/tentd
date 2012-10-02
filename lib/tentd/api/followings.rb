@@ -80,13 +80,19 @@ module TentD
 
       class Follow < Middleware
         def action(env)
-          if Model::Following.all(:entity => env.params.data.entity).any?
+          existing_following = Model::Following.first(:entity => env.params.data.entity)
+          if existing_following && existing_following.confirmed == true
             return [409, {}, ['Already following']]
           end
 
-          env.following = Model::Following.create(:entity => env.params.data.entity,
-                                                  :groups => env.params.data.groups.to_a.map { |g| g['id'] },
-                                                  :confirmed => false)
+          if existing_following
+            env.following = existing_following
+          else
+            env.following = Model::Following.create(:entity => env.params.data.entity,
+                                                    :groups => env.params.data.groups.to_a.map { |g| g['id'] },
+                                                    :confirmed => false)
+          end
+
           client = ::TentClient.new(env.server_url, :faraday_adapter => TentD.faraday_adapter)
           res = client.follower.create(
             :entity => env['tent.entity'],
