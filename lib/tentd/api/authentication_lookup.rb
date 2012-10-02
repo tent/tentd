@@ -11,7 +11,7 @@ module TentD
         when 'a'
           TentD::Model::App.first(:mac_key_id => mac_key_id)
         when 'u'
-          TentD::Model::AppAuthorization.first(:mac_key_id => mac_key_id)
+          TentD::Model::User.current.apps.authorizations.first(:mac_key_id => mac_key_id)
         end
         env.potential_auth = Model::Following.first(:mac_key_id => mac_key_id) unless env.potential_auth
         if env.potential_auth
