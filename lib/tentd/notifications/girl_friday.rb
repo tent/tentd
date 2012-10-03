@@ -12,7 +12,7 @@ module TentD
     end
 
     NOTIFY_QUEUE = GirlFriday::WorkQueue.new(:notify) do |msg|
-      Model::NotificationSubscription.first(:id => msg[:subscription_id]).notify_about(msg[:post_id], msg[:view])
+      Model::NotificationSubscription.notify(msg[:subscription_id], msg[:post_id])
     end
 
     NOTIFY_ENTITY_QUEUE = GirlFriday::WorkQueue.new(:notify_entity) do |msg|

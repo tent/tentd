@@ -65,6 +65,11 @@ module TentD
         res
       end
 
+      def self.notify(subscription_id, post_id)
+        subscription = first(:id => subscription_id)
+        subscription.notify_about(post_id) if subscription
+      end
+
       def notify_about(post_id, view='full')
         post = Post.first(:id => post_id)
         return unless post

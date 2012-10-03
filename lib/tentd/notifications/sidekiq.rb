@@ -19,7 +19,7 @@ module TentD
       include Sidekiq::Worker
 
       def perform(msg)
-        Model::NotificationSubscription.first(:id => msg['subscription_id']).notify_about(msg['post_id'])
+        Model::NotificationSubscription.notify(msg['subscription_id'], msg['post_id'])
       end
     end
 
