@@ -732,6 +732,14 @@ describe TentD::API::Posts do
         expect(body['id']).to eq(post.public_id)
         expect(post.public_id).to eq(post_attributes[:id])
       end
+
+      it 'should not allow posting as the entity' do
+        post_attributes = p.attributes
+        post_attributes[:id] = rand(36 ** 6).to_s(36)
+        post_attributes[:type] = p.type.uri
+        json_post "/posts", post_attributes.merge(:entity => 'https://example.org'), env.merge('tent.entity' => 'https://example.org')
+        expect(last_response.status).to eq(403)
+      end
     end
   end
 
