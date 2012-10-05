@@ -20,6 +20,18 @@ describe TentD::Model::Post do
       let(:other_follower) { Fabricate(:follower, :entity => 'https://marks.example.com') }
       let(:entity_url) { 'https://alexdoe.example.org' }
 
+
+      it "should divide published_at by 1000 if it's in miliseconds" do
+        post_attributes = {
+          :published_at => Time.at(1349471384657),
+          :type => 'https://tent.io/types/post/status/v0.1.0',
+          :content => {}
+        }
+        post = described_class.create(post_attributes)
+        expect(post.published_at.to_time.to_i).to eq(1349471384)
+      end
+
+
       it 'should send notification to all mentioned entities not already subscribed' do
         post_type = 'https://tent.io/types/post/status/v0.1.0'
         post_attrs = Fabricate.build(:post).attributes.merge(

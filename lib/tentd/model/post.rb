@@ -69,6 +69,7 @@ module TentD
       end
 
       def self.create(data)
+        data[:published_at] = Time.at(data[:published_at].to_time.to_i / 1000) if data[:published_at] && ((data[:published_at].to_time.to_i - Time.now.to_i) > 1000000000)
         mentions = data.delete(:mentions)
         post = super(data)
 
