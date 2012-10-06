@@ -7,6 +7,7 @@ module TentD
 
       property :id, Serial
       property :entity, Text, :lazy => false, :required => true
+      property :original_post, Boolean, :default => false
       property :mentioned_post_id, String
 
       belongs_to :post, 'TentD::Model::Post', :required => false

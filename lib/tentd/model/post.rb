@@ -61,7 +61,7 @@ module TentD
           Mention.all(:post_id => self.id).update(:post_id => nil, :post_version_id => last_version.id)
           mentions.each do |mention|
             next unless mention[:entity]
-            self.mentions.create(:entity => mention[:entity], :mentioned_post_id => mention[:post], :post_version_id => current_version.id)
+            self.mentions.create(:entity => mention[:entity], :mentioned_post_id => mention[:post], :original_post => self.original, :post_version_id => current_version.id)
           end
         end
 
@@ -75,7 +75,7 @@ module TentD
 
         mentions.to_a.each do |mention|
           next unless mention[:entity]
-          post.mentions.create(:entity => mention[:entity], :mentioned_post_id => mention[:post], :post_version_id => post.latest_version(:fields => [:id]).id)
+          post.mentions.create(:entity => mention[:entity], :mentioned_post_id => mention[:post], :original_post => post.original, :post_version_id => post.latest_version(:fields => [:id]).id)
         end
 
         if post.mentions.to_a.any? && post.original
