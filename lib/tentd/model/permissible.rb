@@ -111,7 +111,7 @@ module TentD
           end
         end
 
-        def fetch_all(params)
+        def fetch_all(params, &block)
           params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
 
           query = []
@@ -140,7 +140,7 @@ module TentD
           end
 
           if block_given?
-            yield params, query_conditions, query_bindings
+            yield params, query, query_conditions, query_bindings
           end
 
           query_conditions << "#{table_name}.user_id = ?"
@@ -148,7 +148,9 @@ module TentD
 
           query_conditions << "#{table_name}.deleted_at IS NULL"
 
+          order_part = query.last =~ /^order/i ? query.pop : nil
           query << "WHERE #{query_conditions.join(' AND ')}"
+          query << order_part if order_part
 
           unless params.return_count
             query << "ORDER BY id DESC" unless query.find { |q| q =~ /^order/i }

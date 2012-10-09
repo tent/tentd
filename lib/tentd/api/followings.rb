@@ -55,7 +55,7 @@ module TentD
       class GetMany < Middleware
         def action(env)
           if authorize_env?(env, :read_followings)
-            env.response = Model::Following.fetch_all(env.params) { |p,q,b| q << 'followings.confirmed = true' }
+            env.response = Model::Following.fetch_all(env.params) { |p,q,qc,b| qc << 'followings.confirmed = true' }
           else
             env.response = Model::Following.fetch_with_permissions(env.params, env.current_auth) { |p,q,b| q << 'AND followings.confirmed = true' }
           end

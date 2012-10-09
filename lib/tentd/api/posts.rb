@@ -68,64 +68,14 @@ module TentD
       class GetFeed < Middleware
         def action(env)
           if authorize_env?(env, :read_posts)
-            conditions = {}
-            conditions[:id.gt] = env.params.since_id if env.params.since_id
-            conditions[:id.lt] = env.params.before_id if env.params.before_id
-            conditions[:published_at.gt] = Time.at(env.params.since_time.to_i) if env.params.since_time
-            conditions[:published_at.lt] = Time.at(env.params.before_time.to_i) if env.params.before_time
-            conditions[:entity] = env.params.entity if env.params.entity
-            if env.params.mentioned_post || env.params.mentioned_entity
-              conditions[:mentions] = {}
-              conditions[:mentions][:mentioned_post_id] = env.params.mentioned_post if env.params.mentioned_post
-              conditions[:mentions][:entity] = env.params.mentioned_entity if env.params.mentioned_entity
-            end
-
-            if env.params.limit
-              conditions[:limit] = [env.params.limit.to_i, TentD::API::MAX_PER_PAGE].min
-            else
-              conditions[:limit] = TentD::API::PER_PAGE
-            end
-
             if env.params.return_count
-              conditions[:original] = true
-              env.response = query_with_public_and_private_types(env.current_auth.post_types, env.params.post_types, conditions).count
-            else
-              conditions[:order] = :published_at.desc
-              if conditions[:limit] == 0
-                env.response = []
-              else
-                env.response = query_with_public_and_private_types(env.current_auth.post_types, env.params.post_types, conditions)
-              end
+              env.params.original = true
             end
+            env.response = Model::Post.fetch_all(env.params, env.current_auth)
           else
             env.response = Model::Post.fetch_with_permissions(env.params, env.current_auth)
           end
           env
-        end
-
-        private
-
-        def query_with_public_and_private_types(allowed_post_types, post_types, conditions)
-          if post_types
-            requested_post_types = post_types.split(',').map { |t| TentType.new(URI.unescape(t)) }
-            requested_allowed_post_types = requested_post_types.select do |type|
-              allowed_post_types.include?('all') ||
-              allowed_post_types.include?(type.uri)
-            end.map(&:base)
-            requested_post_types.map!(&:base)
-          end
-
-          if post_types.nil?
-            private_conditions = allowed_post_types.include?('all') ? {} : { :type_base => allowed_post_types.map { |t| TentType.new(t).base } }
-            Model::Post.all(conditions.merge(private_conditions)) + Model::Post.all(conditions.merge(:public => true))
-          elsif requested_allowed_post_types.empty?
-            Model::Post.all(conditions.merge(:type_base => requested_post_types, :public => true))
-          elsif allowed_post_types.include?('all') || (requested_allowed_post_types & requested_post_types) == requested_post_types
-            Model::Post.all(conditions.merge(:type_base => requested_allowed_post_types))
-          else
-            Model::Post.all(conditions.merge(:type_base => requested_allowed_post_types)) +
-            Model::Post.all(conditions.merge(:type_base => requested_post_types, :public => true))
-          end
         end
       end
 

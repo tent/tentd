@@ -90,6 +90,85 @@ module TentD
         post
       end
 
+      def self.query_with_public_and_private_types(allowed_post_types, post_types, query_conditions, query_bindings)
+        if post_types
+          requested_post_types = post_types.split(',').map { |t| TentType.new(URI.unescape(t)) }
+          requested_allowed_post_types = requested_post_types.select do |type|
+            allowed_post_types.include?('all') ||
+            allowed_post_types.include?(type.uri)
+          end.map(&:base)
+          requested_post_types.map!(&:base)
+        end
+
+        if post_types.nil?
+          unless allowed_post_types.include?('all')
+            if allowed_post_types.any?
+              query_conditions << '(posts.type_base IN ? OR posts.public = ?)'
+              query_bindings << allowed_post_types.map { |t| TentType.new(t).base }
+              query_bindings << true
+            else
+              query_conditions << 'posts.public = ?'
+              query_bindings << true
+            end
+          end
+        elsif requested_allowed_post_types.empty?
+          query_conditions << '(posts.type_base IN ? AND posts.public = ?)'
+          query_bindings << requested_post_types
+          query_bindings << true
+        elsif allowed_post_types.include?('all') || (requested_allowed_post_types & requested_post_types) == requested_post_types
+          query_conditions << 'posts.type_base IN ?'
+          query_bindings << requested_allowed_post_types
+        else
+          query_conditions << '(posts.type_base IN ? OR (posts.type_base IN ? AND posts.public = ?))'
+          query_bindings << requested_allowed_post_types
+          query_bindings << requested_post_types
+          query_bindings << true
+        end
+      end
+
+      def self.fetch_all(params, current_auth)
+        allowed_post_types = current_auth.post_types
+        post_types = params.post_types
+        super(params) do |params, query, query_conditions, query_bindings|
+          query_with_public_and_private_types(allowed_post_types, post_types, query_conditions, query_bindings)
+
+          if params.since_time
+            query_conditions << "posts.published_at > ?"
+            query_bindings << Time.at(params.since_time.to_i)
+          end
+
+          if params.before_time
+            query_conditions << "posts.published_at < ?"
+            query_bindings << Time.at(params.before_time.to_i)
+          end
+
+          if params.mentioned_post || params.mentioned_entity
+            select = query.shift
+            query.unshift "INNER JOIN mentions ON mentions.post_id = posts.id"
+            query.unshift select
+
+            if params.mentioned_entity
+              query_conditions << "mentions.entity = ?"
+              query_bindings << params.mentioned_entity
+            end
+
+            if params.mentioned_post
+              query_conditions << "mentions.mentioned_post_id = ?"
+              query_bindings << params.mentioned_post
+            end
+          end
+
+          if params.original
+            query_conditions << "posts.original = ?"
+            query_bindings << true
+          end
+
+          unless params.return_count
+            query << "ORDER BY posts.published_at DESC"
+          end
+        end
+      end
+
       def self.fetch_with_permissions(params, current_auth)
         super do |params, query, query_bindings|
           if params.since_time
