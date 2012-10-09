@@ -75,15 +75,18 @@ describe TentD::API::Followers do
       expect(last_response.status).to eq(404)
     end
 
-    it 'should fail if entity identifiers do not match' do
+    it 'should fail if challange does not match' do
       http_stubs.head('/') { [200, { 'Link' => link_header(follower_entity_url) }, ''] }
       http_stubs.get('/tent/profile') {
         [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, tent_profile('https://otherentity.example.com')]
       }
+      challenge = '1234'
+      SecureRandom.stubs(:hex).returns(challenge)
+      http_stubs.get("/tent/notifications/asdf?challenge=#{challenge}") { [409, {}, ''] }
       TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
       json_post '/followers', follower_data, env
-      expect(last_response.status).to eq(409)
+      expect(last_response.status).to eq(403)
     end
 
     it 'should fail if entity is self' do

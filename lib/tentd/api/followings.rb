@@ -71,7 +71,6 @@ module TentD
           return [404, {}, ['Not Found']] unless profile
 
           profile = CoreProfileData.new(profile)
-          return [409, {}, ['Entity Mismatch']] unless profile.entity?(env.params.data.entity)
           env.profile = profile
           env.server_url = profile_url.sub(%r{/profile$}, '')
           env
