@@ -402,11 +402,12 @@ describe TentD::API::Followings do
     let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
     let(:tent_entity) { 'https://smith.example.com' } # me
     let(:entity_url) { "https://sam.example.org" } # them
+    let(:actual_entity_url) { "https://sam-actual.example.com" } # them
     let(:link_header) {
       %(<#{entity_url}/tent/profile>; rel="#{TentD::API::PROFILE_REL}")
     }
     let(:tent_profile) {
-      %({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"#{entity_url}","servers":["#{entity_url}/tent"]}})
+      %({"https://tent.io/types/info/core/v0.1.0":{"licenses":["http://creativecommons.org/licenses/by/3.0/"],"entity":"#{actual_entity_url}","servers":["#{actual_entity_url}/tent"]}})
     }
     let(:follower) { Fabricate(:follower, :entity => entity_url) }
     let(:follow_response) { { :id => follower.public_id }.merge(follower.attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)) }
@@ -542,7 +543,7 @@ describe TentD::API::Followings do
           }).to change(TentD::Model::Following, :count).by(1)
 
           following = TentD::Model::Following.last
-          expect(following.entity.to_s).to eq("https://sam.example.org")
+          expect(following.entity.to_s).to eq(actual_entity_url)
           expect(following.groups).to eq([group.public_id.to_s])
           expect(following.remote_id).to eq(follower.public_id.to_s)
           expect(following.mac_key_id).to eq(follower.mac_key_id)

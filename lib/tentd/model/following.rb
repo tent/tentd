@@ -36,6 +36,7 @@ module TentD
           :mac_key_id => params.mac_key_id,
           :mac_key => params.mac_key,
           :mac_algorithm => params.mac_algorithm,
+          :entity => API::CoreProfileData.new(params.profile || {}).entity,
           :confirmed => true
         )
       end
