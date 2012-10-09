@@ -3,8 +3,8 @@ module TentD
     class AuthenticationLookup < Middleware
       def action(env)
         return env unless env['HTTP_AUTHORIZATION']
-        env['hmac'] = Hash[env['HTTP_AUTHORIZATION'].scan(/([a-z]+)="([^"]+)"/i)]
-        mac_key_id = env['hmac']['id']
+        env.hmac = Hash[env['HTTP_AUTHORIZATION'].scan(/([a-z]+)="([^"]+)"/i)]
+        mac_key_id = env.hmac.id
         env.potential_auth = case mac_key_id.to_s[0,1]
         when 's'
           TentD::Model::Follower.first(:mac_key_id => mac_key_id)
@@ -17,6 +17,8 @@ module TentD
         if env.potential_auth
           env.hmac.secret = env.potential_auth.mac_key
           env.hmac.algorithm = env.potential_auth.mac_algorithm
+        elsif mac_key_id
+          env.hmac = {}
         else
           env.hmac = nil
         end

@@ -5,7 +5,7 @@ module TentD
   class API
     class AuthenticationVerification < Middleware
       def action(env)
-        if env.hmac? && !(env.hmac.verified = verify_signature(env))
+        if env.hmac? && (!env.hmac.algorithm || !env.hmac.secret || !(env.hmac.verified = verify_signature(env)))
           env = [403, {}, ['Invalid MAC Signature']]
         end
         env
@@ -34,6 +34,7 @@ module TentD
         nonce = env.hmac.nonce
         request_string = build_request_string(time, nonce, env, include_body)
         signature = Base64.encode64(OpenSSL::HMAC.digest(openssl_digest(env.hmac.algorithm).new, env.hmac.secret, request_string)).sub("\n", '')
+        signature
       end
 
       def build_request_string(time, nonce, env, include_body=false)
