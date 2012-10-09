@@ -222,22 +222,44 @@ describe TentD::API::Apps do
 
     context 'when not authorized' do
       context 'when token exchange' do
-        it 'should exchange mac_key_id for mac_key' do
-          app = Fabricate(:app)
-          authorization = app.authorizations.create
+        context 'when valid mac header' do
+          it 'should exchange mac_key_id for mac_key' do
+            app = Fabricate(:app, :mac_algorithm => 'hmac-sha-256')
+            authorization = app.authorizations.create
 
-          data = {
-            :code => authorization.token_code
-          }
+            data = {
+              :code => authorization.token_code
+            }
 
-          json_post "/apps/#{app.public_id}/authorizations", data, env
-          expect(last_response.status).to eq(200)
-          expect(authorization.reload.token_code).to_not eq(data[:code])
-          body = JSON.parse(last_response.body)
-          whitelist = %w{ access_token mac_key mac_algorithm token_type }
-          whitelist.each { |key|
-            expect(body).to have_key(key)
-          }
+            time = Time.now.to_i
+            nonce = SecureRandom.hex(3)
+            request_string = [time.to_s, nonce, 'POST', "/apps/#{app.public_id}/authorizations", 'example.org', '80', nil, nil].join("\n")
+            signature = Base64.encode64(OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, app.mac_key, request_string)).sub("\n", '')
+            env['HTTP_AUTHORIZATION'] =  %(MAC id="#{app.mac_key_id}", ts="#{time}", nonce="#{nonce}", mac="#{signature}")
+
+            json_post "/apps/#{app.public_id}/authorizations", data, env
+            expect(last_response.status).to eq(200)
+            expect(authorization.reload.token_code).to_not eq(data[:code])
+            body = JSON.parse(last_response.body)
+            whitelist = %w{ access_token mac_key mac_algorithm token_type }
+            whitelist.each { |key|
+              expect(body).to have_key(key)
+            }
+          end
+        end
+
+        context 'when invalid mac header' do
+          it 'should return 403' do
+            app = Fabricate(:app)
+            authorization = app.authorizations.create
+
+            data = {
+              :code => authorization.token_code
+            }
+
+            json_post "/apps/#{app.public_id}/authorizations", data, env
+            expect(last_response.status).to eq(403)
+          end
         end
       end
 
