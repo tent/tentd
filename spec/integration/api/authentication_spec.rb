@@ -46,6 +46,7 @@ describe 'Authentication' do
       context 'when following' do
         let(:mac_key_id_prefix) { "s" }
         let(:subject) {
+          TentD::Model::Post.all.destroy!
           TentD::Model::Following.all.destroy!
           Fabricate(:following, :mac_key_id => mac_key_id, :mac_algorithm => mac_algorithm, :mac_key => mac_key)
         }
