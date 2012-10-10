@@ -173,13 +173,11 @@ module TentD
 
       put '/apps/:app_id/authorizations/:auth_id' do |b|
         b.use GetActualId
-        b.use AuthorizeWriteOne
         b.use UpdateAppAuthorization
       end
 
       delete '/apps/:app_id/authorizations/:auth_id' do |b|
         b.use GetActualId
-        b.use AuthorizeWriteOne
         b.use DestroyAppAuthorization
       end
 
