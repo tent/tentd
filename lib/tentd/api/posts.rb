@@ -297,6 +297,7 @@ module TentD
       end
 
       get '/posts/count' do |b|
+        b.use GetActualId
         b.use GetCount
         b.use GetFeed
       end
