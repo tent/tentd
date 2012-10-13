@@ -68,7 +68,7 @@ module TentD
       class GetFeed < Middleware
         def action(env)
           if authorize_env?(env, :read_posts)
-            if env.params.return_count
+            if env.params.return_count && !env.params.mentioned_entity
               env.params.original = true
             end
             env.response = Model::Post.fetch_all(env.params, env.current_auth)
