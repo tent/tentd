@@ -48,11 +48,18 @@ module TentD
       class Discover < Middleware
         def action(env)
           return env if env.authorized_scopes.include?(:write_followers)
+          return [400, {}, ['Request body required']] unless env.params.data
           return [422, {}, ['Invalid notification path']] unless env.params.data.notification_path.kind_of?(String) &&
                                                                 !env.params.data.notification_path.match(%r{\Ahttps?://})
           return [406, {}, ['Can not follow self']] if Model::User.current.profile_entity == env.params.data.entity
           client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
-          profile, profile_url = client.discover(env.params[:data]['entity']).get_profile
+          begin
+            profile, profile_url = client.discover(env.params[:data]['entity']).get_profile
+          rescue Faraday::Error::ConnectionFailed
+            return [503, {}, ["Couldn't connect to entity"]]
+          rescue Faraday::Error::TimeoutError
+            return [504, {}, ["Connection to entity timed out"]]
+          end
           return [404, {}, ['Not Found']] unless profile
 
           profile = CoreProfileData.new(profile)
