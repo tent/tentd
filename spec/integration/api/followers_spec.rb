@@ -75,6 +75,12 @@ describe TentD::API::Followers do
       expect(last_response.status).to eq(404)
     end
 
+
+    it 'should error 400 when no post data included' do
+      json_post '/followers', nil, env
+      expect(last_response.status).to eq(400)
+    end
+
     it 'should fail if challange does not match' do
       http_stubs.head('/') { [200, { 'Link' => link_header(follower_entity_url) }, ''] }
       http_stubs.get('/tent/profile') {

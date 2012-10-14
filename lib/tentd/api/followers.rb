@@ -48,6 +48,7 @@ module TentD
       class Discover < Middleware
         def action(env)
           return env if env.authorized_scopes.include?(:write_followers)
+          return [400, {}, ['Request body required']] unless env.params.data
           return [422, {}, ['Invalid notification path']] unless env.params.data.notification_path.kind_of?(String) &&
                                                                 !env.params.data.notification_path.match(%r{\Ahttps?://})
           return [406, {}, ['Can not follow self']] if Model::User.current.profile_entity == env.params.data.entity
