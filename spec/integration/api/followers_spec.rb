@@ -66,13 +66,31 @@ describe TentD::API::Followers do
       http_stubs.verify_stubbed_calls
     end
 
-    it 'should error if discovery fails' do
-      http_stubs.head('/') { [404, {}, 'Not Found'] }
-      http_stubs.get('/') { [404, {}, 'Not Found'] }
-      TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+    context 'when discovery fails' do
+      it 'should error 404 when no entities found' do
+        http_stubs.head('/') { [404, {}, 'Not Found'] }
+        http_stubs.get('/') { [404, {}, 'Not Found'] }
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
-      json_post '/followers', follower_data, env
-      expect(last_response.status).to eq(404)
+        json_post '/followers', follower_data, env
+        expect(last_response.status).to eq(404)
+      end
+
+      it 'should error 503 when connection fails' do
+        http_stubs.head('/') { raise Faraday::Error::ConnectionFailed, '' }
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+        json_post '/followers', follower_data, env
+        expect(last_response.status).to eq(503)
+      end
+
+      it 'should error 504 when connection times out' do
+        http_stubs.head('/') { raise Faraday::Error::TimeoutError, '' }
+        TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+        json_post '/followers', follower_data, env
+        expect(last_response.status).to eq(504)
+      end
     end
 
 
