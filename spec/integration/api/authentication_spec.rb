@@ -77,7 +77,7 @@ describe 'Authentication' do
       it 'should verify hmac' do
         subject # create
         get '/posts', {}, env
-        expect(last_response.status).to eq(403)
+        expect(last_response.status).to eq(401)
         expect(last_response.body).to match(/invalid/i)
       end
     end
