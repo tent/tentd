@@ -7,7 +7,6 @@ describe TentD::Model::Following do
     let(:public_attributes) do
       {
         :id => following.public_id,
-        :remote_id => following.remote_id,
         :entity => following.entity,
         :permissions => { :public => following.public }
       }
@@ -62,6 +61,7 @@ describe TentD::Model::Following do
         expect(following.as_json(:app => true)).to eq(public_attributes.merge(
           :profile => following.profile,
           :licenses => following.licenses,
+          :remote_id => nil,
           :updated_at => following.updated_at.to_time.to_i,
           :created_at => following.updated_at.to_time.to_i
         ))

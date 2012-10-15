@@ -42,7 +42,7 @@ module TentD
       end
 
       def self.public_attributes
-        [:remote_id, :entity]
+        [:entity]
       end
 
       def self.update_profile(id)
@@ -94,6 +94,7 @@ module TentD
         if options[:app]
           attributes[:profile] = profile
           attributes[:licenses] = licenses
+          attributes[:remote_id] = remote_id
         end
 
         attributes
