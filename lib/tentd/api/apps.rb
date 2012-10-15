@@ -68,7 +68,11 @@ module TentD
 
       class Create < Middleware
         def action(env)
-          env.response = Model::App.create_from_params(env.params.data)
+          if authorize_env?(env, :write_apps) && authorize_env?(env, :write_secrets)
+            env.response = Model::App.create(env.params.data)
+          else
+            env.response = Model::App.create_from_params(env.params.data)
+          end
           env.authorized_scopes << :read_secrets
           env
         end

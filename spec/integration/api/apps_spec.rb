@@ -175,10 +175,13 @@ describe TentD::API::Apps do
   end
 
   describe 'POST /apps' do
-    it 'should create app' do
-      data = Fabricate.build(:app).attributes.slice(:name, :description, :url, :icon, :redirect_uris, :scopes)
+    let(:data) {
+      Fabricate.build(:app).attributes.slice(:name, :description, :url, :icon, :redirect_uris, :scopes)
+    }
 
-      TentD::Model::App.all.destroy
+    before { TentD::Model::App.all.destroy }
+
+    it 'should create app' do
       expect(lambda { json_post '/apps', data, env }).to change(TentD::Model::App, :count).by(1)
 
       app = TentD::Model::App.last
@@ -188,6 +191,26 @@ describe TentD::API::Apps do
       whitelist.each { |key|
         expect(body).to have_key(key)
       }
+    end
+
+    context 'with write_apps and write_secrets scopes authorized' do
+      before { authorize!(:write_apps, :write_secrets) }
+
+      it 'should import app' do
+        app_data = data.merge(
+          :mac_key_id => 'mac-key-id',
+          :mac_key => 'mac-key',
+        )
+
+        expect(lambda {
+          json_post '/apps', app_data, env
+          expect(last_response.status).to eq(200)
+        }).to change(TentD::Model::App, :count).by(1)
+
+        app = TentD::Model::App.last
+        expect(app.mac_key_id).to eq(app_data[:mac_key_id])
+        expect(app.mac_key).to eq(app_data[:mac_key])
+      end
     end
   end
 
