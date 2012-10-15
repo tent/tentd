@@ -3,6 +3,7 @@ module TentD
     class PostVersion
       include DataMapper::Resource
       include Permissible
+      include PermissiblePost
       include Serializable
       include TypeProperties
       include UserScoped

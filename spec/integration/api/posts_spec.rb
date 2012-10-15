@@ -303,6 +303,56 @@ describe TentD::API::Posts do
     end
   end
 
+  describe 'GET /posts/:post_id/versions' do
+    should_return_post_versions = proc do
+      it 'should return post versions' do
+        get "/posts/#{post.public_id}/versions", nil, env
+        expect(last_response.status).to eq(200)
+        expect(Yajl::Parser.parse(last_response.body).size).to eq(2)
+      end
+    end
+
+    should_not_return_post_versions = proc do
+      it 'should not return post versions' do
+        get "/posts/#{post.public_id}/versions", nil, env
+        expect(last_response.status).to eq(200)
+        expect(Yajl::Parser.parse(last_response.body)).to be_empty
+      end
+    end
+
+    context 'when post exists' do
+      context 'when post is public' do
+        let!(:post) { Fabricate(:post, :public => true) }
+        let!(:post_version) { post.create_version! }
+
+        context &should_return_post_versions
+      end
+
+      context 'when post is private' do
+        let!(:post) { Fabricate(:post, :public => false) }
+        let!(:post_version) { post.create_version! }
+
+        context 'when authorized' do
+          let!(:authorized_post_types) { %w( all ) }
+          before { authorize!(:read_posts) }
+
+          context &should_return_post_versions
+        end
+
+        context 'when not authorized' do
+          context &should_not_return_post_versions
+        end
+      end
+    end
+
+    context 'when post does not exist' do
+      it 'should return 404' do
+        get "/posts/invalid-id/versions"
+        expect(last_response.status).to eq(404)
+      end
+    end
+  end
+
   describe 'GET /posts' do
     let(:post_public?) { true }
     with_params = proc do

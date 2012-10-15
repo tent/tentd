@@ -67,6 +67,7 @@ module TentD
 
       class GetFeed < Middleware
         def action(env)
+          env.params.delete('post_id')
           if authorize_env?(env, :read_posts)
             if env.params.return_count && !env.params.mentioned_entity
               env.params.original = true
@@ -74,6 +75,18 @@ module TentD
             env.response = Model::Post.fetch_all(env.params, env.current_auth)
           else
             env.response = Model::Post.fetch_with_permissions(env.params, env.current_auth)
+          end
+          env
+        end
+      end
+
+      class GetVersions < Middleware
+        def action(env)
+          return env unless env.params.post_id
+          if authorize_env?(env, :read_posts)
+            env.response = Model::PostVersion.fetch_all(env.params, env.current_auth)
+          else
+            env.response = Model::PostVersion.fetch_with_permissions(env.params, env.current_auth)
           end
           env
         end
@@ -305,6 +318,11 @@ module TentD
       get '/posts/:post_id' do |b|
         b.use GetActualId
         b.use GetOne
+      end
+
+      get '/posts/:post_id/versions' do |b|
+        b.use GetActualId
+        b.use GetVersions
       end
 
       get '/posts/:post_id_entity/:post_id' do |b|

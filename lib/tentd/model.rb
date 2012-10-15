@@ -7,6 +7,7 @@ require 'tentd/datamapper/query'
 module TentD
   module Model
     require 'tentd/model/permissible'
+    require 'tentd/model/permissible_post'
     require 'tentd/model/serializable'
     require 'tentd/model/random_public_id'
     require 'tentd/model/type_properties'
