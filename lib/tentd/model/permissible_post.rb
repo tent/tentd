@@ -56,12 +56,12 @@ module TentD
             end
 
             if params.since_time
-              query_conditions << "#{table_name}.published_at > ?"
+              query_conditions << "#{table_name}.received_at > ?"
               query_bindings << Time.at(params.since_time.to_i)
             end
 
             if params.before_time
-              query_conditions << "#{table_name}.published_at < ?"
+              query_conditions << "#{table_name}.received_at < ?"
               query_bindings << Time.at(params.before_time.to_i)
             end
 
@@ -87,7 +87,7 @@ module TentD
             end
 
             unless params.return_count
-              query << "ORDER BY #{table_name}.published_at DESC"
+              query << "ORDER BY #{table_name}.received_at DESC"
             end
           end
         end
@@ -100,12 +100,12 @@ module TentD
             end
 
             if params.since_time
-              query << "AND #{table_name}.published_at > ?"
+              query << "AND #{table_name}.received_at > ?"
               query_bindings << Time.at(params.since_time.to_i)
             end
 
             if params.before_time
-              query << "AND #{table_name}.published_at < ?"
+              query << "AND #{table_name}.received_at < ?"
               query_bindings << Time.at(params.before_time.to_i)
             end
 
@@ -134,7 +134,7 @@ module TentD
             end
 
             unless params.return_count
-              query << "ORDER BY #{table_name}.published_at DESC"
+              query << "ORDER BY #{table_name}.received_at DESC"
             end
           end
         end

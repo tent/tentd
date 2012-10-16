@@ -419,10 +419,10 @@ describe TentD::API::Posts do
         expect(body_ids).to include(last_post.public_id)
       end
 
-      it "should order by published_at desc" do
+      it "should order by received_at desc" do
         TentD::Model::Post.all.destroy
-        first_post = Fabricate(:post, :public => post_public?, :published_at => Time.at(Time.now.to_i-86400)) # 1.day.ago
-        latest_post = Fabricate(:post, :public => post_public?, :published_at => Time.at(Time.now.to_i+86400)) # 1.day.from_now
+        first_post = Fabricate(:post, :public => post_public?, :received_at => Time.at(Time.now.to_i-86400)) # 1.day.ago
+        latest_post = Fabricate(:post, :public => post_public?, :received_at => Time.at(Time.now.to_i+86400)) # 1.day.from_now
 
         json_get "/posts", params, env
         body = JSON.parse(last_response.body)
@@ -468,12 +468,12 @@ describe TentD::API::Posts do
 
       it "should filter by params[:since_time]" do
         since_post = Fabricate(:post, :public => post_public?)
-        since_post.published_at = Time.at(Time.now.to_i + 86400) # 1.day.from_now
+        since_post.received_at = Time.at(Time.now.to_i + 86400) # 1.day.from_now
         post = Fabricate(:post, :public => post_public?)
-        post.published_at = Time.at(Time.now.to_i + (86400 * 2)) # 2.days.from_now
+        post.received_at = Time.at(Time.now.to_i + (86400 * 2)) # 2.days.from_now
         post.save
 
-        json_get "/posts?since_time=#{since_post.published_at.to_time.to_i}", params, env
+        json_get "/posts?since_time=#{since_post.received_at.to_time.to_i}", params, env
         body = JSON.parse(last_response.body)
         expect(body.size).to eq(1)
         body_ids = body.map { |i| i['id'] }
@@ -482,13 +482,13 @@ describe TentD::API::Posts do
 
       it "should filter by params[:before_time]" do
         post = Fabricate(:post, :public => post_public?)
-        post.published_at = Time.at(Time.now.to_i - (86400 * 2)) # 2.days.ago
+        post.received_at = Time.at(Time.now.to_i - (86400 * 2)) # 2.days.ago
         post.save
         before_post = Fabricate(:post, :public => post_public?)
-        before_post.published_at = Time.at(Time.now.to_i - 86400) # 1.day.ago
+        before_post.received_at = Time.at(Time.now.to_i - 86400) # 1.day.ago
         before_post.save
 
-        json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}", params, env
+        json_get "/posts?before_time=#{before_post.received_at.to_time.to_i}", params, env
         body = JSON.parse(last_response.body)
         expect(body.size).to eq(1)
         body_ids = body.map { |i| i['id'] }
@@ -498,16 +498,16 @@ describe TentD::API::Posts do
       it "should filter by both params[:before_time] and params[:since_time]" do
         now = Time.at(Time.now.to_i - (86400 * 6)) # 6.days.ago
         since_post = Fabricate(:post, :public => post_public?)
-        since_post.published_at = Time.at(now.to_i - (86400 * 3)) # 3.days.ago
+        since_post.received_at = Time.at(now.to_i - (86400 * 3)) # 3.days.ago
         since_post.save
         post = Fabricate(:post, :public => post_public?)
-        post.published_at = Time.at(now.to_i - (86400 * 2)) # 2.days.ago
+        post.received_at = Time.at(now.to_i - (86400 * 2)) # 2.days.ago
         post.save
         before_post = Fabricate(:post, :public => post_public?)
-        before_post.published_at = Time.at(now.to_i - 86400) # 1.day.ago
+        before_post.received_at = Time.at(now.to_i - 86400) # 1.day.ago
         before_post.save
 
-        json_get "/posts?before_time=#{before_post.published_at.to_time.to_i}&since_time=#{since_post.published_at.to_time.to_i}", params, env
+        json_get "/posts?before_time=#{before_post.received_at.to_time.to_i}&since_time=#{since_post.received_at.to_time.to_i}", params, env
         body = JSON.parse(last_response.body)
         expect(body.size).to eq(1)
         body_ids = body.map { |i| i['id'] }
