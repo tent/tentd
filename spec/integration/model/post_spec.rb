@@ -195,6 +195,26 @@ describe TentD::Model::Post do
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
           expect(returned_posts).to eq([post])
         end
+
+        context 'with [:sort_by] = published_at' do
+          it 'should only return posts with published_at > :since_time' do
+            TentD::Model::Post.all.destroy!
+            since_post = Fabricate(:post, :public => !create_permissions,
+                                   :published_at => Time.at(Time.now.to_i + (86400 * 10))) # 10.days.from_now
+            post = Fabricate(:post, :public => !create_permissions,
+                             :published_at => Time.at(Time.now.to_i + (86400 * 11))) # 11.days.from_now
+
+            if create_permissions
+              [post, since_post].each { |post| @authorize_post.call(post) }
+            end
+
+            params['since_time'] = since_post.published_at.to_time.to_i.to_s
+            params['sort_by'] = 'published_at'
+
+            returned_posts = described_class.fetch_with_permissions(params, current_auth)
+            expect(returned_posts).to eq([post])
+          end
+        end
       end
 
       context '[:before_time]' do
@@ -213,6 +233,26 @@ describe TentD::Model::Post do
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
           expect(returned_posts).to eq([post])
+        end
+
+        context 'with [:sort_by] = published_at' do
+          it 'should only return posts with published_at < :before_time' do
+            TentD::Model::Post.all.destroy!
+            post = Fabricate(:post, :public => !create_permissions,
+                             :published_at => Time.at(Time.now.to_i - (86400 * 10))) # 10.days.ago
+            before_post = Fabricate(:post, :public => !create_permissions,
+                                    :published_at => Time.at(Time.now.to_i - (86400 * 9))) # 9.days.ago
+
+            if create_permissions
+              [post, before_post].each { |post| @authorize_post.call(post) }
+            end
+
+            params['before_time'] = before_post.published_at.to_time.to_i.to_s
+            params['sort_by'] = 'published_at'
+
+            returned_posts = described_class.fetch_with_permissions(params, current_auth)
+            expect(returned_posts).to eq([post])
+          end
         end
       end
 

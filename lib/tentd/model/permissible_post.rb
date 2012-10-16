@@ -55,13 +55,15 @@ module TentD
               query_bindings << params.post_id
             end
 
+            sort_column = get_sort_column(params)
+
             if params.since_time
-              query_conditions << "#{table_name}.received_at > ?"
+              query_conditions << "#{table_name}.#{sort_column} > ?"
               query_bindings << Time.at(params.since_time.to_i)
             end
 
             if params.before_time
-              query_conditions << "#{table_name}.received_at < ?"
+              query_conditions << "#{table_name}.#{sort_column} < ?"
               query_bindings << Time.at(params.before_time.to_i)
             end
 
@@ -87,7 +89,7 @@ module TentD
             end
 
             unless params.return_count
-              query << "ORDER BY #{table_name}.received_at DESC"
+              query << "ORDER BY #{table_name}.#{sort_column} DESC"
             end
           end
         end
@@ -99,13 +101,15 @@ module TentD
               query_bindings << params.post_id
             end
 
+            sort_column = get_sort_column(params)
+
             if params.since_time
-              query << "AND #{table_name}.received_at > ?"
+              query << "AND #{table_name}.#{sort_column} > ?"
               query_bindings << Time.at(params.since_time.to_i)
             end
 
             if params.before_time
-              query << "AND #{table_name}.received_at < ?"
+              query << "AND #{table_name}.#{sort_column} < ?"
               query_bindings << Time.at(params.before_time.to_i)
             end
 
@@ -134,8 +138,17 @@ module TentD
             end
 
             unless params.return_count
-              query << "ORDER BY #{table_name}.received_at DESC"
+              query << "ORDER BY #{table_name}.#{sort_column} DESC"
             end
+          end
+        end
+
+        def get_sort_column(params)
+          sort_column = case params['sort_by'].to_s
+          when 'published_at'
+            'published_at'
+          else
+            'received_at'
           end
         end
 
