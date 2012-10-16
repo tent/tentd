@@ -27,24 +27,6 @@ module TentD
         end
       end
 
-      class Patch < Middleware
-        def action(env)
-          diff_array = env.params[:data]
-          profile_hash = env.delete(:response)
-          new_profile_hash = Marshal.load(Marshal.dump(profile_hash)).to_hash # equivalent of recursive dup
-          JsonPatch.merge(new_profile_hash, diff_array)
-          if new_profile_hash != profile_hash
-            env.updated_info = new_profile_hash.map do |type, data|
-              Model::ProfileInfo.update_profile(type, data)
-            end
-          end
-          env
-        rescue JsonPatch::ObjectNotFound, JsonPatch::ObjectExists => e
-          env['response.status'] = 422
-          env
-        end
-      end
-
       class Notify < Middleware
         def action(env)
           return env unless env.updated_info
@@ -62,14 +44,6 @@ module TentD
       put '/profile/:type_url' do |b|
         b.use AuthorizeWrite
         b.use Update
-        b.use Get
-        b.use Notify
-      end
-
-      patch '/profile' do |b|
-        b.use AuthorizeWrite
-        b.use Get
-        b.use Patch
         b.use Get
         b.use Notify
       end
