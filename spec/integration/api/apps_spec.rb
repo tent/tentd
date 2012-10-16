@@ -216,9 +216,10 @@ describe TentD::API::Apps do
 
   describe 'POST /apps/:id/authorizations' do
     context 'when authorized' do
-      before { authorize!(:write_apps) }
+      before { authorize!(:write_apps, :write_secrets) }
 
       it 'should create app authorization' do
+        TentD::Model::AppAuthorization.all.destroy
         app = Fabricate(:app)
         scopes = %w{ read_posts write_posts }
         post_types = %w{ https://tent.io/types/post/status/v0.1.0 https://tent.io/types/post/photo/v0.1.0 }

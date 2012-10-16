@@ -80,23 +80,33 @@ module TentD
 
       class CreateAuthorization < Middleware
         def action(env)
-          unless authorize_env?(env, :write_apps)
+          unless authorize_env?(env, :write_apps) && authorize_env?(env, :write_secrets)
             if env.params.data && env.params.data.code
               return AuthorizationTokenExchange.new(@app).call(env)
             else
               authorize_env!(env, :write_apps)
+              authorize_env!(env, :write_secrets)
             end
           end
 
           if app = Model::App.first(:id => env.params.app_id)
             env.authorized_scopes << :authorization_token
-            authorization = app.authorizations.create_from_params(
-              :app_id => env.params.app_id,
-              :notification_url => env.params.data.notification_url,
-              :post_types => env.params.data.post_types.to_a.map { |url| URI.decode(url) },
-              :profile_info_types => env.params.data.profile_info_types.to_a.map { |url| URI.decode(url) },
-              :scopes => env.params.data.scopes
-            )
+
+            data = env.params.data
+            data.post_types = data.post_types.to_a.map { |url| URI.decode(url) }
+            data.profile_info_types = data.profile_info_types.to_a.map { |url| URI.decode(url) }
+            authorization = app.authorizations.create_from_params(data.slice(
+              :post_types,
+              :profile_info_types,
+              :scopes,
+              :mac_key_id,
+              :mac_key,
+              :mac_algorithm,
+              :notification_url,
+              :follow_url
+            ).merge(
+              :app_id => env.params.app_id
+            ))
             env.response = authorization
           end
           env
