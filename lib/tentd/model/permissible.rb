@@ -153,7 +153,8 @@ module TentD
           query << order_part if order_part
 
           unless params.return_count
-            query << "ORDER BY id DESC" unless query.find { |q| q =~ /^order/i }
+            sort_direction = get_sort_direction(params)
+            query << "ORDER BY id #{sort_direction}" unless query.find { |q| q =~ /^order/i }
 
             query << "LIMIT ?"
             query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min
@@ -192,7 +193,8 @@ module TentD
             end
 
             unless params.return_count
-              query << "ORDER BY id DESC" unless query.find { |q| q =~ /^order/i }
+              sort_direction = get_sort_direction(params)
+              query << "ORDER BY id #{sort_direction}" unless query.find { |q| q =~ /^order/i }
 
               query << "LIMIT ?"
               query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min
@@ -205,6 +207,16 @@ module TentD
             else
               find_by_sql([query.join(' '), *query_bindings])
             end
+          end
+        end
+
+        private
+
+        def get_sort_direction(params)
+          if params['reverse'].to_s == 'false'
+            'ASC'
+          else
+            'DESC'
           end
         end
 

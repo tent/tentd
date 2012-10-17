@@ -89,7 +89,8 @@ module TentD
             end
 
             unless params.return_count
-              query << "ORDER BY #{table_name}.#{sort_column} DESC"
+              sort_direction = get_sort_direction(params)
+              query << "ORDER BY #{table_name}.#{sort_column} #{sort_direction}"
             end
           end
         end
@@ -138,7 +139,8 @@ module TentD
             end
 
             unless params.return_count
-              query << "ORDER BY #{table_name}.#{sort_column} DESC"
+              sort_direction = get_sort_direction(params)
+              query << "ORDER BY #{table_name}.#{sort_column} #{sort_direction}"
             end
           end
         end
