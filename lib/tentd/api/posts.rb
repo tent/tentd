@@ -127,6 +127,7 @@ module TentD
             env.authorized_scopes << :write_posts
             post.original = false
           elsif env.authorized_scopes.include?(:import_posts)
+            env.authorized_scopes << :write_posts
             post.entity ||= env['tent.entity']
             post.app ||= env.current_auth.app
             post.original = post.entity == env['tent.entity']
