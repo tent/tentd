@@ -496,7 +496,6 @@ describe TentD::Model::Post do
             :received_at => post.received_at.to_time.to_i,
             :updated_at => post.updated_at.to_time.to_i,
             :published_at => post.published_at.to_time.to_i,
-            :following_id => post.following.public_id
           ))
         end
       end

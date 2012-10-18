@@ -55,10 +55,6 @@ module TentD
           h
         end
 
-        if options[:app]
-          attributes[:following_id] = following.public_id if following
-        end
-
         attributes[:permissions] = post_attrs[:permissions]
 
         Array(options[:exclude]).each { |k| attributes.delete(k) if k }
