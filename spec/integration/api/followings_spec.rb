@@ -472,6 +472,40 @@ describe TentD::API::Followings do
         json_post '/followings', following_data, env
       end
 
+      context 'when write_secrets authorized' do
+        before { authorize!(:write_followings, :write_secrets) }
+
+        context 'when auth details present' do
+          it 'should create following without sending follow request' do
+            @http_stub_head_success.call
+            @http_stub_profile_success.call
+            stub_notification_http!
+            TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+            TentD::Model::Following.all.destroy!
+
+            data = following_data.merge(
+              :mac_key_id => 'mac-key-id',
+              :mac_key => 'mac-key',
+              :mac_algorithm => 'hmac-sha-256'
+            )
+
+            expect(lambda {
+              json_post 'followings', data, env
+            }).to change(TentD::Model::Following, :count).by(1)
+          end
+        end
+
+        context 'when auth details not present' do
+          it 'should send follow request to following' do
+            @http_stub_success.call
+            TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+
+            json_post '/followings', following_data, env
+          end
+        end
+      end
+
       context 'when discovery fails' do
         it 'should error 404 when no profile' do
           http_stubs.head('/') { [404, {}, 'Not Found'] }

@@ -92,17 +92,25 @@ module TentD
                                                     :confirmed => false)
           end
 
-          client = ::TentClient.new(env.server_url, :faraday_adapter => TentD.faraday_adapter)
-          res = client.follower.create(
-            :entity => env['tent.entity'],
-            :licenses => Model::ProfileInfo.tent_info.content['licenses'],
-            :notification_path => "notifications/#{env.following.public_id}"
-          )
-          case res.status
-          when 200...300
-            env.follow_data = res.body
+          data = env.params.data
+          if authorize_env?(env, :write_secrets) && data.mac_key_id && data.mac_key && data.mac_algorithm
+            env.following.update(:mac_key_id => data.mac_key_id,
+                                 :mac_key => data.mac_key,
+                                 :mac_algorithm => data.mac_algorithm,
+                                 :confirmed => true)
           else
-            return [res.status, res.headers, res.body]
+            client = ::TentClient.new(env.server_url, :faraday_adapter => TentD.faraday_adapter)
+            res = client.follower.create(
+              :entity => env['tent.entity'],
+              :licenses => Model::ProfileInfo.tent_info.content['licenses'],
+              :notification_path => "notifications/#{env.following.public_id}"
+            )
+            case res.status
+            when 200...300
+              env.follow_data = res.body
+            else
+              return [res.status, res.headers, res.body]
+            end
           end
           env
         end
@@ -110,7 +118,7 @@ module TentD
 
       class Create < Middleware
         def action(env)
-          if env.following.confirm_from_params(env.follow_data.merge(env.params.data).merge(:profile => env.profile))
+          if (authorize_env?(env, :write_secrets) && !env.follow_data) || env.following.confirm_from_params(env.follow_data.merge(env.params.data).merge(:profile => env.profile))
             env.response = env.following
             env.notify_action = 'create'
             env.notify_instance = env.following
