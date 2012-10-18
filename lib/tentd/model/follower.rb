@@ -37,7 +37,7 @@ module TentD
 
       def self.create_follower(data, authorized_scopes = [])
         if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
-          follower = create(data.slice(:entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
+          follower = create(data.slice(:public_id, :entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
         else
           follower = create(data.slice('entity', 'licenses', 'profile', 'notification_path'))
         end

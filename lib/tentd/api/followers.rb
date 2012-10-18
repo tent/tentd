@@ -98,7 +98,9 @@ module TentD
         def action(env)
           return env unless env.authorized_scopes.include?(:write_followers)
           if env.authorized_scopes.include?(:write_secrets)
-            if follower = Model::Follower.create_follower(env.params.data, env.authorized_scopes)
+            data = env.params.data
+            data.public_id = data.delete(:id) if data.id
+            if follower = Model::Follower.create_follower(data, env.authorized_scopes)
               env.response = ''
             end
           else

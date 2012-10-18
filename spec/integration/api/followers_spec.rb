@@ -178,6 +178,7 @@ describe TentD::API::Followers do
     let(:follower_data) do
       follower = Fabricate.build(:follower)
       {
+        "id" => SecureRandom.hex(4),
         "entity" => follower_entity_url,
         "groups" => follower.groups,
         "profile" => { "info_type_uri" => { "bacon" => "chunky" } },
@@ -195,10 +196,17 @@ describe TentD::API::Followers do
       before { authorize!(:write_followers, :write_secrets) }
 
       it 'should create follower without discovery' do
+        data = follower_data
         expect(lambda {
-          json_post '/followers', follower_data, env 
+          json_post '/followers', data, env
           expect(last_response.status).to eq(200)
         }).to change(TentD::Model::Follower, :count).by(1)
+
+        follower = TentD::Model::Follower.last
+        expect(follower.public_id).to eq(data['id'])
+        %w( entity groups profile notification_path licenses mac_key_id mac_key mac_algorithm mac_timestamp_delta ).each { |k|
+          expect(follower.send(k)).to eq(data[k])
+        }
       end
 
       it 'should create notification subscription for each type given' do
