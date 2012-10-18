@@ -169,6 +169,20 @@ describe TentD::API::Groups do
         expect(lambda { json_post "/groups", { :name => 'bacon-bacon' }, env }).
           to change(TentD::Model::Group, :count).by(1)
       end
+
+      it 'should create group with specified public_id' do
+        TentD::Model::Group.all.destroy!
+        data = {
+          :id => 'public-id',
+          :name => 'bacon-bacon'
+        }
+        expect(lambda { json_post "/groups", data, env }).
+          to change(TentD::Model::Group, :count).by(1)
+
+        group = TentD::Model::Group.last
+        expect(group.name).to eq(data[:name])
+        expect(group.public_id).to eq(data[:id])
+      end
     end
 
     context 'when write_groups scope is not authorized' do

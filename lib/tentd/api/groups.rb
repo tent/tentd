@@ -81,8 +81,10 @@ module TentD
 
       class Create < Middleware
         def action(env)
-          group_attributes = env.params[:data]
-          if group = Model::Group.create(group_attributes)
+          data = env.params.data
+          data.public_id = data.delete(:id) if data.id
+          data.slice!(:public_id, :name)
+          if group = Model::Group.create(data)
             env.response = group
             env.notify_action = 'create'
             env.notify_instance = group
