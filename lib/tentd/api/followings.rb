@@ -109,7 +109,7 @@ module TentD
             when 200...300
               env.follow_data = res.body
             else
-              return [res.status, res.headers, res.body]
+              return [res.status, res.headers, [res.body]]
             end
           end
           env
