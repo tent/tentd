@@ -71,7 +71,7 @@ module TentD
           if authorize_env?(env, :write_apps) && authorize_env?(env, :write_secrets)
             app_fields = Model::App.public_attributes + [:mac_key_id, :mac_key, :mac_algorithm, :public_id]
             data = env.params.data
-            data.public_id = data.delete(:id)
+            data.public_id = data.delete(:id) if data.id
 
             data = app_fields.inject({}) { |memo, (k,v)|
               memo[k] = data[k] if data.has_key?(k)
@@ -103,6 +103,7 @@ module TentD
             data = env.params.data
             data.post_types = data.post_types.to_a.map { |url| URI.decode(url) }
             data.profile_info_types = data.profile_info_types.to_a.map { |url| URI.decode(url) }
+            data.public_id = data.id if data.id
             authorization = app.authorizations.create_from_params(data.slice(
               :post_types,
               :profile_info_types,
@@ -111,7 +112,8 @@ module TentD
               :mac_key,
               :mac_algorithm,
               :notification_url,
-              :follow_url
+              :follow_url,
+              :public_id
             ).merge(
               :app_id => env.params.app_id
             ))

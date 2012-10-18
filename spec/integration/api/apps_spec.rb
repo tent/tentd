@@ -231,6 +231,7 @@ describe TentD::API::Apps do
           :scopes => scopes,
           :post_types => post_types.map {|url| URI.encode(url, ":/") },
           :profile_info_types => profile_info_types.map {|url| URI.encode(url, ":/") },
+          :id => 'public-id',
         }
         expect(lambda {
           expect(lambda {
@@ -243,6 +244,7 @@ describe TentD::API::Apps do
         expect(app_auth.scopes).to eq(scopes)
         expect(app_auth.post_types).to eq(post_types)
         expect(app_auth.profile_info_types).to eq(profile_info_types)
+        expect(app_auth.public_id).to eq(data[:id])
       end
     end
 
