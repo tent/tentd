@@ -33,6 +33,10 @@ module TentD
       belongs_to :app, 'TentD::Model::App', :required => false
       belongs_to :following, 'TentD::Model::Following', :required => false
 
+      def permissions
+        post.permissions
+      end
+
       def self.public_attributes
         Post.public_attributes
       end
