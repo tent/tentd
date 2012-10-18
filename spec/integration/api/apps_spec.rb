@@ -198,6 +198,7 @@ describe TentD::API::Apps do
 
       it 'should import app' do
         app_data = data.merge(
+          :id => 'public-id',
           :mac_key_id => 'mac-key-id',
           :mac_key => 'mac-key',
         )
@@ -210,6 +211,7 @@ describe TentD::API::Apps do
         app = TentD::Model::App.last
         expect(app.mac_key_id).to eq(app_data[:mac_key_id])
         expect(app.mac_key).to eq(app_data[:mac_key])
+        expect(app.public_id).to eq(app_data[:id])
       end
     end
   end

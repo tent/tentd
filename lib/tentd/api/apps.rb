@@ -69,7 +69,15 @@ module TentD
       class Create < Middleware
         def action(env)
           if authorize_env?(env, :write_apps) && authorize_env?(env, :write_secrets)
-            env.response = Model::App.create(env.params.data)
+            app_fields = Model::App.public_attributes + [:mac_key_id, :mac_key, :mac_algorithm, :public_id]
+            data = env.params.data
+            data.public_id = data.delete(:id)
+
+            data = app_fields.inject({}) { |memo, (k,v)|
+              memo[k] = data[k] if data.has_key?(k)
+              memo
+            }
+            env.response = Model::App.create(data)
           else
             env.response = Model::App.create_from_params(env.params.data)
           end
