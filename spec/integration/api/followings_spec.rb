@@ -485,6 +485,7 @@ describe TentD::API::Followings do
             TentD::Model::Following.all.destroy!
 
             data = following_data.merge(
+              :id => 'public-id',
               :mac_key_id => 'mac-key-id',
               :mac_key => 'mac-key',
               :mac_algorithm => 'hmac-sha-256'
@@ -493,6 +494,13 @@ describe TentD::API::Followings do
             expect(lambda {
               json_post 'followings', data, env
             }).to change(TentD::Model::Following, :count).by(1)
+
+            following = TentD::Model::Following.last
+            expect(following.public_id).to eq(data[:id])
+            expect(following.mac_key_id).to eq(data[:mac_key_id])
+            expect(following.mac_key).to eq(data[:mac_key])
+            expect(following.mac_algorithm).to eq(data[:mac_algorithm])
+            expect(following.confirmed).to eq(true)
           end
         end
 

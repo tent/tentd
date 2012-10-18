@@ -94,10 +94,10 @@ module TentD
 
           data = env.params.data
           if authorize_env?(env, :write_secrets) && data.mac_key_id && data.mac_key && data.mac_algorithm
-            env.following.update(:mac_key_id => data.mac_key_id,
-                                 :mac_key => data.mac_key,
-                                 :mac_algorithm => data.mac_algorithm,
-                                 :confirmed => true)
+            data.public_id = data.delete(:id) if data.id
+            data.slice!(:public_id, :mac_key_id, :mac_key, :mac_algorithm)
+            data[:confirmed] = true
+            env.following.update(data)
           else
             client = ::TentClient.new(env.server_url, :faraday_adapter => TentD.faraday_adapter)
             res = client.follower.create(
