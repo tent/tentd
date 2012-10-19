@@ -319,7 +319,8 @@ describe TentD::Model::Follower do
           :licenses => follower.licenses,
           :types => [],
           :created_at => follower.created_at.to_time.to_i,
-          :updated_at => follower.updated_at.to_time.to_i
+          :updated_at => follower.updated_at.to_time.to_i,
+          :notification_path => follower.notification_path
         ))
       end
     end
@@ -328,7 +329,8 @@ describe TentD::Model::Follower do
       it 'should return licenses and types' do
         expect(follower.as_json(:self => true)).to eq(public_attributes.merge(
           :licenses => follower.licenses,
-          :types => []
+          :types => [],
+          :notification_path => follower.notification_path
         ))
       end
     end

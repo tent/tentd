@@ -95,7 +95,7 @@ module TentD
 
         if options[:app] || options[:self]
           types = notification_subscriptions.all.map { |s| s.type.uri }
-          attributes.merge!(:licenses => licenses, :types => types)
+          attributes.merge!(:licenses => licenses, :types => types, :notification_path => notification_path)
         end
 
         attributes
