@@ -30,7 +30,7 @@ module TentD
       has n, :posts, 'TentD::Model::Post', :constraint => :set_nil
       has n, :post_versions, 'TentD::Model::PostVersion', :constraint => :set_nil
 
-      def self.create_from_params(params)
+      def self.create_from_params(params={})
         create(params.slice(:name, :description, :url, :icon, :redirect_uris, :scopes))
       end
 
