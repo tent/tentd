@@ -26,14 +26,14 @@ module TentD
         end
       end
 
-      def assign_permissions(permissions)
+      def assign_permissions(permissions, permissions_relationship_name=:permissions)
         return unless permissions.kind_of?(Hash)
 
         if permissions.groups && permissions.groups.kind_of?(Array)
           permissions.groups.each do |g|
             next unless g.id
             group = Model::Group.first(:public_id => g.id, :fields => [:id])
-            self.permissions.create(:group => group) if group
+            self.send(permissions_relationship_name).create(:group => group) if group
           end
         end
 
@@ -42,11 +42,11 @@ module TentD
             next unless visible
             followers = Model::Follower.all(:entity => entity, :fields => [:id])
             followers.each do |follower|
-              self.permissions.create(:follower_access => follower)
+              self.send(permissions_relationship_name).create(:follower_access => follower)
             end
             followings = Model::Following.all(:entity => entity, :fields => [:id])
             followings.each do |following|
-              self.permissions.create(:following => following)
+              self.send(permissions_relationship_name).create(:following => following)
             end
           end
         end

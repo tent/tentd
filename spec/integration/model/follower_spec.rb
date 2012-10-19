@@ -1,6 +1,61 @@
 require 'spec_helper'
 
 describe TentD::Model::Follower do
+
+  describe 'create_follower' do
+    let(:group) { Fabricate(:group, :name => 'GroupA') }
+    let(:following) { Fabricate(:following) }
+    let(:other_follower) { Fabricate(:follower) }
+    let(:attributes) do
+      Hashie::Mash.new(
+        :entity => "http://test.example.com",
+        :permissions => {
+          :groups => [{ :id => group.public_id }],
+          :entities => {
+            following.entity => true,
+            other_follower.entity => true
+          },
+          :public => true
+        },
+        :id => 'public-id',
+        :notification_path => '/notifications',
+        :created_at => 1350663594,
+        :updated_at => 1350666333,
+        :mac_key_id => 'mac-key-id',
+        :mac_key => 'mac_key',
+        :mac_algorithm => 'hmac-sha-256',
+        :groups => [],
+        :profile => {
+          :"https://tent.io/types/info/basic/v0.1.0" => {
+            :name => "Mr. Eldridge Marvin",
+            :permissions => {
+              :public => true
+            }
+          },
+          :"https://tent.io/types/info/core/v0.1.0" => {
+            :entity => "http://test.example.com",
+            :servers => %w( http://test.example.com/tent http://tent.example.org ),
+            :permissions => {
+              :public => true
+            }
+          }
+        }
+      )
+    end
+
+    context 'when write_followers and write_secrets authorized' do
+      let(:authorized_scopes) { [:write_followers, :write_secrets] }
+      before { TentD::Model::Follower.all.destroy }
+      before { TentD::Model::Following.all.destroy }
+
+      it 'should create permissions' do
+        expect(lambda {
+          follower = described_class.create_follower(attributes, authorized_scopes)
+        }).to change(TentD::Model::Permission, :count).by(3)
+      end
+    end
+  end
+
   describe 'find_with_permissions(id, current_auth)' do
     public_expectations = proc do
       it 'should return follower if public' do
