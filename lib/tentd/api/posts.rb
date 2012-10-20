@@ -102,7 +102,7 @@ module TentD
           post = if env.params.data.id
             data.public_id = env.params.data.id
             begin
-              Model::Post.create(data)
+              Model::Post.create(data, :dont_notify_mentions => true)
             rescue DataObjects::IntegrityError # hack to ignore duplicate posts
               Model::Post.first(:public_id => data.public_id)
             end
@@ -250,6 +250,7 @@ module TentD
 
       class Notify < Middleware
         def action(env)
+          return env if authorize_env?(env, :write_posts) && env.params.data && env.params.data.id
           if deleted_post = env.notify_deleted_post
             post = Model::Post.create(
               :type => 'https://tent.io/types/post/delete/v0.1.0',

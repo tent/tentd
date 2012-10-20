@@ -69,7 +69,7 @@ module TentD
         res
       end
 
-      def self.create(data)
+      def self.create(data, options={})
         data[:published_at] = Time.at(data[:published_at].to_time.to_i / 1000) if data[:published_at] && ((data[:published_at].to_time.to_i - Time.now.to_i) > 1000000000)
         mentions = data.delete(:mentions)
         post = super(data)
@@ -79,7 +79,7 @@ module TentD
           post.mentions.create(:entity => mention[:entity], :mentioned_post_id => mention[:post], :original_post => post.original, :post_version_id => post.latest_version(:fields => [:id]).id)
         end
 
-        if post.mentions.to_a.any? && post.original
+        if post.mentions.to_a.any? && post.original && !options[:dont_notify_mentions]
           post.mentions.each do |mention|
             follower = Follower.first(:entity => mention.entity)
             next if follower && NotificationSubscription.first(:follower => follower, :type_base => post.type.base)
