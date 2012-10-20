@@ -89,10 +89,14 @@ module TentD
           data = env.params.data
           data.public_id = data.delete(:id) if data.id
           data.slice!(:public_id, :name)
-          if group = Model::Group.create(data)
-            env.response = group
-            env.notify_action = 'create'
-            env.notify_instance = group
+          begin
+            if group = Model::Group.create(data)
+              env.response = group
+              env.notify_action = 'create'
+              env.notify_instance = group
+            end
+          rescue DataObjects::IntegrityError # hack to ignore duplicate groups
+            env.response = Model::Group.first(:public_id => data.public_id)
           end
           env
         end
