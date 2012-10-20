@@ -46,5 +46,13 @@ module TentD
         Model::ProfileInfo.create_update_post(msg['profile_info_id'])
       end
     end
+
+    class PropagateEntity
+      include Sidekiq::Worker
+
+      def perform(msg)
+        Model::Post.propagate_entity(msg['entity'])
+      end
+    end
   end
 end

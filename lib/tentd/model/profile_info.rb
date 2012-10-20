@@ -24,6 +24,7 @@ module TentD
 
       has n, :permissions, 'TentD::Model::Permission'
 
+      attr_accessor :entity_changed
 
       def self.tent_info
         first(:type_base => TENT_PROFILE_TYPE.base, :order => :type_version.desc) || Hashie::Mash.new
@@ -47,13 +48,18 @@ module TentD
         perms = data.delete(:permissions)
         if (infos = all(:type_base => type.base)) && (info = infos.pop)
           infos.to_a.each(&:destroy)
+          info.entity_changed = true if type.base == TENT_PROFILE_TYPE.base && data.find { |k,v| k.to_s == 'entity' && v != (info.content || {})['entity'] }
           info.type = type
           info.content = data
           info.save
         else
           info = create(:type => type, :content => data)
+          info.entity_changed = true if type.base == TENT_PROFILE_TYPE.base && (info.content || {})['entity']
         end
         info.assign_permissions(perms)
+        if info.entity_changed
+          Notifications.propagate_entity('entity' => (info.content || {})['entity']) if info.entity_changed
+        end
         info
       end
 

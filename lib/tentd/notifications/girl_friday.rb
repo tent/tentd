@@ -26,5 +26,9 @@ module TentD
     PROFILE_INFO_UPDATE_QUEUE = GirlFriday::WorkQueue.new(:profile_info_update) do |msg|
       Model::ProfileInfo.create_update_post(msg[:profile_info_id])
     end
+
+    PROPAGATE_ENTITY_QUEUE = GirlFriday::WorkQueue.new(:propagate_entity) do |msg|
+      Model::Post.propagate_entity(msg['entity'])
+    end
   end
 end
