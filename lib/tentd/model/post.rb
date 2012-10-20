@@ -99,8 +99,9 @@ module TentD
         public_attributes + [:following_id, :original, :public, :mentions, :views]
       end
 
-      def self.propagate_entity(entity)
+      def self.propagate_entity(entity, old_entity = nil)
         Post.all(:original => true).update(:entity => entity)
+        Mention.all(:entity => old_entity).update(:entity => entity) if old_entity
       end
 
       def can_notify?(app_or_follow)

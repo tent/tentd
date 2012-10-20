@@ -51,7 +51,7 @@ module TentD
       include Sidekiq::Worker
 
       def perform(msg)
-        Model::Post.propagate_entity(msg['entity'])
+        Model::Post.propagate_entity(msg['entity'], msg['old_entity'])
       end
     end
   end

@@ -8,9 +8,11 @@ describe TentD::Model::ProfileInfo do
 
     context 'when entity updated' do
       it 'should update original posts with new entity' do
-        profile_info = Fabricate(:profile_info, :public => true, :type => core_profile_type)
+        profile_info = Fabricate(:profile_info, :public => true, :type => core_profile_type, :content => { :entity => 'http://example.com' })
         post = Fabricate(:post, :entity => 'http://example.com', :original => true)
         other_post = Fabricate(:post, :entity => other_entity, :original => false)
+        mention = other_post.mentions.create(:entity => 'http://example.com')
+        other_mention = post.mentions.create(:entity => other_entity)
 
         described_class.update_profile(core_profile_type, {
           :entity => entity
@@ -18,7 +20,11 @@ describe TentD::Model::ProfileInfo do
 
         post = TentD::Model::Post.get(post.id)
         other_post = TentD::Model::Post.get(other_post.id)
+        mention = TentD::Model::Mention.get(mention.id)
+        other_mention = TentD::Model::Mention.get(other_mention.id)
         expect(post.entity).to eq(entity)
+        expect(mention.entity).to eq(entity)
+        expect(other_mention.entity).to eq(other_entity)
         expect(other_post.entity).to eq(other_entity)
       end
     end
