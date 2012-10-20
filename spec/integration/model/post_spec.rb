@@ -196,7 +196,7 @@ describe TentD::Model::Post do
           expect(returned_posts).to eq([post])
         end
 
-        context 'with [:reverse] = false' do
+        context 'with [:order] = asc' do
           it 'should only return posts with received_at > :since_time in ascending order' do
             TentD::Model::Post.all.destroy!
             since_post = Fabricate(:post, :public => !create_permissions,
@@ -213,7 +213,7 @@ describe TentD::Model::Post do
 
             params['since_time'] = since_post.received_at.to_time.to_i.to_s
             params['limit'] = 1
-            params['reverse'] = false
+            params['order'] = 'asc'
 
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
             expect(returned_posts).to eq([post_b])

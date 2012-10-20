@@ -213,7 +213,7 @@ module TentD
         private
 
         def get_sort_direction(params)
-          if params['reverse'].to_s == 'false'
+          if params['order'].to_s.downcase == 'asc'
             'ASC'
           else
             'DESC'
