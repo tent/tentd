@@ -49,7 +49,12 @@ module TentD
           if env.params.return_count
             env.response = Model::Group.count(conditions)
           else
-            conditions[:order] = :id.desc
+            if env.params.reverse == false
+              conditions[:order] = :id.asc
+            else
+              conditions[:order] = :id.desc
+            end
+
             if conditions[:limit] == 0
               env.response = []
             else
