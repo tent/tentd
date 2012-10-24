@@ -38,9 +38,9 @@ module TentD
             if env['CONTENT_TYPE'].to_s.split(';').first =~ /\bjson\Z/
               params['data'] = env['data'] || JSON.parse(env['rack.input'].read)
             elsif env['CONTENT_TYPE'] =~ /\Amultipart/
-              key, data = params.find { |k,p| p[:type] == MEDIA_TYPE }
+              key, data = params.find { |k,p| p[:type].split(';').first == MEDIA_TYPE }
               params.delete(key)
-              params['data'] = JSON.parse(data[:tempfile].read)
+              params['data'] = JSON.parse(data[:tempfile].read) if data
               params['attachments'] = get_attachments(params)
             end
           rescue JSON::ParserError
