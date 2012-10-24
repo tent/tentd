@@ -79,7 +79,7 @@ module TentD
             }
             env.response = Model::App.create(data)
           else
-            env.response = Model::App.create_from_params(env.params.data)
+            env.response = Model::App.create_from_params(env.params.data || {})
           end
           env.authorized_scopes << :read_secrets
           env
