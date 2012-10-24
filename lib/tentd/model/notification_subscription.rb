@@ -61,7 +61,7 @@ module TentD
           path = 'posts'
         end
         res = client.post.create(post.as_json(:view => view), :url => path)
-        raise NotificationError unless (200...300).include?(res.status)
+        raise NotificationError.new("#{res.status}: #{res.body}") unless (200...300).include?(res.status)
         res
       end
 
@@ -76,10 +76,10 @@ module TentD
         client = TentClient.new(subject.notification_servers, subject.auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
         permissions = subject.respond_to?(:scopes) && subject.scopes.include?(:read_permissions)
         res = client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions, :view => view), :url => subject.notification_path)
-        raise NotificationError unless (200...300).include?(res.status)
+        raise NotificationError.new("#{res.status}: #{res.body}") unless (200...300).include?(res.status)
         res
-      rescue Faraday::Error::ConnectionFailed
-        raise NotificationError
+      rescue Faraday::Error::ConnectionFailed => e
+        raise NotificationError.new(e)
       end
     end
   end
