@@ -2,7 +2,8 @@ require 'spec_helper'
 
 describe TentD::Model::ProfileInfo do
   context '.update_profile' do
-    let(:core_profile_type) { 'https://tent.io/types/info/core/v0.1.0' }
+    let(:core_profile_type_base) { 'https://tent.io/types/info/core' }
+    let(:core_profile_type) { "#{core_profile_type_base}/v0.1.0" }
     let(:entity) { 'http://other.example.com' }
     let(:other_entity) { 'http://someone.example.com' }
 
@@ -26,6 +27,26 @@ describe TentD::Model::ProfileInfo do
         expect(mention.entity).to eq(entity)
         expect(other_mention.entity).to eq(other_entity)
         expect(other_post.entity).to eq(other_entity)
+      end
+
+      it 'should add previous entity to core profile' do
+        TentD::Model::ProfileInfo.all.destroy
+        profile_info = Fabricate(:profile_info, :public => true, :type => core_profile_type, :content => { :entity => 'http://example.com' })
+
+        described_class.update_profile(core_profile_type, {
+          :entity => entity
+        })
+
+        profile_info = profile_info.class.first(:type_base => core_profile_type_base)
+        expect(profile_info.content['previous_entities']).to eq(['http://example.com'])
+
+        described_class.update_profile(core_profile_type, {
+          :entity => 'http://somethingelse.example.com',
+          :previous_entities => ['http://example.com']
+        })
+
+        profile_info = profile_info.class.first(:type_base => core_profile_type_base)
+        expect(profile_info.content['previous_entities']).to eq([entity, 'http://example.com'])
       end
     end
   end

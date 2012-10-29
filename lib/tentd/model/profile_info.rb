@@ -50,6 +50,7 @@ module TentD
           infos.to_a.each(&:destroy)
           old_entity = (info.content || {})['entity']
           info.entity_changed = true if type.base == TENT_PROFILE_TYPE.base && data.find { |k,v| k.to_s == 'entity' && v != old_entity }
+          data['previous_entities'] = (data['previous_entities'] || []).unshift(old_entity) if info.entity_changed
           info.type = type
           info.content = data
           info.save
