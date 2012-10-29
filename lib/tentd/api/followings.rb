@@ -74,6 +74,8 @@ module TentD
           env.profile = profile
           env.server_url = profile_url.sub(%r{/profile$}, '')
           env
+        rescue Faraday::Error::ConnectionFailed
+          [404, {}, ['Not Found']]
         end
       end
 
