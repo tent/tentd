@@ -43,6 +43,10 @@ describe TentD::API::Followers do
     }
   end
 
+  before do
+    TentD::Model::Follower.all.destroy!
+  end
+
   describe 'POST /followers' do
     before { env['tent.entity'] = 'https://smith.example.com' }
     let(:follower_data) do
@@ -165,6 +169,16 @@ describe TentD::API::Followers do
           to change(TentD::Model::NotificationSubscription, :count).by(2)
         expect(last_response.status).to eq(200)
         expect(TentD::Model::NotificationSubscription.last.type_view).to eq('meta')
+      end
+
+      context 'when follower already exists' do
+        it 'should delete old follower records before creating the new one' do
+          dup_follower_1 = Fabricate(:follower, :entity => follower_entity_url)
+          dup_follower_2 = Fabricate(:follower, :entity => follower_entity_url)
+
+          expect(lambda { json_post '/followers', follower_data, env }).
+            to change(TentD::Model::Follower, :count).by(-1)
+        end
       end
     end
   end
