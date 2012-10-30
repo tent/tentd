@@ -19,7 +19,7 @@ module TentD
 
       class GetActualId < Middleware
         def action(env)
-          [:group_id, :before_id, :since_id].each do |id_key|
+          [:group_id, :before_id, :since_id].select { |k| env.params.has_key?(k) }.each do |id_key|
             if env.params[id_key]
               if g = Model::Group.first(:public_id => env.params[id_key])
                 env.params[id_key] = g.id
@@ -41,6 +41,11 @@ module TentD
 
       class GetAll < Middleware
         def action(env)
+          if (env.params.has_key?(:since_id) && env.params.since_id.nil?) || (env.params.has_key?(:before_id) && env.params.before_id.nil?)
+            env.response = []
+            return
+          end
+
           conditions = {}
           conditions[:id.lt] = env.params.before_id if env.params.before_id
           conditions[:id.gt] = env.params.since_id if env.params.since_id

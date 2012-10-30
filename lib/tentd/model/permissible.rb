@@ -124,6 +124,9 @@ module TentD
             query << "SELECT #{table_name}.* FROM #{table_name}"
           end
 
+          return [] if params.has_key?(:since_id) && params.since_id.nil?
+          return [] if params.has_key?(:before_id) && params.before_id.nil?
+
           if params.since_id
             query_conditions << "#{table_name}.id > ?"
             query_bindings << params.since_id.to_i
@@ -173,6 +176,9 @@ module TentD
           params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
 
           query_with_permissions(current_auth, params) do |query, query_bindings|
+            return [] if params.has_key?(:since_id) && params.since_id.nil?
+            return [] if params.has_key?(:before_id) && params.before_id.nil?
+
             if params.since_id
               query << "AND #{table_name}.id > ?"
               query_bindings << params.since_id.to_i

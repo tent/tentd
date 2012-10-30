@@ -5,7 +5,7 @@ module TentD
 
       class GetActualId < Middleware
         def action(env)
-          [:follower_id, :before_id, :since_id].each do |id_key|
+          [:follower_id, :before_id, :since_id].select { |k| env.params.has_key?(k) }.each do |id_key|
             if env.params[id_key] && (f = Model::Follower.first(:public_id => env.params[id_key], :fields => [:id]))
               env.params[id_key] = f.id
             else

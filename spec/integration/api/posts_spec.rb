@@ -442,6 +442,14 @@ describe TentD::API::Posts do
         expect(body_ids.first).to eq(post.public_id)
       end
 
+      it "should return an empty array when since_id doesn't exist" do
+        some_post = Fabricate(:post, :public => post_public?)
+
+        json_get "/posts?since_id=invalid-id", params, env
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(0)
+      end
+
       it "should filter by params[:before_id]" do
         TentD::Model::Post.all.destroy
         post = Fabricate(:post, :public => post_public?)
