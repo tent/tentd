@@ -93,5 +93,23 @@ describe TentD::Model::Following do
       expect(following.licenses).to eq(updated_profile.values.first['licenses'])
       expect(following.entity).to eq(updated_profile.values.first['entity'])
     end
+
+    context 'when entity changed' do
+      it 'should update posts' do
+        post = Fabricate(:post, :entity => following.entity)
+        mention = Fabricate(:mention, :entity => following.entity, :post => post)
+
+        http_stubs.get('/profile') {
+          [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, updated_profile.to_json]
+        }
+        described_class.update_profile(following.id)
+        following.reload
+        post.reload
+        mention.reload
+
+        expect(post.entity).to eq(updated_profile.values.first['entity'])
+        expect(mention.entity).to eq(updated_profile.values.first['entity'])
+      end
+    end
   end
 end

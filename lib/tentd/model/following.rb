@@ -54,13 +54,20 @@ module TentD
       def update_profile
         client = TentClient.new(core_profile.servers, auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
         res = client.profile.get
+        old_entity = self.entity
         if res.status == 200
           self.profile = res.body
           self.licenses = core_profile.licenses
           self.entity = core_profile.entity
         end
+        propagate_entity(self.entity, old_entity) if old_entity != self.entity
         save
         profile
+      end
+
+      def propagate_entity(entity, old_entity)
+        Post.all(:entity => old_entity).update(:entity => entity)
+        Mention.all(:entity => old_entity).update(:entity => entity)
       end
 
       def core_profile
