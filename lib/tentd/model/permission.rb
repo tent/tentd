@@ -16,10 +16,10 @@ module TentD
       property :visible, Boolean, :default => true
 
       def self.copy(from, to)
-        from.permissions.each do |permission|
+        from.visibility_permissions_relationship.each do |permission|
           attrs = permission.attributes
           attrs.delete(:id)
-          to.permissions.create(attrs)
+          to.visibility_permissions_relationship.create(attrs)
         end
         to.update(:public => from.public)
       end

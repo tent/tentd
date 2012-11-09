@@ -56,6 +56,10 @@ module TentD
         end
       end
 
+      def visibility_permissions_relationship
+        relationships.map(&:name).include?(:visibility_permissions) ? visibility_permissions : permissions
+      end
+
       module ClassMethods
         def query_with_permissions(current_auth, params=Hashie::Mash.new)
           query = []

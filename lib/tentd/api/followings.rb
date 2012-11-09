@@ -195,6 +195,7 @@ module TentD
               :action => env.notify_action
             }
           )
+          Model::Permission.copy(following, post)
           Notifications.trigger(:type => post.type.uri, :post_id => post.id)
           env
         end

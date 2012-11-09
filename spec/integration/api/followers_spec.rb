@@ -164,6 +164,18 @@ describe TentD::API::Followers do
         expect(post.content['action']).to eq('create')
       end
 
+      context 'when follower visibililty is public' do
+        it 'should send notification to subscribed followings' do
+          follower_data['public'] = true
+          expect(lambda {
+            json_post '/followers', follower_data, env
+            expect(last_response.status).to eq(200)
+          }).to change(TentD::Model::Post, :count).by(1)
+          post = TentD::Model::Post.last
+          expect(post.public).to be_true
+        end
+      end
+
       it 'should create notification subscription for each type given' do
         expect(lambda { json_post '/followers', follower_data, env }).
           to change(TentD::Model::NotificationSubscription, :count).by(2)
