@@ -9,7 +9,7 @@ module TentD
       property :type, Text, :required => true, :lazy => false
       property :category, Text, :required => true, :lazy => false
       property :name, Text, :required => true, :lazy => false
-      property :data, Text, :required => true
+      property :data, Text, :required => true, :auto_validation => false
       property :size, Integer, :required => true
       timestamps :at
 
