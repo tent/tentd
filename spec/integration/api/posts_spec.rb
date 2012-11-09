@@ -522,6 +522,44 @@ describe TentD::API::Posts do
         expect(body_ids.first).to eq(post.public_id)
       end
 
+      context "when params[:sort_by] = 'updated_at'" do
+        it "should order by updated_at desc" do
+          TentD::Model::Post.all.destroy
+          post = Fabricate(:post, :public => post_public?)
+
+          a_day_ago = Time.at(Time.now.to_i - 86400)
+          DateTime.stubs(:now).returns(DateTime.parse(a_day_ago.to_s))
+          earlier_post = Fabricate(:post, :public => post_public?)
+
+          expect(earlier_post.updated_at < post.updated_at).to be_true
+
+          json_get "/posts", { :sort_by => 'updated_at' }, env
+          body = JSON.parse(last_response.body)
+          expect(body.size).to eq(2)
+          body_ids = body.map { |i| i['id'] }
+          expect(body_ids.first).to eq(post.public_id)
+        end
+
+        context "when params[:order] = 'asc'" do
+          it "should order by updated_at asc" do
+            TentD::Model::Post.all.destroy
+            post = Fabricate(:post, :public => post_public?)
+
+            a_day_ago = Time.at(Time.now.to_i - 86400)
+            DateTime.stubs(:now).returns(DateTime.parse(a_day_ago.to_s))
+            earlier_post = Fabricate(:post, :public => post_public?)
+
+            expect(earlier_post.updated_at < post.updated_at).to be_true
+
+            json_get "/posts", { :sort_by => 'updated_at', :order => 'asc' }, env
+            body = JSON.parse(last_response.body)
+            expect(body.size).to eq(2)
+            body_ids = body.map { |i| i['id'] }
+            expect(body_ids.first).to eq(earlier_post.public_id)
+          end
+        end
+      end
+
       it "should set feed length with params[:limit]" do
         0.upto(2).each { Fabricate(:post, :public => post_public?) }
         json_get '/posts?limit=1', params, env

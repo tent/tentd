@@ -149,6 +149,8 @@ module TentD
           sort_column = case params['sort_by'].to_s
           when 'published_at'
             'published_at'
+          when 'updated_at'
+            'updated_at'
           else
             'received_at'
           end
