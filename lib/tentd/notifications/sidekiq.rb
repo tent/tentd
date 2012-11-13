@@ -47,7 +47,7 @@ module TentD
       end
     end
 
-    class PropagateEntity
+    class PropagateEntityWorker
       include Sidekiq::Worker
 
       def perform(msg)
