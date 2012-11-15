@@ -66,8 +66,8 @@ module TentD
       end
 
       def propagate_entity(entity, old_entity)
-        Post.all(:entity => old_entity).update(:entity => entity)
-        Mention.all(:entity => old_entity).update(:entity => entity)
+        Post.all(:entity => old_entity, :original => false).update(:entity => entity)
+        Mention.all(:entity => old_entity, :original_post => false).update(:entity => entity)
       end
 
       def core_profile

@@ -28,7 +28,7 @@ module TentD
     end
 
     PROPAGATE_ENTITY_QUEUE = GirlFriday::WorkQueue.new(:propagate_entity) do |msg|
-      Model::Post.propagate_entity(msg['entity'], msg['old_entity'])
+      Model::Post.propagate_entity(msg['user_id'], msg['entity'], msg['old_entity'])
     end
   end
 end

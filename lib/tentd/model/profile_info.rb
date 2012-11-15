@@ -61,7 +61,7 @@ module TentD
         end
         info.assign_permissions(perms)
         if info.entity_changed
-          Notifications.propagate_entity('entity' => (info.content || {})['entity'], 'old_entity' => old_entity) if info.entity_changed
+          Notifications.propagate_entity('user_id' => TentD::Model::User.current.id, 'entity' => (info.content || {})['entity'], 'old_entity' => old_entity) if info.entity_changed
         end
         info
       end

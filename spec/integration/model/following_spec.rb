@@ -96,8 +96,8 @@ describe TentD::Model::Following do
 
     context 'when entity changed' do
       it 'should update posts' do
-        post = Fabricate(:post, :entity => following.entity)
-        mention = Fabricate(:mention, :entity => following.entity, :post => post)
+        post = Fabricate(:post, :entity => following.entity, :original => false)
+        mention = Fabricate(:mention, :entity => following.entity, :post => post, :original_post => false)
 
         http_stubs.get('/profile') {
           [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, updated_profile.to_json]
