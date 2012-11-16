@@ -111,7 +111,11 @@ module TentD
           end
           post.assign_permissions(env.params.data.permissions) if post.original
           env['response'] = post
-          env
+          if env.current_auth.kind_of?(Model::Follower) && auth_is_publisher?(env.current_auth, post)
+            TriggerUpdates.new(@app).call(env)
+          else
+            env
+          end
         end
 
         private

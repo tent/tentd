@@ -801,7 +801,7 @@ describe TentD::API::Posts do
           it 'should trigger a entity update' do
             env['current_auth'] = follower
             TentD::Model::Follower.expects(:update_entity).with(follower.id)
-            json_post "/notifications/#{follower.public_id}", post_attributes, env
+            json_post "/posts", post_attributes, env
             expect(last_response.status).to eq(200)
           end
         end
