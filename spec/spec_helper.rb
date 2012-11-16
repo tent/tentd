@@ -9,6 +9,7 @@ require 'fabrication'
 require 'tentd/core_ext/hash/slice'
 require 'girl_friday'
 require 'tentd/notifications/girl_friday'
+require 'database_cleaner'
 
 Dir["#{File.dirname(__FILE__)}/support/*.rb"].each { |f| require f }
 
@@ -32,6 +33,15 @@ RSpec.configure do |config|
     # DataMapper::Logger.new(STDOUT, :debug)
     DataMapper.setup(:default, ENV['TEST_DATABASE_URL'] || 'postgres://localhost/tent_server_test')
     DataMapper.auto_migrate!
+    DatabaseCleaner.strategy = :transaction
     TentD::Model::User.current = TentD::Model::User.first_or_create
+  end
+
+  config.before(:each) do
+    DatabaseCleaner.start
+  end
+
+  config.after(:each) do
+    DatabaseCleaner.clean
   end
 end
