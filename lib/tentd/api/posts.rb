@@ -101,11 +101,7 @@ module TentD
           data = env.params[:data].slice(*whitelisted_attributes(env))
           post = if env.params.data.id
             data.public_id = env.params.data.id
-            begin
-              Model::Post.create(data, :dont_notify_mentions => true)
-            rescue DataObjects::IntegrityError # hack to ignore duplicate posts
-              Model::Post.first(:public_id => data.public_id)
-            end
+            Model::Post.first(:public_id => data.public_id) || Model::Post.create(data, :dont_notify_mentions => true)
           else
             Model::Post.create(data)
           end
