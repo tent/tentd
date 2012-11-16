@@ -82,6 +82,12 @@ module TentD
         )
         Permission.copy(self, post)
         Notifications.trigger(:type => post.type.uri, :post_id => post.id)
+
+        if options[:entity_changed]
+          Mention.all(:fields => [:entity, :id], Mention.post.user_id => self.user_id, Mention.post.original => true).each do |mention|
+            Notifications.notify_entity(:entity => mention.entity, :post_id => post.id)
+          end
+        end
       end
     end
   end
