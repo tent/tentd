@@ -75,8 +75,31 @@ module TentD
         follower
       end
 
+      def self.update_entity(follower_id)
+        first(:id => follower_id).update_entity
+      end
+
       def self.public_attributes
         [:entity]
+      end
+
+      def update_entity
+        client = TentClient.new(core_profile.servers, auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
+        res = client.profile.get
+        old_entity = self.entity
+        if res.status == 200
+          self.profile = res.body
+          self.licenses = core_profile.licenses
+          self.entity = core_profile.entity
+          save
+        end
+        propagate_entity(self.entity, old_entity) if self.entity != old_entity
+        profile
+      end
+
+      def propagate_entity(new_entity, old_entity)
+        Post.all(:entity => old_entity, :original => false).update(:entity => entity)
+        Mention.all(:entity => old_entity, :original_post => false).update(:entity => entity)
       end
 
       def permissible_foreign_key

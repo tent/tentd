@@ -23,6 +23,10 @@ module TentD
       Model::Following.update_profile(msg[:following_id])
     end
 
+    UPDATE_FOLLOWER_ENTITY_QUEUE = GirlFriday::WorkQueue.new(:update_follower_entity) do |msg|
+      Model::Follower.update_entity(msg[:follower_id])
+    end
+
     PROFILE_INFO_UPDATE_QUEUE = GirlFriday::WorkQueue.new(:profile_info_update) do |msg|
       Model::ProfileInfo.create_update_post(msg[:profile_info_id], :entity_changed => msg[:entity_changed], :old_entity => msg[:old_entity])
     end

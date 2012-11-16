@@ -2,6 +2,41 @@ require 'spec_helper'
 
 describe TentD::Model::Follower do
 
+  describe '.update_entity' do
+    let(:old_entity) { 'https://old-entity.example.org' }
+    let(:new_entity) { 'https://new-entity.example.org' }
+    let(:follower) { Fabricate(:follower, :entity => old_entity) }
+    let(:updated_profile) {
+      {
+        TentD::Model::ProfileInfo::TENT_PROFILE_TYPE_URI => {
+          "entity" => new_entity,
+          "servers" => ["#{new_entity}/tent"]
+        }
+      }
+    }
+    let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
+    before { TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs]) }
+
+    it 'should update follower entity' do
+      http_stubs.get('/profile') {
+        [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, updated_profile.to_json]
+      }
+
+      TentD::Model::Follower.update_entity(follower.id)
+      expect(follower.reload.entity).to eq(new_entity)
+    end
+
+    it 'should update posts authored by follower' do
+      http_stubs.get('/profile') {
+        [200, { 'Content-Type' => TentD::API::MEDIA_TYPE }, updated_profile.to_json]
+      }
+      post = Fabricate(:post, :entity => old_entity, :original => false)
+
+      TentD::Model::Follower.update_entity(follower.id)
+      expect(post.reload.entity).to eq(new_entity)
+    end
+  end
+
   describe 'create_follower' do
     let(:group) { Fabricate(:group, :name => 'GroupA') }
     let(:following) { Fabricate(:following) }

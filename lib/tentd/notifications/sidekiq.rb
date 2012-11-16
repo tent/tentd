@@ -39,6 +39,14 @@ module TentD
       end
     end
 
+    class UpdateFollowerEntityWorker
+      include Sidekiq::Worker
+
+      def perform(msg)
+        Model::Follower.update_entity(msg['follower_id'])
+      end
+    end
+
     class ProfileInfoUpdateWorker
       include Sidekiq::Worker
 

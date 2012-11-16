@@ -783,6 +783,28 @@ describe TentD::API::Posts do
           json_post "/notifications/#{following.public_id}", post_attributes, env
           expect(last_response.status).to eq(200)
         end
+
+        context 'follower profile update post' do
+          let(:follower) { Fabricate(:follower) }
+
+          let(:post_attributes) {
+            {
+              :type => 'https://tent.io/types/post/profile/v0.1.0',
+              :entity => follower.entity,
+              :content => {
+                :action => 'update',
+                :types => ['https://tent.io/types/info/core/v0.1.0'],
+              }
+            }
+          }
+
+          it 'should trigger a entity update' do
+            env['current_auth'] = follower
+            TentD::Model::Follower.expects(:update_entity).with(follower.id)
+            json_post "/notifications/#{follower.public_id}", post_attributes, env
+            expect(last_response.status).to eq(200)
+          end
+        end
       end
 
       describe 'delete post' do

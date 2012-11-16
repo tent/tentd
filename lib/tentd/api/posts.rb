@@ -306,6 +306,11 @@ module TentD
                 deleted_post.destroy
               end
             end
+          elsif post && env.current_auth.kind_of?(Model::Follower) && env.current_auth.entity == post.entity
+            case post.type.base
+            when 'https://tent.io/types/post/profile'
+              Notifications.update_follower_entity(:follower_id => env.current_auth.id)
+            end
           end
           env
         end
