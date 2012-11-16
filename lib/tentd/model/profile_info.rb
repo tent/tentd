@@ -24,7 +24,7 @@ module TentD
 
       has n, :permissions, 'TentD::Model::Permission'
 
-      attr_accessor :entity_changed
+      attr_accessor :entity_changed, :old_entity
 
       def self.tent_info
         first(:type_base => TENT_PROFILE_TYPE.base, :order => :type_version.desc) || Hashie::Mash.new
@@ -48,32 +48,32 @@ module TentD
         perms = data.delete(:permissions)
         if (infos = all(:type_base => type.base)) && (info = infos.pop)
           infos.to_a.each(&:destroy)
-          old_entity = (info.content || {})['entity']
-          info.entity_changed = true if type.base == TENT_PROFILE_TYPE.base && data.find { |k,v| k.to_s == 'entity' && v != old_entity }
-          data['previous_entities'] = (data['previous_entities'] || []).unshift(old_entity) if info.entity_changed
+          info.old_entity = (info.content || {})['entity']
+          info.entity_changed = true if type.base == TENT_PROFILE_TYPE.base && data.find { |k,v| k.to_s == 'entity' && v != info.old_entity }
+          data['previous_entities'] = (data['previous_entities'] || []).unshift(info.old_entity) if info.entity_changed
           info.type = type
           info.content = data
           info.save
         else
           info = create(:type => type, :content => data)
-          old_entity = nil
+          info.old_entity = nil
           info.entity_changed = true if type.base == TENT_PROFILE_TYPE.base && (info.content || {})['entity']
         end
         info.assign_permissions(perms)
         if info.entity_changed
-          Notifications.propagate_entity('user_id' => TentD::Model::User.current.id, 'entity' => (info.content || {})['entity'], 'old_entity' => old_entity) if info.entity_changed
+          Notifications.propagate_entity('user_id' => TentD::Model::User.current.id, 'entity' => (info.content || {})['entity'], 'old_entity' => info.old_entity) if info.entity_changed
         end
         info
       end
 
-      def self.create_update_post(id)
-        first(:id => id).create_update_post
+      def self.create_update_post(id, options = {})
+        first(:id => id).create_update_post(options)
       end
 
-      def create_update_post
+      def create_update_post(options = {})
         post = user.posts.create(
           :type => 'https://tent.io/types/post/profile/v0.1.0',
-          :entity => user.profile_entity,
+          :entity => options[:entity_changed] ? options[:old_entity] : user.profile_entity,
           :original => true,
           :content => {
             :action => 'update',

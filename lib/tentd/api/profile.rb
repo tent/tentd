@@ -31,7 +31,11 @@ module TentD
         def action(env)
           return env unless env.updated_info
           Array(env.updated_info).each do |info|
-            Notifications.profile_info_update(:profile_info_id => info.id)
+            Notifications.profile_info_update(
+              :profile_info_id => info.id,
+              :entity_changed => info.entity_changed,
+              :old_entity => info.old_entity
+            )
           end
           env
         end
