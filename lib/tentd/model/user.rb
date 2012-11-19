@@ -10,6 +10,18 @@ module TentD
       one_to_many :profile_infos
       one_to_many :notification_subscriptions
 
+      def self.first_or_create
+        first || create
+      end
+
+      def self.current=(u)
+        Thread.current[:user] = u
+      end
+
+      def self.current
+        Thread.current[:user]
+      end
+
       def profile_entity
         info = profile_infos.first(:type_base => ProfileInfo::TENT_PROFILE_TYPE.base, :order => :type_version.desc)
         info.content['entity'] if info

@@ -24,7 +24,7 @@ describe TentD::API::Apps do
 
       with_mac_key = proc do
         it 'should return list of apps with mac keys' do
-          expect(Fabricate(:app)).to be_saved
+          expect(Fabricate(:app).id).to_not be_nil
 
           json_get '/apps', params, env
           expect(last_response.status).to eq(200)
@@ -41,7 +41,7 @@ describe TentD::API::Apps do
 
       without_mac_key = proc do
         it 'should return list of apps without mac keys' do
-          expect(Fabricate(:app)).to be_saved
+          expect(Fabricate(:app).id).to_not be_nil
 
           json_get '/apps', params, env
           expect(last_response.status).to eq(200)
@@ -179,12 +179,12 @@ describe TentD::API::Apps do
       Fabricate.build(:app).attributes.slice(:name, :description, :url, :icon, :redirect_uris, :scopes)
     }
 
-    before { TentD::Model::App.all.destroy }
+    before { TentD::Model::App.destroy }
 
     it 'should create app' do
       expect(lambda { json_post '/apps', data, env }).to change(TentD::Model::App, :count).by(1)
 
-      app = TentD::Model::App.last
+      app = TentD::Model::App.order(:id.asc).last
       expect(last_response.status).to eq(200)
       body = JSON.parse(last_response.body)
       whitelist = %w{ mac_key_id mac_key mac_algorithm }
@@ -208,7 +208,7 @@ describe TentD::API::Apps do
           expect(last_response.status).to eq(200)
         }).to change(TentD::Model::App, :count).by(1)
 
-        app = TentD::Model::App.last
+        app = TentD::Model::App.order(:id.asc).last
         expect(app.mac_key_id).to eq(app_data[:mac_key_id])
         expect(app.mac_key).to eq(app_data[:mac_key])
         expect(app.public_id).to eq(app_data[:id])
@@ -221,7 +221,7 @@ describe TentD::API::Apps do
       before { authorize!(:write_apps, :write_secrets) }
 
       it 'should create app authorization' do
-        TentD::Model::AppAuthorization.all.destroy
+        TentD::Model::AppAuthorization.destroy
         app = Fabricate(:app)
         scopes = %w{ read_posts write_posts }
         post_types = %w{ https://tent.io/types/post/status/v0.1.0 https://tent.io/types/post/photo/v0.1.0 }
@@ -253,7 +253,7 @@ describe TentD::API::Apps do
         context 'when valid mac header' do
           it 'should exchange mac_key_id for mac_key' do
             app = Fabricate(:app, :mac_algorithm => 'hmac-sha-256')
-            authorization = app.authorizations.create
+            authorization = TentD::Model::AppAuthorization.create(:app_id => app.id)
 
             data = {
               :code => authorization.token_code
@@ -279,7 +279,7 @@ describe TentD::API::Apps do
         context 'when invalid mac header' do
           it 'should return 403' do
             app = Fabricate(:app)
-            authorization = app.authorizations.create
+            authorization = TentD::Model::AppAuthorization.create(:app_id => app.id)
 
             data = {
               :code => authorization.token_code
@@ -366,7 +366,7 @@ describe TentD::API::Apps do
       context 'app with :id exists' do
         it 'should delete app' do
           app = _app
-          expect(app).to be_saved
+          expect(app.id).to_not be_nil
 
           expect(lambda {
             delete "/apps/#{app.public_id}", params, env

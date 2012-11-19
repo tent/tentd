@@ -18,8 +18,6 @@ Dir["#{File.dirname(__FILE__)}/support/*.rb"].each { |f| require f }
 
 ENV['RACK_ENV'] ||= 'test'
 
-require 'data_mapper'
-
 RSpec.configure do |config|
   config.include Rack::Test::Methods
   config.include JsonRequest
@@ -31,15 +29,9 @@ RSpec.configure do |config|
     end
   end
 
-  config.around(:each) do |example|
-    DB.transaction(:rollback=>:always){example.run}
-  end
-
   config.before(:suite) do
     GirlFriday::WorkQueue.immediate!
     # DataMapper::Logger.new(STDOUT, :debug)
-    DataMapper.setup(:default, ENV['TEST_DATABASE_URL'] || 'postgres://localhost/tent_server_test')
-    DataMapper.auto_migrate!
     TentD::Model::User.current = TentD::Model::User.first_or_create
   end
 end

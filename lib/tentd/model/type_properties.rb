@@ -3,14 +3,10 @@ module TentD
     module TypeProperties
       def self.included(base)
         base.class_eval do
-          property :type_base, DataMapper::Property::Text, :required => true, :lazy => false
-          property :type_view, String
-          property :type_version, String
-
-          validates_with_block :type_version do
-            return true if type_base == 'all' || type_version
-            [false, 'type version must be set']
-          end
+         # validates_with_block :type_version do
+         #   return true if type_base == 'all' || type_version
+         #   [false, 'type version must be set']
+         # end
         end
       end
 

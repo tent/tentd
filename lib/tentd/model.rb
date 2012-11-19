@@ -1,33 +1,33 @@
 require 'jdbc/postgres' if RUBY_ENGINE == 'jruby'
-require 'data_mapper'
-require 'dm-ar-finders'
-require 'tentd/datamapper/array_property'
-require 'tentd/datamapper/query'
 
 require 'sequel'
+require 'sequel/plugins/serialization'
 
 module TentD
   module Model
-    require 'tentd/model/permissible'
-    require 'tentd/model/permissible_post'
-    require 'tentd/model/serializable'
-    require 'tentd/model/random_public_id'
-    require 'tentd/model/type_properties'
-    require 'tentd/model/user_scoped'
-    require 'tentd/model/mention'
-    require 'tentd/model/post'
-    require 'tentd/model/post_version'
-    require 'tentd/model/post_attachment'
-    require 'tentd/model/follower'
-    require 'tentd/model/following'
-    require 'tentd/model/app'
-    require 'tentd/model/app_authorization'
-    require 'tentd/model/notification_subscription'
-    require 'tentd/model/profile_info'
-    require 'tentd/model/group'
-    require 'tentd/model/permission'
-    require 'tentd/model/user'
+    autoload :PGArray, 'tentd/model/pg_array'
+    autoload :JsonColumn, 'tentd/model/json_column'
+    autoload :Permissible, 'tentd/model/permissible'
+    autoload :PermissiblePost, 'tentd/model/permissible_post'
+    autoload :Serializable, 'tentd/model/serializable'
+    autoload :RandomPublicId, 'tentd/model/random_public_id'
+    autoload :TypeProperties, 'tentd/model/type_properties'
+    autoload :UserScoped, 'tentd/model/user_scoped'
+    autoload :Mention, 'tentd/model/mention'
+    autoload :Post, 'tentd/model/post'
+    autoload :PostVersion, 'tentd/model/post_version'
+    autoload :PostAttachment, 'tentd/model/post_attachment'
+    autoload :Follower, 'tentd/model/follower'
+    autoload :Following, 'tentd/model/following'
+    autoload :App, 'tentd/model/app'
+    autoload :AppAuthorization, 'tentd/model/app_authorization'
+    autoload :NotificationSubscription, 'tentd/model/notification_subscription'
+    autoload :ProfileInfo, 'tentd/model/profile_info'
+    autoload :Group, 'tentd/model/group'
+    autoload :Permission, 'tentd/model/permission'
+    autoload :User, 'tentd/model/user'
+
+    Sequel::Plugins::Serialization.register_format(:pg_array, PGArray::Serialize, PGArray::Deserialize)
+    Sequel::Plugins::Serialization.register_format(:json, JsonColumn::Serialize, JsonColumn::Deserialize)
   end
 end
-
-DataMapper.finalize
