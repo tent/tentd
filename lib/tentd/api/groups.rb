@@ -43,28 +43,26 @@ module TentD
         def action(env)
           if (env.params.has_key?(:since_id) && env.params.since_id.nil?) || (env.params.has_key?(:before_id) && env.params.before_id.nil?)
             env.response = []
-            return
+            return env
           end
 
-          conditions = {}
-          conditions[:id.lt] = env.params.before_id if env.params.before_id
-          conditions[:id.gt] = env.params.since_id if env.params.since_id
-          conditions[:limit] = [env.params.limit.to_i, MAX_PER_PAGE].min if env.params.limit
-          conditions[:limit] ||= PER_PAGE
+          query = Model::Group.where
+          query = query.where { id < env.params.before_id } if env.params.before_id
+          query = query.where { id > env.params.since_id } if env.params.since_id
+
+          limit = env.params.limit ? [env.params.limit.to_i, MAX_PER_PAGE].min : PER_PAGE
+          query = query.limit(limit) if limit != 0
+
           if env.params.return_count
-            env.response = Model::Group.count(conditions)
+            env.response = limit.to_i == 0 ? 0 : query.count
           else
             if env.params.order == 'asc'
-              conditions[:order] = :id.asc
+              query = query.order(:id.asc)
             else
-              conditions[:order] = :id.desc
+              query = query.order(:id.desc)
             end
 
-            if conditions[:limit] == 0
-              env.response = []
-            else
-              env.response = Model::Group.all(conditions)
-            end
+            env.response = limit.to_i == 0 ? [] : query.all
           end
           env
         end

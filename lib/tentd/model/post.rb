@@ -5,6 +5,7 @@ module TentD
     class Post < Sequel::Model(:posts)
       include RandomPublicId
       include Serializable
+      include TypeProperties
 
       one_to_many :permissions
       one_to_many :attachments, :class => PostAttachment

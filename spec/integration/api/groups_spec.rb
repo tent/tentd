@@ -19,7 +19,7 @@ describe TentD::API::Groups do
   describe 'GET /groups/count' do
     before { authorize!(:read_groups) }
     it 'should return number of groups' do
-      TentD::Model::Group.all.destroy
+      TentD::Model::Group.destroy
       Fabricate(:group)
       json_get '/groups/count', params, env
       expect(last_response.body).to eq(1.to_json)
@@ -40,7 +40,7 @@ describe TentD::API::Groups do
       end
 
       it 'should order by id desc' do
-        TentD::Model::Group.all.destroy
+        TentD::Model::Group.destroy
         first_group = Fabricate(:group)
         last_group = Fabricate(:group)
 
@@ -52,7 +52,7 @@ describe TentD::API::Groups do
 
       context 'with params' do
         it 'should filter by before_id' do
-          TentD::Model::Group.all.destroy
+          TentD::Model::Group.destroy
           group = Fabricate(:group)
           before_group = Fabricate(:group)
 
@@ -171,7 +171,7 @@ describe TentD::API::Groups do
       end
 
       it 'should create group with specified public_id' do
-        TentD::Model::Group.all.destroy!
+        TentD::Model::Group.destroy
         data = {
           :id => 'public-id',
           :name => 'bacon-bacon'
@@ -179,7 +179,7 @@ describe TentD::API::Groups do
         expect(lambda { json_post "/groups", data, env }).
           to change(TentD::Model::Group, :count).by(1)
 
-        group = TentD::Model::Group.last
+        group = TentD::Model::Group.order(:id.asc).last
         expect(group.name).to eq(data[:name])
         expect(group.public_id).to eq(data[:id])
       end
