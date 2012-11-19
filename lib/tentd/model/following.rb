@@ -2,7 +2,15 @@ require 'tentd/core_ext/hash/slice'
 
 module TentD
   module Model
-    class Following
+    class Following < Sequel::Model(:followings)
+      one_to_many :permissions
+    end
+  end
+end
+
+module TentD
+  module Model
+    class XFollowing
       include DataMapper::Resource
       include Permissible
       include RandomPublicId

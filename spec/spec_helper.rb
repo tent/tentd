@@ -4,6 +4,10 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'bundler/setup'
 require 'mocha_standalone'
 require 'rack/test'
+
+require 'sequel'
+DB = Sequel.connect(ENV['TEST_DATABASE_URL'] || 'postgres://localhost/tent_server_test')
+
 require 'tentd'
 require 'fabrication'
 require 'tentd/core_ext/hash/slice'
@@ -25,6 +29,10 @@ RSpec.configure do |config|
     with_constants "TentD::Notifications::NOTIFY_ENTITY_QUEUE" => [], "TentD::Notifications::TRIGGER_QUEUE" => [] do
       suite.run
     end
+  end
+
+  config.around(:each) do |example|
+    DB.transaction(:rollback=>:always){example.run}
   end
 
   config.before(:suite) do

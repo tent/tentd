@@ -3,7 +3,21 @@ require 'securerandom'
 
 module TentD
   module Model
-    class Follower
+    class Follower < Sequel::Model(:followers)
+      one_to_many :notification_subscriptions
+
+      # permissions describing who can see them
+      one_to_many :visibility_permissions
+
+      # permissions describing what they have access to
+      one_to_many :access_permissions
+    end
+  end
+end
+
+module TentD
+  module Model
+    class XFollower
       include DataMapper::Resource
       include Permissible
       include RandomPublicId

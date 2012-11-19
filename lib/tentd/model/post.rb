@@ -2,7 +2,21 @@ require 'securerandom'
 
 module TentD
   module Model
-    class Post
+    class Post < Sequel::Model(:posts)
+      one_to_many :permissions
+      one_to_many :attachments, :class => PostAttachment
+      one_to_many :mentions
+      one_to_many :versions, :class => PostVersion
+
+      many_to_one :app
+      many_to_one :following
+    end
+  end
+end
+
+module TentD
+  module Model
+    class XPost
       include DataMapper::Resource
       include Permissible
       include PermissiblePost
@@ -49,7 +63,7 @@ module TentD
         versions.all({ :order => :version.desc }.merge(options)).first
       end
 
-      def update(data)
+      def update(data, attachments = nil)
         mentions = data.delete(:mentions)
         last_version = latest_version(:fields => [:id])
         res = super(data)

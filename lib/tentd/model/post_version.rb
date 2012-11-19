@@ -1,6 +1,19 @@
 module TentD
   module Model
-    class PostVersion
+    class PostVersion < Sequel::Model(:post_versions)
+      one_to_many :attachments, :class => PostAttachment
+      one_to_many :mentions
+
+      many_to_one :post
+      many_to_one :app
+      many_to_one :following
+    end
+  end
+end
+
+module TentD
+  module Model
+    class XPostVersion
       include DataMapper::Resource
       include Permissible
       include PermissiblePost

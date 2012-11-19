@@ -3,7 +3,17 @@ require 'tentd/core_ext/hash/slice'
 
 module TentD
   module Model
-    class App
+    class App < Sequel::Model(:apps)
+      one_to_many :authorizations, :class => AppAuthorization
+      one_to_many :posts
+      one_to_many :post_versions
+    end
+  end
+end
+
+module TentD
+  module Model
+    class XApp
       include DataMapper::Resource
       include RandomPublicId
       include Serializable

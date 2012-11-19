@@ -2,7 +2,15 @@ require 'hashie'
 
 module TentD
   module Model
-    class ProfileInfo
+    class ProfileInfo < Sequel::Model(:profile_infos)
+      one_to_many :permissions
+    end
+  end
+end
+
+module TentD
+  module Model
+    class XProfileInfo
       include DataMapper::Resource
       include TypeProperties
       include UserScoped

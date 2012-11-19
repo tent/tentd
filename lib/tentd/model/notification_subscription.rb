@@ -1,6 +1,15 @@
 module TentD
   module Model
-    class NotificationSubscription
+    class NotificationSubscription < Sequel::Model(:notification_subscriptions)
+      many_to_one :app_authorization
+      many_to_one :follower
+    end
+  end
+end
+
+module TentD
+  module Model
+    class XNotificationSubscription
       NotificationError = Class.new(StandardError)
 
       include DataMapper::Resource

@@ -1,6 +1,14 @@
 module TentD
   module Model
-    class Group
+    class Group < Sequel::Model(:groups)
+      one_to_many :permissions
+    end
+  end
+end
+
+module TentD
+  module Model
+    class XGroup
       include DataMapper::Resource
       include RandomPublicId
       include Serializable

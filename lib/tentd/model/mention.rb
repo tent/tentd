@@ -1,6 +1,15 @@
 module TentD
   module Model
-    class Mention
+    class Mention < Sequel::Model(:mentions)
+      many_to_one :post
+      many_to_one :post_version # TODO: should to many to many
+    end
+  end
+end
+
+module TentD
+  module Model
+    class XMention
       include DataMapper::Resource
 
       storage_names[:default] = "mentions"

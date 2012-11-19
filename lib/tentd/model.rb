@@ -4,6 +4,8 @@ require 'dm-ar-finders'
 require 'tentd/datamapper/array_property'
 require 'tentd/datamapper/query'
 
+require 'sequel'
+
 module TentD
   module Model
     require 'tentd/model/permissible'
