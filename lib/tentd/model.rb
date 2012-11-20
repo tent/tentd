@@ -12,7 +12,6 @@ module TentD
     autoload :Serializable, 'tentd/model/serializable'
     autoload :RandomPublicId, 'tentd/model/random_public_id'
     autoload :TypeProperties, 'tentd/model/type_properties'
-    autoload :UserScoped, 'tentd/model/user_scoped'
     autoload :Mention, 'tentd/model/mention'
     autoload :Post, 'tentd/model/post'
     autoload :PostVersion, 'tentd/model/post_version'

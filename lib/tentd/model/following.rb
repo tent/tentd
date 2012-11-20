@@ -106,35 +106,3 @@ module TentD
     end
   end
 end
-
-# module TentD
-#   module Model
-#     class XFollowing
-#       include DataMapper::Resource
-#       include Permissible
-#       include RandomPublicId
-#       include Serializable
-#       include UserScoped
-#
-#       storage_names[:default] = 'followings'
-#
-#       property :id, Serial
-#       property :remote_id, String
-#       property :groups, Array, :lazy => false, :default => []
-#       property :entity, Text, :required => true, :lazy => false
-#       property :public, Boolean, :default => true
-#       property :profile, Json, :default => {}
-#       property :licenses, Array, :lazy => false, :default => []
-#       property :mac_key_id, String
-#       property :mac_key, String
-#       property :mac_algorithm, String
-#       property :mac_timestamp_delta, Integer
-#       property :created_at, DateTime
-#       property :updated_at, DateTime
-#       property :deleted_at, ParanoidDateTime
-#       property :confirmed, Boolean, :default => true
-#
-#       has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy
-#     end
-#   end
-# end

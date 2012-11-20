@@ -1,6 +1,8 @@
 module TentD
   module Model
     class NotificationSubscription < Sequel::Model(:notification_subscriptions)
+      NotificationError = Class.new(StandardError)
+
       include TypeProperties
 
       many_to_one :app_authorization
@@ -124,25 +126,3 @@ module TentD
     end                              
   end
 end
-
-# module TentD
-#   module Model
-#     class XNotificationSubscription
-#       NotificationError = Class.new(StandardError)
-#
-#       include DataMapper::Resource
-#       include TypeProperties
-#       include UserScoped
-#
-#       storage_names[:default] = 'notification_subscriptions'
-#
-#       property :id, Serial
-#       property :created_at, DateTime
-#       property :updated_at, DateTime
-#
-#       belongs_to :app_authorization, 'TentD::Model::AppAuthorization', :required => false
-#       belongs_to :follower, 'TentD::Model::Follower', :required => false
-#
-#     end
-#   end
-# end

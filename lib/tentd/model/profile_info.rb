@@ -106,32 +106,3 @@ module TentD
     end
   end
 end
-
-# module TentD
-#   module Model
-#     class XProfileInfo
-#       include DataMapper::Resource
-#       include TypeProperties
-#       include UserScoped
-#       include Permissible
-#
-#       TENT_PROFILE_TYPE_URI = 'https://tent.io/types/info/core/v0.1.0'
-#       TENT_PROFILE_TYPE = TentType.new(TENT_PROFILE_TYPE_URI)
-#
-#       self.raise_on_save_failure = true
-#
-#       storage_names[:default] = 'profile_info'
-#
-#       property :id, Serial
-#       property :public, Boolean, :default => false
-#       property :content, Json, :default => {}, :lazy => false
-#       property :created_at, DateTime
-#       property :updated_at, DateTime
-#       property :deleted_at, ParanoidDateTime
-#
-#       has n, :permissions, 'TentD::Model::Permission'
-#
-#       attr_accessor :entity_changed, :old_entity
-#     end
-#   end
-# end

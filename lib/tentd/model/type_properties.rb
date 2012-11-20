@@ -1,15 +1,6 @@
 module TentD
   module Model
     module TypeProperties
-      def self.included(base)
-        base.class_eval do
-         # validates_with_block :type_version do
-         #   return true if type_base == 'all' || type_version
-         #   [false, 'type version must be set']
-         # end
-        end
-      end
-
       def validate
         super
         if type_base != 'all' && !type_version
