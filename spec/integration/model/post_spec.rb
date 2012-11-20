@@ -624,9 +624,12 @@ describe TentD::Model::Post do
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'full')).to eql(public_attributes.merge(
-            :attachments => [first_attachment.as_json, other_attachment.as_json]
-          ))
+          expected = public_attributes
+          expected.delete(:attachments)
+          res = post.as_json(:view => 'full')
+          attachments = res.delete(:attachments)
+          expect(attachments.sort_by { |a| a[:id] }).to eql([first_attachment.as_json, other_attachment.as_json].sort_by { |a| a[:id] })
+          expect(res).to eql(expected)
 
           expected_attributes = public_attributes.dup
           expected_attributes.delete(:content)
