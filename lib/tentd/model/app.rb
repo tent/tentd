@@ -21,6 +21,13 @@ module TentD
         self.mac_key ||= SecureRandom.hex(16)
         self.mac_algorithm ||= 'hmac-sha-256'
         self.user_id ||= User.current.id
+        self.created_at = Time.now
+        super
+      end
+
+      def before_save
+        self.updated_at = Time.now
+        super
       end
 
       def self.create_from_params(params={})
