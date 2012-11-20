@@ -29,9 +29,14 @@ RSpec.configure do |config|
     end
   end
 
+  config.before(:each) do
+    DB.tables.each { |table_name|
+      DB[table_name].delete
+    }
+  end
+
   config.before(:suite) do
     GirlFriday::WorkQueue.immediate!
-    # DataMapper::Logger.new(STDOUT, :debug)
     TentD::Model::User.current = TentD::Model::User.first_or_create
   end
 end
