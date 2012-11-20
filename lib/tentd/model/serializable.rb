@@ -34,17 +34,19 @@ module TentD
 
         if self.class.associations.include?(:attachments)
           if options[:view] && respond_to?(:views) && (conditions = (views[options[:view]] || {})['attachments'])
-            conditions.map! { |c| c.slice('category', 'name', 'type') }.reject! { |c| c.empty? }
+            conditions.map! { |c| c.slice('category', 'name', 'type').inject({}) { |m,(k,v)| m[k.to_sym] = v; m } }.reject! { |c| c.empty? }
+
+            # TODO: this should be a single query
             attrs[:attachments] = conditions.inject(nil) { |memo, c|
-              q = attachments.all(c)
-              memo ? memo += q : q
-            }
+              q = attachments_dataset.where(c)
+              memo ? memo += q.all : q.all
+            }.sort_by { |a| a.id }
           else
             attrs[:attachments] = attachments.map { |a| a.as_json } unless options[:view] == 'meta'
           end
         end
 
-        if options[:view] && respond_to?(:views) && respond_to?(:content)
+        if !!options[:view] && respond_to?(:views) && respond_to?(:content)
           if keypaths = (views[options[:view]] || {})['content']
             attrs[:content] = keypaths.inject({}) do |memo, keypath|
               pointer = JsonPatch::HashPointer.new(content, keypath)

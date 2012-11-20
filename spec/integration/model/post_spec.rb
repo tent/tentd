@@ -28,7 +28,7 @@ describe TentD::Model::Post do
           :content => {}
         }
         post = described_class.create(post_attributes)
-        expect(post.published_at.to_time.to_i).to eq(1349471384)
+        expect(post.published_at.to_time.to_i).to eql(1349471384)
       end
 
 
@@ -42,6 +42,9 @@ describe TentD::Model::Post do
             { :entity => entity_url },
           ]
         )
+        post_attrs.delete(:id)
+        post_attrs.delete(:public_id)
+        post_attrs.delete(:user_id)
 
         notification_subscription = Fabricate(:notification_subscription, :follower => subscribed_follower, :type => post_type)
         queue = TestNotificationQueue.new
@@ -69,21 +72,21 @@ describe TentD::Model::Post do
 
         it 'should return post' do
           returned_post = described_class.find_with_permissions(post.id, current_auth)
-          expect(returned_post).to eq(post)
+          expect(returned_post).to eql(post)
         end
 
       end
 
       context 'when has permission via group' do
         before do
-          group.permissions.create(:post_id => post.id)
+          TentD::Model::Permission.create(:group => group, :post => post)
           current_auth.groups = [group.public_id]
           current_auth.save
         end
 
         it 'should return post' do
           returned_post = described_class.find_with_permissions(post.id, current_auth)
-          expect(returned_post).to eq(post)
+          expect(returned_post).to eql(post)
         end
       end
 
@@ -107,7 +110,7 @@ describe TentD::Model::Post do
       p = Fabricate(:post)
       p.type = 'http://me.io/sometype/v0.1.0'
       p.save
-      expect(p.type_version).to eq('0.1.0')
+      expect(p.type_version).to eql('0.1.0')
 
       p.update type_version: '0.1.0'
 
@@ -116,7 +119,7 @@ describe TentD::Model::Post do
 
       p.type = 'http://mytype.io/v0.3.0'
       p.save
-      expect(p.type_version).to eq('0.3.0')
+      expect(p.type_version).to eql('0.3.0')
     end
   end
 
@@ -132,7 +135,7 @@ describe TentD::Model::Post do
       end
 
       it 'should order by received_at desc' do
-        TentD::Model::Post.all.destroy
+        TentD::Model::Post.destroy
         latest_post = Fabricate(:post, :public => !create_permissions, :received_at => Time.at(Time.now.to_i+86400)) # 1.day.from_now
         first_post = Fabricate(:post, :public => !create_permissions, :received_at => Time.at(Time.now.to_i-86400)) # 1.day.ago
 
@@ -141,12 +144,12 @@ describe TentD::Model::Post do
         end
 
         returned_post = described_class.fetch_with_permissions(params, current_auth)
-        expect(returned_post.map(&:public_id)).to eq([latest_post.public_id, first_post.public_id])
+        expect(returned_post.map(&:public_id)).to eql([latest_post.public_id, first_post.public_id])
       end
 
       context '[:since_id]' do
         it 'should only return posts with ids > :since_id' do
-          TentD::Model::Post.all.destroy!
+          TentD::Model::Post.destroy
           since_post = Fabricate(:post, :public => !create_permissions)
           post = Fabricate(:post, :public => !create_permissions)
 
@@ -157,13 +160,13 @@ describe TentD::Model::Post do
           params['since_id'] = since_post.id
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts).to eq([post])
+          expect(returned_posts).to eql([post])
         end
       end
 
       context '[:before_id]' do
         it 'should only return posts with ids < :before_id' do
-          TentD::Model::Post.all.destroy!
+          TentD::Model::Post.destroy
           post = Fabricate(:post, :public => !create_permissions)
           before_post = Fabricate(:post, :public => !create_permissions)
 
@@ -174,13 +177,13 @@ describe TentD::Model::Post do
           params['before_id'] = before_post.id
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts).to eq([post])
+          expect(returned_posts).to eql([post])
         end
       end
 
       context '[:since_time]' do
         it 'should only return posts with received_at > :since_time' do
-          TentD::Model::Post.all.destroy!
+          TentD::Model::Post.destroy
           since_post = Fabricate(:post, :public => !create_permissions,
                                  :received_at => Time.at(Time.now.to_i + (86400 * 10))) # 10.days.from_now
           post = Fabricate(:post, :public => !create_permissions,
@@ -193,12 +196,12 @@ describe TentD::Model::Post do
           params['since_time'] = since_post.received_at.to_time.to_i.to_s
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts).to eq([post])
+          expect(returned_posts).to eql([post])
         end
 
         context 'with [:order] = asc' do
           it 'should only return posts with received_at > :since_time in ascending order' do
-            TentD::Model::Post.all.destroy!
+            TentD::Model::Post.destroy
             since_post = Fabricate(:post, :public => !create_permissions,
                                    :received_at => Time.at(Time.now.to_i + (86400 * 10))) # 10.days.from_now
             post_a = Fabricate(:post, :public => !create_permissions,
@@ -216,13 +219,13 @@ describe TentD::Model::Post do
             params['order'] = 'asc'
 
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
-            expect(returned_posts).to eq([post_b])
+            expect(returned_posts).to eql([post_b])
           end
         end
 
         context 'with [:sort_by] = published_at' do
           it 'should only return posts with published_at > :since_time' do
-            TentD::Model::Post.all.destroy!
+            TentD::Model::Post.destroy
             since_post = Fabricate(:post, :public => !create_permissions,
                                    :published_at => Time.at(Time.now.to_i + (86400 * 10))) # 10.days.from_now
             post = Fabricate(:post, :public => !create_permissions,
@@ -236,14 +239,14 @@ describe TentD::Model::Post do
             params['sort_by'] = 'published_at'
 
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
-            expect(returned_posts).to eq([post])
+            expect(returned_posts).to eql([post])
           end
         end
       end
 
       context '[:before_time]' do
         it 'should only return posts with received_at < :before_time' do
-          TentD::Model::Post.all.destroy!
+          TentD::Model::Post.destroy
           post = Fabricate(:post, :public => !create_permissions,
                            :received_at => Time.at(Time.now.to_i - (86400 * 10))) # 10.days.ago
           before_post = Fabricate(:post, :public => !create_permissions,
@@ -256,12 +259,12 @@ describe TentD::Model::Post do
           params['before_time'] = before_post.received_at.to_time.to_i.to_s
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts).to eq([post])
+          expect(returned_posts).to eql([post])
         end
 
         context 'with [:sort_by] = published_at' do
           it 'should only return posts with published_at < :before_time' do
-            TentD::Model::Post.all.destroy!
+            TentD::Model::Post.destroy
             post = Fabricate(:post, :public => !create_permissions,
                              :published_at => Time.at(Time.now.to_i - (86400 * 10))) # 10.days.ago
             before_post = Fabricate(:post, :public => !create_permissions,
@@ -275,14 +278,14 @@ describe TentD::Model::Post do
             params['sort_by'] = 'published_at'
 
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
-            expect(returned_posts).to eq([post])
+            expect(returned_posts).to eql([post])
           end
         end
       end
 
       context '[:post_types]' do
         it 'should only return posts type in :post_types' do
-          TentD::Model::Post.all.destroy!
+          TentD::Model::Post.destroy
           photo_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/post/photo")
           blog_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/post/blog")
           status_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/post/status")
@@ -294,7 +297,7 @@ describe TentD::Model::Post do
           params['post_types'] = [blog_post, photo_post].map { |p| URI.escape(p.type.uri, "://") }.join(',')
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts.size).to eq(2)
+          expect(returned_posts.size).to eql(2)
           expect(returned_posts).to include(photo_post)
           expect(returned_posts).to include(blog_post)
         end
@@ -312,7 +315,7 @@ describe TentD::Model::Post do
           params['limit'] = limit.to_s
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts.size).to eq(limit)
+          expect(returned_posts.size).to eql(limit)
         end
 
         it 'should never return more than TentD::API::MAX_PER_PAGE' do
@@ -327,7 +330,7 @@ describe TentD::Model::Post do
 
           with_constants "TentD::API::MAX_PER_PAGE" => 0 do
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
-            expect(returned_posts.size).to eq(0)
+            expect(returned_posts.size).to eql(0)
           end
         end
       end
@@ -343,7 +346,7 @@ describe TentD::Model::Post do
             end
 
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
-            expect(returned_posts.size).to eq(limit)
+            expect(returned_posts.size).to eql(limit)
           end
         end
       end
@@ -430,7 +433,7 @@ describe TentD::Model::Post do
       else
         actual_value = post.send(k)
       end
-      expect(actual_value).to eq(v)
+      expect(actual_value).to eql(v)
     end
   end
 
@@ -455,7 +458,7 @@ describe TentD::Model::Post do
 
     examples = proc do
       it "should replace id with public_id" do
-        expect(post.as_json[:id]).to eq(post.public_id)
+        expect(post.as_json[:id]).to eql(post.public_id)
         expect(post.as_json).to_not have_key(:public_id)
       end
 
@@ -465,19 +468,19 @@ describe TentD::Model::Post do
 
       context 'without options' do
         it 'should only return public attributes' do
-          expect(post.as_json).to eq(public_attributes)
+          expect(post.as_json).to eql(public_attributes)
         end
       end
 
       context 'with options[:permissions] = true' do
         let(:follower) { Fabricate(:follower) }
         let(:group) { Fabricate(:group) }
-        let(:entity_permission) { Fabricate(:permission, :follower_access => follower) }
-        let(:group_permission) { Fabricate(:permission, :group => group) }
-        let(:post) { Fabricate(:post, :permissions => [entity_permission, group_permission]) }
+        let(:post) { Fabricate(:post) }
+        let!(:entity_permission) { Fabricate(:permission, :follower_access => follower, :post => post) }
+        let!(:group_permission) { Fabricate(:permission, :group => group, :post => post) }
 
         it 'should return detailed permissions' do
-          expect(post.as_json(:permissions => true)).to eq(public_attributes.merge(
+          expect(post.as_json(:permissions => true)).to eql(public_attributes.merge(
             :permissions => {
               :public => post.public,
               :groups => [group.public_id],
@@ -492,7 +495,7 @@ describe TentD::Model::Post do
       context 'with options[:app] = true' do
         it 'should return app relevant data' do
           post.following = Fabricate(:following)
-          expect(post.as_json(:app => true)).to eq(public_attributes.merge(
+          expect(post.as_json(:app => true)).to eql(public_attributes.merge(
             :received_at => post.received_at.to_time.to_i,
             :updated_at => post.updated_at.to_time.to_i,
             :published_at => post.published_at.to_time.to_i,
@@ -504,7 +507,7 @@ describe TentD::Model::Post do
         it 'should return public attributes excluding specified keys' do
           expected_attributes = public_attributes.dup
           expected_attributes.delete(:published_at)
-          expect(post.as_json(:exclude => [:published_at])).to eq(expected_attributes)
+          expect(post.as_json(:exclude => [:published_at])).to eql(expected_attributes)
         end
       end
 
@@ -524,43 +527,48 @@ describe TentD::Model::Post do
             'baz' => 'FooBar'
           })
 
-          expect(post.as_json(:view => 'foo')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'foo')).to eql(public_attributes.merge(
             :content => {
               'bar' => { 'baz' => 'ChunkyBacon' }
             }
           ))
 
-          expect(post.as_json(:view => 'bar')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'bar')).to eql(public_attributes.merge(
             :content => {
               'foo' => { 'bar' => { 'baz' => 'ChunkyBacon' } },
               'baz' => 'FooBar'
             }
           ))
 
-          expect(post.as_json(:view => 'full')).to eq(public_attributes)
+          expect(post.as_json(:view => 'full')).to eql(public_attributes)
 
           expected_attributes = public_attributes.dup
           expected_attributes.delete(:content)
           expected_attributes.delete(:attachments)
-          expect(post.as_json(:view => 'meta')).to eq(expected_attributes)
+          expect(post.as_json(:view => 'meta')).to eql(expected_attributes)
         end
 
         it 'should filter attachments' do
-          first_attachment = Fabricate(:post_attachment,
-                                       :category => 'foo',
-                                       :type => 'text/plain',
-                                       :name => 'foobar.txt',
-                                       :data => 'Chunky Bacon',
-                                       :size => 4)
-          other_attachment = Fabricate(:post_attachment,
-                                       :category => 'bar',
-                                       :type => 'application/javascript',
-                                       :name => 'barbaz.js',
-                                       :data => 'alert("Chunky Bacon")',
-                                       :size => 8)
-          post.attachments << first_attachment
-          post.attachments << other_attachment
-          post.save
+          first_attachment = nil
+          other_attachment = nil
+
+          expect(lambda {
+            attachments_foreign_key = post.class.all_association_reflections.find { |a| a[:name] == :attachments }[:keys].first
+            first_attachment = Fabricate(:post_attachment,
+                                         attachments_foreign_key => post.id,
+                                         :category => 'foo',
+                                         :type => 'text/plain',
+                                         :name => 'foobar.txt',
+                                         :data => 'Chunky Bacon',
+                                         :size => 4)
+            other_attachment = Fabricate(:post_attachment,
+                                         attachments_foreign_key => post.id,
+                                         :category => 'bar',
+                                         :type => 'application/javascript',
+                                         :name => 'barbaz.js',
+                                         :data => 'alert("Chunky Bacon")',
+                                         :size => 8)
+          }).to change(post.attachments_dataset, :count).by(2)
 
           post.update(:views => {
             'foo' => {
@@ -586,44 +594,44 @@ describe TentD::Model::Post do
             'baz' => 'FooBar'
           })
 
-          expect(post.as_json(:view => 'foo')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'foo')).to eql(public_attributes.merge(
             :attachments => [first_attachment],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'text')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'text')).to eql(public_attributes.merge(
             :attachments => [first_attachment],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'foobar')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'foobar')).to eql(public_attributes.merge(
             :attachments => [first_attachment],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'foojs')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'foojs')).to eql(public_attributes.merge(
             :attachments => [first_attachment, other_attachment],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'nothing')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'nothing')).to eql(public_attributes.merge(
             :attachments => [],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'invalid')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'invalid')).to eql(public_attributes.merge(
             :attachments => [other_attachment],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'full')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'full')).to eql(public_attributes.merge(
             :attachments => [first_attachment.as_json, other_attachment.as_json]
           ))
 
           expected_attributes = public_attributes.dup
           expected_attributes.delete(:content)
           expected_attributes.delete(:attachments)
-          expect(post.as_json(:view => 'meta')).to eq(expected_attributes)
+          expect(post.as_json(:view => 'meta')).to eql(expected_attributes)
         end
       end
     end
@@ -648,7 +656,7 @@ describe TentD::Model::Post do
     post = Fabricate.build(:post, :public_id => first_post.public_id)
     post.save
     expect(post).to be_saved
-    expect(post.public_id).to_not eq(first_post.public_id)
+    expect(post.public_id).to_not eql(first_post.public_id)
   end
 
   describe "can_notify?" do

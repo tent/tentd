@@ -137,16 +137,20 @@ module TentD
           app_or_follow.post_types && app_or_follow.post_types.include?(type.base)
         when Follower
           return false unless original
-          q = permissions_dataset.where(:follower_access_id => app_or_follow.id)
+          q = permissions_dataset
           if app_or_follow.groups.any?
-            q = q.where(:group_public_id => app_or_follow.groups)
+            q = q.where({ :follower_access_id => app_or_follow.id, :group_public_id => app_or_follow.groups }.sql_or)
+          else
+            q = q.where(:follower_access_id => app_or_follow.id)
           end
           q.any?
         when Following
           return false unless original
-          q = permissions_dataset.where(:following => app_or_follow)
+          q = permissions_dataset
           if app_or_follow.groups.any?
-            q = q.where(:group_public_id => app_or_follow.groups)
+            q = q.where({ :following => app_or_follow, :group_public_id => app_or_follow.groups }.sql_or)
+          else
+            q = q.where(:following => app_or_follow)
           end
           q.any?
         else

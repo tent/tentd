@@ -6,6 +6,10 @@ module TentD
       include Permissible
       include PermissiblePost
 
+      plugin :serialization
+      serialize_attributes :pg_array, :licenses
+      serialize_attributes :json, :content, :views
+
       one_to_many :permissions, :primary_key => :post_id, :key => :post_id
       one_to_many :attachments, :class => PostAttachment
       one_to_many :mentions
