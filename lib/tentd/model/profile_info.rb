@@ -6,6 +6,8 @@ module TentD
       TENT_PROFILE_TYPE_URI = 'https://tent.io/types/info/core/v0.1.0'
       TENT_PROFILE_TYPE = TentType.new(TENT_PROFILE_TYPE_URI)
 
+      include TypeProperties
+
       plugin :serialization
       serialize_attributes :json, :content
 
@@ -24,6 +26,13 @@ module TentD
 
       def self.first_or_create(attrs)
         first(attrs) || create(attrs)
+      end
+
+      def self.tent_info
+        where(
+          :type_base => TENT_PROFILE_TYPE.base,
+          :type_version => TENT_PROFILE_TYPE.version.to_s
+        ).order(:type_version.desc).first || Hashie::Mash.new
       end
     end
   end
@@ -54,10 +63,6 @@ end
 #       has n, :permissions, 'TentD::Model::Permission'
 #
 #       attr_accessor :entity_changed, :old_entity
-#
-#       def self.tent_info
-#         first(:type_base => TENT_PROFILE_TYPE.base, :order => :type_version.desc) || Hashie::Mash.new
-#       end
 #
 #       def self.get_profile(authorized_scopes = [], current_auth = nil)
 #         h = if (authorized_scopes.include?(:read_profile) || authorized_scopes.include?(:write_profile)) && current_auth.respond_to?(:profile_info_types)

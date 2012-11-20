@@ -55,6 +55,27 @@ module TentD
         Mention.where(:entity => old_entity, :original_post => false).update(:entity => entity)
       end
 
+      def update_from_params(params, authorized_scopes = [])
+        whitelist = [:remote_id, :entity, :groups, :public, :licenses, :profile]
+        if authorized_scopes.include?(:write_secrets)
+          whitelist.concat([:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
+        end
+        attributes = params.slice(*whitelist)
+        update(attributes)
+      end
+
+      def confirm_from_params(params)
+        update(
+          :remote_id => params.id,
+          :profile => params.profile || {},
+          :mac_key_id => params.mac_key_id,
+          :mac_key => params.mac_key,
+          :mac_algorithm => params.mac_algorithm,
+          :entity => API::CoreProfileData.new(params.profile || {}).entity,
+          :confirmed => true
+        )
+      end
+
       def auth_details
         attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
       end
@@ -114,27 +135,6 @@ end
 #       property :confirmed, Boolean, :default => true
 #
 #       has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy
-#
-#       def confirm_from_params(params)
-#         update(
-#           :remote_id => params.id,
-#           :profile => params.profile || {},
-#           :mac_key_id => params.mac_key_id,
-#           :mac_key => params.mac_key,
-#           :mac_algorithm => params.mac_algorithm,
-#           :entity => API::CoreProfileData.new(params.profile || {}).entity,
-#           :confirmed => true
-#         )
-#       end
-#
-#       def update_from_params(params, authorized_scopes = [])
-#         whitelist = [:remote_id, :entity, :groups, :public, :licenses, :profile]
-#         if authorized_scopes.include?(:write_secrets)
-#           whitelist.concat([:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
-#         end
-#         attributes = params.slice(*whitelist)
-#         update(attributes)
-#       end
 #     end
 #   end
 # end

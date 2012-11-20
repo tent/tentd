@@ -22,10 +22,9 @@ describe TentD::API::Followings do
 
   describe 'GET /followings/count' do
     it 'should return count of followings' do
-      TentD::Model::Following.all.destroy
       following = Fabricate(:following, :public => true)
       json_get '/followings/count', params, env
-      expect(last_response.body).to eq(1.to_json)
+      expect(last_response.body).to eql(1.to_json)
     end
   end
 
@@ -44,14 +43,14 @@ describe TentD::API::Followings do
 
     with_params = proc do
       it 'should order id desc' do
-        TentD::Model::Following.all.destroy
+        TentD::Model::Following.destroy
         first_following = Fabricate(:following, :public => true)
         last_following = Fabricate(:following, :public => true)
 
         json_get "/followings", params, env
         body = JSON.parse(last_response.body)
         body_ids = body.map { |i| i['id'] }
-        expect(body_ids).to eq([last_following.public_id, first_following.public_id])
+        expect(body_ids).to eql([last_following.public_id, first_following.public_id])
       end
 
       context '[:entity]' do
@@ -60,10 +59,10 @@ describe TentD::API::Followings do
           following = Fabricate(:following, :public => true, :entity => 'https://123smith.example.org')
 
           json_get "/followings?entity=#{URI.encode_www_form_component(following.entity)}"
-          expect(last_response.status).to eq(200)
+          expect(last_response.status).to eql(200)
           body = JSON.parse(last_response.body)
-          expect(body.size).to eq(1)
-          expect(body.first['id']).to eq(following.public_id)
+          expect(body.size).to eql(1)
+          expect(body.first['id']).to eql(following.public_id)
         end
       end
 
@@ -77,16 +76,16 @@ describe TentD::API::Followings do
           end
 
           json_get "/followings?since_id=#{since_following.public_id}", params, env
-          expect(last_response.status).to eq(200)
+          expect(last_response.status).to eql(200)
           body = JSON.parse(last_response.body)
-          expect(body.size).to eq(1)
-          expect(body.first['id']).to eq(following.public_id)
+          expect(body.size).to eql(1)
+          expect(body.first['id']).to eql(following.public_id)
         end
       end
 
       context '[:before_id]' do
         it 'should only return followings with id < :before_id' do
-          TentD::Model::Following.all.destroy!
+          TentD::Model::Following.destroy
           following = Fabricate(:following, :public => !create_permissions?)
           before_following = Fabricate(:following, :public => !create_permissions?)
 
@@ -95,10 +94,10 @@ describe TentD::API::Followings do
           end
 
           json_get "/followings?before_id=#{before_following.public_id}", params, env
-          expect(last_response.status).to eq(200)
+          expect(last_response.status).to eql(200)
           body = JSON.parse(last_response.body)
-          expect(body.size).to eq(1)
-          expect(body.first['id']).to eq(following.public_id)
+          expect(body.size).to eql(1)
+          expect(body.first['id']).to eql(following.public_id)
         end
       end
 
@@ -112,7 +111,7 @@ describe TentD::API::Followings do
           end
 
           json_get "/followings?limit=#{limit}", params, env
-          expect(JSON.parse(last_response.body).size).to eq(limit)
+          expect(JSON.parse(last_response.body).size).to eql(limit)
         end
 
         context 'when [:limit] > TentD::API::MAX_PER_PAGE' do
@@ -126,7 +125,7 @@ describe TentD::API::Followings do
               end
 
               json_get "/followings?limit=#{limit}", params, env
-              expect(JSON.parse(last_response.body).size).to eq(0)
+              expect(JSON.parse(last_response.body).size).to eql(0)
             end
           end
         end
@@ -142,7 +141,7 @@ describe TentD::API::Followings do
             end
 
             json_get "/followings", params, env
-            expect(JSON.parse(last_response.body).size).to eq(0)
+            expect(JSON.parse(last_response.body).size).to eql(0)
           end
         end
       end
@@ -150,12 +149,11 @@ describe TentD::API::Followings do
 
     without_permissions = proc do
       it 'should only return public followings' do
-        TentD::Model::Following.all(:public => true).destroy!
         public_following = Fabricate(:following, :public => true)
         private_following = Fabricate(:following, :public => false)
 
         json_get '/followings', params, env
-        expect(last_response.status).to eq(200)
+        expect(last_response.status).to eql(200)
         body = JSON.parse(last_response.body)
         body_ids = body.map { |f| f['id'] }
         expect(body_ids).to include(public_following.public_id)
@@ -239,9 +237,9 @@ describe TentD::API::Followings do
         count = TentD::Model::Following.count
         with_constants "TentD::API::MAX_PER_PAGE" => count do
           json_get '/followings', params, env
-          expect(last_response.status).to eq(200)
+          expect(last_response.status).to eql(200)
           body = JSON.parse(last_response.body)
-          expect(body.size).to eq(count)
+          expect(body.size).to eql(count)
           blacklist = %w{ mac_key_id mac_key mac_algorithm mac_timestamp_delta }
           body.each do |actual|
             blacklist.each { |k|
@@ -260,7 +258,7 @@ describe TentD::API::Followings do
         it 'should return all followings with mac keys' do
           Fabricate(:following, :public => false)
           json_get '/followings', params, env
-          expect(last_response.status).to eq(200)
+          expect(last_response.status).to eql(200)
           body = JSON.parse(last_response.body)
           whitelist = %w{ mac_key_id mac_key mac_algorithm }
           body.each do |actual|
@@ -282,19 +280,19 @@ describe TentD::API::Followings do
       it 'should return following if public' do
         following = Fabricate(:following, :public => true)
         json_get "/followings/#{following.public_id}", params, env
-        expect(JSON.parse(last_response.body)['id']).to eq(following.public_id)
+        expect(JSON.parse(last_response.body)['id']).to eql(following.public_id)
       end
 
       it 'should return 403 unless public' do
         following = Fabricate(:following, :public => false)
         json_get "/followings/#{following.public_id}", params, env
-        expect(last_response.status).to eq(403)
+        expect(last_response.status).to eql(403)
       end
 
       it 'should return 403 unless exists' do
         following = Fabricate(:following, :public => true)
         json_get "/followings/invalid-id", params, env
-        expect(last_response.status).to eq(403)
+        expect(last_response.status).to eql(403)
       end
     end
 
@@ -307,7 +305,7 @@ describe TentD::API::Followings do
             current_auth.permissible_foreign_key => current_auth.id
           )
           json_get "/followings/#{following.public_id}", params, env
-          expect(JSON.parse(last_response.body)['id']).to eq(following.public_id)
+          expect(JSON.parse(last_response.body)['id']).to eql(following.public_id)
         end
       end
 
@@ -321,7 +319,7 @@ describe TentD::API::Followings do
             :group_public_id => group.public_id
           )
           json_get "/followings/#{following.public_id}", params, env
-          expect(JSON.parse(last_response.body)['id']).to eq(following.public_id)
+          expect(JSON.parse(last_response.body)['id']).to eql(following.public_id)
         end
       end
     end
@@ -351,25 +349,25 @@ describe TentD::API::Followings do
       it 'should return private following without mac keys' do
         following = Fabricate(:following, :public => false)
         json_get "/followings/#{following.public_id}", params, env
-        expect(last_response.status).to eq(200)
+        expect(last_response.status).to eql(200)
         body = JSON.parse(last_response.body)
         blacklist = %w{ mac_key_id mac_key mac_algorithm mac_timestamp_delta }
         blacklist.each { |k|
           expect(body).to_not have_key(k)
         }
-        expect(body['id']).to eq(following.public_id)
+        expect(body['id']).to eql(following.public_id)
       end
 
       it 'should return public following without mac keys' do
         following = Fabricate(:following, :public => true)
         json_get "/followings/#{following.public_id}", params, env
-        expect(last_response.status).to eq(200)
+        expect(last_response.status).to eql(200)
         body = JSON.parse(last_response.body)
         blacklist = %w{ mac_key_id mac_key mac_algorithm mac_timestamp_delta }
         blacklist.each { |k|
           expect(body).to_not have_key(k)
         }
-        expect(body['id']).to eq(following.public_id)
+        expect(body['id']).to eql(following.public_id)
       end
 
       context 'when read_secrets scope authorized' do
@@ -381,10 +379,10 @@ describe TentD::API::Followings do
         it 'should return following with mac keys' do
           following = Fabricate(:following, :public => true)
           json_get "/followings/#{following.public_id}", params, env
-          expect(last_response.status).to eq(200)
+          expect(last_response.status).to eql(200)
           body = JSON.parse(last_response.body)
           whitelist = %w{ mac_key_id mac_key mac_algorithm }
-          expect(body['id']).to eq(following.public_id)
+          expect(body['id']).to eql(following.public_id)
           whitelist.each { |k|
             expect(body).to have_key(k)
           }
@@ -393,7 +391,7 @@ describe TentD::API::Followings do
 
       it 'should return 404 if no following with :id exists' do
         json_get '/followings/invalid-id', params, env
-        expect(last_response.status).to eq(404)
+        expect(last_response.status).to eql(404)
       end
     end
   end
@@ -482,8 +480,6 @@ describe TentD::API::Followings do
             stub_notification_http!
             TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
-            TentD::Model::Following.all.destroy!
-
             data = following_data.merge(
               :id => 'public-id',
               :mac_key_id => 'mac-key-id',
@@ -495,12 +491,12 @@ describe TentD::API::Followings do
               json_post 'followings', data, env
             }).to change(TentD::Model::Following, :count).by(1)
 
-            following = TentD::Model::Following.last
-            expect(following.public_id).to eq(data[:id])
-            expect(following.mac_key_id).to eq(data[:mac_key_id])
-            expect(following.mac_key).to eq(data[:mac_key])
-            expect(following.mac_algorithm).to eq(data[:mac_algorithm])
-            expect(following.confirmed).to eq(true)
+            following = TentD::Model::Following.order(:id.asc).last
+            expect(following.public_id).to eql(data[:id])
+            expect(following.mac_key_id).to eql(data[:mac_key_id])
+            expect(following.mac_key).to eql(data[:mac_key])
+            expect(following.mac_algorithm).to eql(data[:mac_algorithm])
+            expect(following.confirmed).to eql(true)
           end
         end
 
@@ -521,20 +517,19 @@ describe TentD::API::Followings do
           TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
           json_post '/followings', following_data, env
-          expect(last_response.status).to eq(404)
+          expect(last_response.status).to eql(404)
         end
       end
 
       context 'when follow request fails' do
         it 'should error' do
-          TentD::Model::Following.all.destroy
           @http_stub_head_success.call
           @http_stub_profile_success.call
           http_stubs.post('/tent/followers') { [404, {}, 'Not Found'] }
           TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
           json_post '/followings', following_data, env
-          expect(last_response.status).to eq(404)
+          expect(last_response.status).to eql(404)
         end
       end
 
@@ -546,12 +541,11 @@ describe TentD::API::Followings do
 
         context 'when confirmed following' do
           it 'should return 409' do
-            TentD::Model::Following.all.destroy
             Fabricate(:following, :entity => following_data['entity'], :confirmed => true)
             expect(lambda {
               json_post '/followings', following_data, env
             }).to change(TentD::Model::Following, :count).by(0)
-            expect(last_response.status).to eq(409)
+            expect(last_response.status).to eql(409)
           end
         end
 
@@ -560,13 +554,12 @@ describe TentD::API::Followings do
             @http_stub_success.call
             stub_notification_http!
 
-            TentD::Model::Following.all.destroy
             following = Fabricate(:following, :entity => following_data['entity'], :confirmed => false)
             expect(lambda {
               json_post '/followings', following_data, env
             }).to change(TentD::Model::Following, :count).by(0)
-            expect(last_response.status).to eq(200)
-            expect(following.reload.confirmed).to eq(true)
+            expect(last_response.status).to eql(200)
+            expect(following.reload.confirmed).to eql(true)
           end
         end
       end
@@ -576,7 +569,6 @@ describe TentD::API::Followings do
           @http_stub_success.call
           stub_notification_http!
           TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
-          TentD::Model::Following.all.destroy
         end
 
         it 'should create following' do
@@ -584,15 +576,15 @@ describe TentD::API::Followings do
             json_post '/followings', following_data, env
           }).to change(TentD::Model::Following, :count).by(1)
 
-          following = TentD::Model::Following.last
-          expect(following.entity.to_s).to eq(actual_entity_url)
-          expect(following.groups).to eq([group.public_id.to_s])
-          expect(following.remote_id).to eq(follower.public_id.to_s)
-          expect(following.mac_key_id).to eq(follower.mac_key_id)
-          expect(following.mac_key).to eq(follower.mac_key)
-          expect(following.mac_algorithm).to eq(follower.mac_algorithm)
+          following = TentD::Model::Following.order(:id.asc).last
+          expect(following.entity.to_s).to eql(actual_entity_url)
+          expect(following.groups).to eql([group.public_id.to_s])
+          expect(following.remote_id).to eql(follower.public_id.to_s)
+          expect(following.mac_key_id).to eql(follower.mac_key_id)
+          expect(following.mac_key).to eql(follower.mac_key)
+          expect(following.mac_algorithm).to eql(follower.mac_algorithm)
 
-          expect(JSON.parse(last_response.body)['id']).to eq(following.public_id)
+          expect(JSON.parse(last_response.body)['id']).to eql(following.public_id)
         end
       end
     end
@@ -604,7 +596,7 @@ describe TentD::API::Followings do
 
       it 'should return 403' do
         json_post '/followings', params, env
-        expect(last_response.status).to eq(403)
+        expect(last_response.status).to eql(403)
       end
     end
   end
@@ -631,18 +623,18 @@ describe TentD::API::Followings do
 
       it 'should update following' do
         json_put "/followings/#{following.public_id}", data, env
-        expect(last_response.status).to eq(200)
+        expect(last_response.status).to eql(200)
 
         whitelist = [:groups, :entity, :public, :profile, :licenses]
         blacklist = [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
 
         following.reload
         whitelist.each { |key|
-          expect(following.send(key).to_json).to eq(data[key].to_json)
+          expect(following.send(key).to_json).to eql(data[key].to_json)
         }
 
         blacklist.each { |key|
-          expect(following.send(key).to_json).to_not eq(data[key].to_json)
+          expect(following.send(key).to_json).to_not eql(data[key].to_json)
         }
       end
 
@@ -653,28 +645,28 @@ describe TentD::API::Followings do
 
         it 'should update following mac key' do
           json_put "/followings/#{following.public_id}", data, env
-          expect(last_response.status).to eq(200)
+          expect(last_response.status).to eql(200)
 
           whitelist = [:groups, :entity, :public, :profile, :licenses]
           whitelist.concat [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
 
           following.reload
           whitelist.each { |key|
-            expect(following.send(key).to_json).to eq(data[key].to_json)
+            expect(following.send(key).to_json).to eql(data[key].to_json)
           }
         end
       end
 
       it 'should return 404 unless following with :id exists' do
         json_put '/followings/invalid-id', params, env
-        expect(last_response.status).to eq(404)
+        expect(last_response.status).to eql(404)
       end
     end
 
     context 'when write_followings scope not authorized' do
       it 'should return 403' do
         json_put '/followings/following-id', params, env
-        expect(last_response.status).to eq(403)
+        expect(last_response.status).to eql(403)
       end
     end
   end
@@ -702,7 +694,7 @@ describe TentD::API::Followings do
         it 'should return 404' do
           expect(lambda { delete "/followings/invalid-id", params, env }).
             to_not change(TentD::Model::Following, :count)
-          expect(last_response.status).to eq(404)
+          expect(last_response.status).to eql(404)
         end
       end
     end
@@ -711,7 +703,7 @@ describe TentD::API::Followings do
       it 'should return 403' do
         expect(lambda { delete "/followings/invalid-id", params, env }).
           to_not change(TentD::Model::Following, :count)
-        expect(last_response.status).to eq(403)
+        expect(last_response.status).to eql(403)
       end
     end
   end
@@ -728,9 +720,9 @@ describe TentD::API::Followings do
       }
       TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
       json_get("/followings/#{following.public_id}/profile", {}, env)
-      expect(last_response.status).to eq(200)
-      expect(last_response.body).to eq('{}')
-      expect(last_response.headers['Content-Type']).to eq('application/json')
+      expect(last_response.status).to eql(200)
+      expect(last_response.body).to eql('{}')
+      expect(last_response.headers['Content-Type']).to eql('application/json')
       http_stubs.verify_stubbed_calls
     end
   end
@@ -740,8 +732,8 @@ describe TentD::API::Followings do
 
     it 'should redirect to app authoirization with follow_ui scope and follow_url' do
       get '/follow', { :entity => 'https://johnsmith.example.org' }, env
-      expect(last_response.status).to eq(302)
-      expect(last_response.headers['Location']).to eq("https://example.com/follow?entity=https%3A%2F%2Fjohnsmith.example.org")
+      expect(last_response.status).to eql(302)
+      expect(last_response.headers['Location']).to eql("https://example.com/follow?entity=https%3A%2F%2Fjohnsmith.example.org")
     end
   end
 end
