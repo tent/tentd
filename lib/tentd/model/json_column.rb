@@ -5,7 +5,7 @@ module TentD
     module JsonColumn
       module Serialize
         def self.call(value)
-          return if value.nil?
+          return value if value.nil? || value.kind_of?(String)
           Yajl::Encoder.encode(value)
         end
       end
