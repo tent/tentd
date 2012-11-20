@@ -32,7 +32,7 @@ module TentD
       end
 
       def self.follow_url(entity)
-        app_auth = where(:follow_url.not => nil).find { |a| a.scopes.map(&:to_sym).include?(:follow_ui) }
+        app_auth = where(Sequel.~(:follow_url => nil)).order(:id.desc).find { |a| a.scopes.map(&:to_sym).include?(:follow_ui) }
         return unless app_auth
         uri = URI(app_auth.follow_url)
         query = "entity=#{URI.encode_www_form_component(entity)}"

@@ -10,7 +10,7 @@ describe TentD::Model::AppAuthorization do
       entity = 'https://johndoe.example.org'
 
       follow_url = described_class.follow_url(entity)
-      expect(follow_url).to eq("#{app_auth.follow_url}?entity=#{URI.encode_www_form_component(entity)}")
+      expect(follow_url).to eql("#{app_auth.follow_url}?entity=#{URI.encode_www_form_component(entity)}")
     end
   end
 
@@ -31,13 +31,13 @@ describe TentD::Model::AppAuthorization do
       let(:options) { { :app => true } }
 
       it 'should return everything except mac stuff' do
-        expect(app_authorization.as_json(options)).to eq(app_attributes)
+        expect(app_authorization.as_json(options)).to eql(app_attributes)
       end
 
       context 'and options[:authorization_token]' do
         before { options[:authorization_token] = true }
         it 'should return token code' do
-          expect(app_authorization.as_json(options)).to eq(app_attributes.merge(
+          expect(app_authorization.as_json(options)).to eql(app_attributes.merge(
             :token_code => app_authorization.token_code
           ))
         end
@@ -47,7 +47,7 @@ describe TentD::Model::AppAuthorization do
         before { options[:mac] = true }
 
         it 'should return mac stuff' do
-          expect(app_authorization.as_json(options)).to eq(app_attributes.merge(
+          expect(app_authorization.as_json(options)).to eql(app_attributes.merge(
             :mac_key_id => app_authorization.mac_key_id,
             :mac_key => app_authorization.mac_key,
             :mac_algorithm => app_authorization.mac_algorithm
