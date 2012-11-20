@@ -31,13 +31,13 @@ describe TentD::Model::NotificationSubscription do
   it 'should require type_version unless type_base set to all' do
     expect(lambda {
       described_class.create(:type => 'https://tent.io/types/post/photo')
-    }).to_not change(described_class, :count)
+    }).to raise_error(Sequel::ValidationFailed)
   end
 
   context "notifications" do
     let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
     let(:post) { Fabricate(:post) }
-    before { TentD::Model::NotificationSubscription.all.destroy! }
+    before { TentD::Model::NotificationSubscription.destroy }
 
     context "to everyone" do
       let!(:subscription) { Fabricate(:notification_subscription, :follower => Fabricate(:follower)) }
@@ -52,7 +52,8 @@ describe TentD::Model::NotificationSubscription do
     end
 
     context "to a follower" do
-      let(:subscription) { Fabricate(:notification_subscription, :follower => Fabricate(:follower)) }
+      let!(:follower) { Fabricate(:follower) }
+      let!(:subscription) { Fabricate(:notification_subscription, :follower => follower) }
 
       it 'should notify about a post' do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])

@@ -33,10 +33,10 @@ RSpec.configure do |config|
     DB.tables.each { |table_name|
       DB[table_name].delete
     }
+    TentD::Model::User.current = TentD::Model::User.first_or_create
   end
 
   config.before(:suite) do
     GirlFriday::WorkQueue.immediate!
-    TentD::Model::User.current = TentD::Model::User.first_or_create
   end
 end

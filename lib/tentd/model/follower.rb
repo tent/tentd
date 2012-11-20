@@ -97,6 +97,10 @@ module TentD
         API::CoreProfileData.new(profile)
       end
 
+      def notification_servers
+        core_profile.servers
+      end
+
       def as_json(options = {})
         attributes = super
 
@@ -166,10 +170,6 @@ end
 #           end
 #         end
 #         follower
-#       end
-#
-#       def notification_servers
-#         core_profile.servers
 #       end
 #     end
 #   end

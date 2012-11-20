@@ -24,8 +24,9 @@ module TentD
 
       def before_save
         if scopes.to_a.map(&:to_s).include?('follow_ui') && follow_url
-         # _auths = app.user.apps.authorizations.all(:follow_url.not => nil, :id.not => id)
-         # _auths.each { |a| a.update(:scopes => a.scopes - ['follow_ui']) }
+          # TODO: fix this query
+          # _auths = app.user.apps.authorizations.all(:follow_url.not => nil, :id.not => id)
+          # _auths.each { |a| a.update(:scopes => a.scopes - ['follow_ui']) }
         end
         self.notification_url = nil if notification_url.to_s == ''
         super

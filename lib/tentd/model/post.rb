@@ -20,6 +20,7 @@ module TentD
 
       many_to_one :app
       many_to_one :following
+      many_to_one :user
 
       def before_create
         self.public_id ||= random_id

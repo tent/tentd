@@ -63,6 +63,14 @@ module TentD
         API::CoreProfileData.new(profile)
       end
 
+      def notification_servers
+        core_profile.servers
+      end
+
+      def notification_path
+        'posts'
+      end
+
       def as_json(options = {})
         attributes = super
 
@@ -117,14 +125,6 @@ end
 #           :entity => API::CoreProfileData.new(params.profile || {}).entity,
 #           :confirmed => true
 #         )
-#       end
-#
-#       def notification_path
-#         'posts'
-#       end
-#
-#       def notification_servers
-#         core_profile.servers
 #       end
 #
 #       def update_from_params(params, authorized_scopes = [])

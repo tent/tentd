@@ -10,6 +10,13 @@ module TentD
         end
       end
 
+      def validate
+        super
+        if type_base != 'all' && !type_version
+          errors.add(:type_version, 'type version must be set')
+        end
+      end                            
+
       def type
         TentType.new.tap do |t|
           t.base = type_base
