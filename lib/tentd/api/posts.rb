@@ -10,11 +10,7 @@ module TentD
             env.params[key] = nil
             memo
           }
-          scope = Model::Post.default_scope.dup
-          scope.delete(:deleted_at)
-          posts = Model::Post.send(:with_exclusive_scope, scope) { |q|
-            Model::Post.all(:public_id => id_mapping.keys, :fields => [:id, :public_id, :entity]).to_a
-          }
+          posts = Model::Post.select(:id, :public_id, :entity).where(:public_id => id_mapping.keys).all
           id_mapping.each_pair do |public_id, key|
             entity = env.params["#{key}_entity"]
             entity ||= env['tent.entity']
@@ -30,22 +26,23 @@ module TentD
       class GetOne < Middleware
         def action(env)
           if authorize_env?(env, :read_posts)
-            conditions = { :id => env.params.post_id }
+            q = Model::Post.where(:id => env.params.post_id)
+
             unless env.current_auth.post_types.include?('all')
-              conditions[:type_base] = env.current_auth.post_types.map { |t| TentType.new(t).base }
+              q = q.where(:type_base => env.current_auth.post_types.map { |t| TentType.new(t).base })
             end
 
             if env.params.version
-              conditions[:fields] = [:id]
+              q = q.select(:id)
             end
 
-            post = Model::Post.first(conditions)
+            post = q.first
           else
             post = Model::Post.find_with_permissions(env.params.post_id, env.current_auth)
           end
           if post
             if env.params.version
-              if post_version = post.versions.first(:version => env.params.version.to_i)
+              if post_version = post.versions_dataset.first(:version => env.params.version.to_i)
                 post = post_version
               else
                 post = nil
@@ -103,7 +100,7 @@ module TentD
             data.public_id = env.params.data.id
             begin
               Model::Post.create(data, :dont_notify_mentions => true)
-            rescue DataObjects::IntegrityError # hack to ignore duplicate posts
+            rescue Sequel::DatabaseError # hack to ignore duplicate posts
               Model::Post.first(:public_id => data.public_id)
             end
           else
@@ -160,7 +157,7 @@ module TentD
         end
 
         def anonymous_publisher?(auth, post)
-          !auth && post.entity && !Model::Following.first(:entity => post.entity, :fields => [:id])
+          !auth && post.entity && !Model::Following.where(:entity => post.entity).any?
         end
 
         def set_app_details(post)
@@ -210,14 +207,30 @@ module TentD
         def action(env)
           authorize_env!(env, :write_posts)
           if post = TentD::Model::Post.first(:id => env.params.post_id)
-            version = post.latest_version(:fields => [:id])
-            post.update(env.params.data.slice(:content, :licenses, :mentions, :views))
+            if env.params.data.has_key?(:version) && env.params.data.keys.length == 1
+              # revert to post version
 
-            if env.params.attachments.kind_of?(Array)
-              Model::PostAttachment.all(:post_id => post.id).update(:post_id => nil, :post_version_id => version.id)
+              version = post.versions.first(:version => env.params.data.version)
+              return env unless version # 404
+
+              latest_version = post.latest_version(:fields => [:id])
+
+              post.update(version.attributes.slice(*Model::Post.write_attributes))
+              latest_version = post.latest_version(:fields => [:id])
+
+              env.response = post
+            else
+              # update post
+
+              version = post.latest_version(:fields => [:id])
+              post.update(env.params.data.slice(:content, :licenses, :mentions, :views))
+
+              if env.params.attachments.kind_of?(Array)
+                Model::PostAttachment.where(:post_id => post.id).update(:post_id => nil, :post_version_id => version.id)
+              end
+
+              env.response = post
             end
-
-            env.response = post
           end
           env
         end
@@ -277,7 +290,7 @@ module TentD
         def action(env)
           return env unless env.response
           type = env['HTTP_ACCEPT'].split(/;|,/).first if env['HTTP_ACCEPT']
-          attachment = env.response.attachments.first(:type => type, :name => env.params.attachment_name, :fields => [:data])
+          attachment = env.response.attachments_dataset.select(:data).first(:type => type, :name => env.params.attachment_name)
           if attachment
             env.response = Base64.decode64(attachment.data)
             env['response.type'] = type

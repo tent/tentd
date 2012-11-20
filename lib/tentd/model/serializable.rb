@@ -40,7 +40,7 @@ module TentD
               memo ? memo += q : q
             }
           else
-            attrs[:attachments] = attachments.all.map { |a| a.as_json } unless options[:view] == 'meta'
+            attrs[:attachments] = attachments.map { |a| a.as_json } unless options[:view] == 'meta'
           end
         end
 

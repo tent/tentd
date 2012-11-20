@@ -5,8 +5,8 @@ Sequel.migration do
       foreign_key :post_id
       foreign_key :group_id
       foreign_key :following_id
-      foreign_key :follower_id_visibility
-      foreign_key :follower_id_access
+      foreign_key :follower_visibility_id
+      foreign_key :follower_access_id
       foreign_key :profile_id_info
     end
   end

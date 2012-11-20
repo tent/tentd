@@ -6,6 +6,10 @@ module TentD
       include RandomPublicId
       include Serializable
 
+      plugin :serialization
+      serialize_attributes :pg_array, :groups, :licenses
+      serialize_attributes :json, :profile
+
       one_to_many :permissions
 
       def before_create

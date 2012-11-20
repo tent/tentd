@@ -7,13 +7,17 @@ module TentD
       include RandomPublicId
       include Serializable
 
+      plugin :serialization
+      serialize_attributes :pg_array, :groups, :licenses
+      serialize_attributes :json, :profile
+
       one_to_many :notification_subscriptions
 
       # permissions describing who can see them
-      one_to_many :visibility_permissions
+      one_to_many :visibility_permissions, :key => :follower_visibility_id, :class => Permission
 
       # permissions describing what they have access to
-      one_to_many :access_permissions
+      one_to_many :access_permissions, :key => :follower_access_id, :class => Permission
 
       def before_create
         self.public_id ||= random_id
@@ -21,6 +25,10 @@ module TentD
         self.mac_key ||= SecureRandom.hex(16)
         self.mac_algorithm ||= 'hmac-sha-256'
         self.user_id ||= User.current.id
+      end
+
+      def permissible_foreign_key
+        :follower_access_id
       end
     end
   end
@@ -125,10 +133,6 @@ end
 #       def propagate_entity(new_entity, old_entity)
 #         Post.all(:entity => old_entity, :original => false).update(:entity => entity)
 #         Mention.all(:entity => old_entity, :original_post => false).update(:entity => entity)
-#       end
-#
-#       def permissible_foreign_key
-#         :follower_access_id
 #       end
 #
 #       def core_profile

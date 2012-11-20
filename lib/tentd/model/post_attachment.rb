@@ -1,8 +1,28 @@
 module TentD
   module Model
     class PostAttachment < Sequel::Model(:post_attachments)
+      include Serializable
+
       many_to_one :post
       many_to_one :post_version
+
+      def before_create
+        self.created_at = self.updated_at = Time.now
+        super
+      end
+
+      def before_update
+        self.updated_at = Time.now
+        super
+      end
+
+      def self.public_attributes
+        [:type, :category, :name, :size]
+      end
+
+      def as_json(options = {})
+        super
+      end
     end
   end
 end
@@ -24,10 +44,6 @@ end
 #
 #       belongs_to :post, 'TentD::Model::Post', :required => false
 #       has n, :post_versions, 'TentD::Model::PostVersion', :through => Resource
-#
-#       def as_json(options = {})
-#         super({ :only => [:type, :category, :name, :size] }.merge(options))
-#       end
 #     end
 #   end
 # end

@@ -3,6 +3,9 @@ require 'hashie'
 module TentD
   module Model
     class ProfileInfo < Sequel::Model(:profile_infos)
+      TENT_PROFILE_TYPE_URI = 'https://tent.io/types/info/core/v0.1.0'
+      TENT_PROFILE_TYPE = TentType.new(TENT_PROFILE_TYPE_URI)
+
       one_to_many :permissions
 
       def before_create

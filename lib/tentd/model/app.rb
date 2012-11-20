@@ -8,6 +8,7 @@ module TentD
       include Serializable
 
       plugin :serialization
+      serialize_attributes :pg_array, :redirect_uris
       serialize_attributes :json, :scopes
 
       one_to_many :authorizations, :class => AppAuthorization
