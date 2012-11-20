@@ -66,6 +66,30 @@ module TentD
         follower
       end
 
+      def self.update_follower(id, data, authorized_scopes = [])
+        follower = first(:id => id)
+        return unless follower
+        whitelist = ['licenses']
+        if authorized_scopes.include?(:write_followers)
+          whitelist.concat(['entity', 'profile', 'public', 'groups'])
+
+          if authorized_scopes.include?(:write_secrets)
+            whitelist.concat(['mac_key_id', 'mac_key', 'mac_algorithm', 'mac_timestamp_delta'])
+          end
+        end
+        follower.update(data.slice(*whitelist))
+        if data['types']
+          follower.notification_subscriptions_dataset.destroy
+          data['types'].each do |type_url|
+            NotificationSubscription.create(
+              :follower_id => follower.id,
+              :type => type_url
+            )
+          end
+        end
+        follower
+      end
+
       def self.update_entity(follower_id)
         first(:id => follower_id).update_entity
       end
@@ -87,6 +111,10 @@ module TentD
       def propagate_entity(new_entity, old_entity)
         Post.where(:entity => old_entity, :original => false).update(:entity => entity)
         Mention.where(:entity => old_entity, :original_post => false).update(:entity => entity)
+      end
+
+      def public?
+        !!self.public
       end
 
       def auth_details
@@ -150,27 +178,6 @@ end
 #
 #       # permissions describing what they have access to
 #       has n, :access_permissions, 'TentD::Model::Permission', :child_key => [ :follower_access_id ], :constraint => :destroy
-#
-#       def self.update_follower(id, data, authorized_scopes = [])
-#         follower = first(:id => id)
-#         return unless follower
-#         whitelist = ['licenses']
-#         if authorized_scopes.include?(:write_followers)
-#           whitelist.concat(['entity', 'profile', 'public', 'groups'])
-#
-#           if authorized_scopes.include?(:write_secrets)
-#             whitelist.concat(['mac_key_id', 'mac_key', 'mac_algorithm', 'mac_timestamp_delta'])
-#           end
-#         end
-#         follower.update(data.slice(*whitelist))
-#         if data['types']
-#           follower.notification_subscriptions.destroy
-#           data['types'].each do |type_url|
-#             follower.notification_subscriptions.create(:type => type_url)
-#           end
-#         end
-#         follower
-#       end
 #     end
 #   end
 # end

@@ -2,14 +2,28 @@ require 'hashie'
 
 module TentD
   module Model
-    class ProfileInfo < Sequel::Model(:profile_infos)
+    class ProfileInfo < Sequel::Model(:profile_info)
       TENT_PROFILE_TYPE_URI = 'https://tent.io/types/info/core/v0.1.0'
       TENT_PROFILE_TYPE = TentType.new(TENT_PROFILE_TYPE_URI)
+
+      plugin :serialization
+      serialize_attributes :json, :content
 
       one_to_many :permissions
 
       def before_create
         self.user_id ||= User.current.id
+        self.created_at = Time.now
+        super
+      end
+
+      def before_save
+        self.updated_at = Time.now
+        super
+      end
+
+      def self.first_or_create(attrs)
+        first(attrs) || create(attrs)
       end
     end
   end

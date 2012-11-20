@@ -6,7 +6,7 @@ module TentD
       class GetActualId < Middleware
         def action(env)
           [:follower_id, :before_id, :since_id].select { |k| env.params.has_key?(k) }.each do |id_key|
-            if env.params[id_key] && (f = Model::Follower.first(:public_id => env.params[id_key], :fields => [:id]))
+            if env.params[id_key] && (f = Model::Follower.select(:id).first(:public_id => env.params[id_key]))
               env.params[id_key] = f.id
             else
               env.params[id_key] = nil
@@ -113,7 +113,7 @@ module TentD
       class GetOne < Middleware
         def action(env)
           if env.full_read_authorized || authorize_env?(env, :self)
-            follower = Model::Follower.find(env.params.follower_id)
+            follower = Model::Follower.first(:id => env.params.follower_id)
           else
             follower = Model::Follower.find_with_permissions(env.params.follower_id, env.current_auth)
           end

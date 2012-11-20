@@ -9,6 +9,12 @@ module TentD
       def before_create
         self.public_id ||= random_id
         self.user_id ||= User.current.id
+        self.created_at = Time.now
+        super
+      end
+
+      def before_save
+        self.updated_at = Time.now
         super
       end
 

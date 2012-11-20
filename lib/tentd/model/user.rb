@@ -7,7 +7,7 @@ module TentD
       one_to_many :followings
       one_to_many :followers
       one_to_many :groups
-      one_to_many :profile_infos
+      one_to_many :profile_infos, :class => ProfileInfo
       one_to_many :notification_subscriptions
 
       def self.first_or_create
@@ -23,7 +23,10 @@ module TentD
       end
 
       def profile_entity
-        info = profile_infos.first(:type_base => ProfileInfo::TENT_PROFILE_TYPE.base, :order => :type_version.desc)
+        info = profile_infos_dataset.where(
+          :type_base => ProfileInfo::TENT_PROFILE_TYPE.base,
+          :type_version => ProfileInfo::TENT_PROFILE_TYPE.version.to_s
+        ).order(:type_version.desc).first
         info.content['entity'] if info
       end
     end
