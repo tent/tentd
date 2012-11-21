@@ -1056,6 +1056,50 @@ describe TentD::API::Posts do
 
         expect(last_version.attachments.map(&:id)).to eql(existing_attachments.map(&:id))
       end
+
+      it 'should update post version' do
+        existing_version = post.create_version!
+        existing_version_attachments = 2.times.map { Fabricate(:post_attachment) }.each do |a|
+          existing_version.db[:post_versions_attachments].insert(
+            :post_attachment_id => a.id,
+            :post_version_id => existing_version.id
+          )
+        end
+        existing_version_mentions = 2.times.map { Fabricate(:mention) }.each do |m|
+          existing_version.db[:post_versions_mentions].insert(
+            :mention_id => m.id,
+            :post_version_id => existing_version.id
+          )
+        end
+        expect(existing_version.attachments_dataset.count).to eql(2)
+        expect(existing_version.mentions_dataset.count).to eql(2)
+
+        latest_version = post.create_version!
+
+        post_attrs = {
+          :version => existing_version.version
+        }
+
+        expect(lambda {
+          expect(lambda {
+            expect(lambda {
+              json_put "/posts/#{post.public_id}", post_attrs, env
+              expect(last_response.status).to eq(200)
+            }).to change(TentD::Model::PostVersion, :count).by(1)
+          }).to_not change(TentD::Model::PostAttachment, :count)
+        }).to_not change(TentD::Model::Mention, :count)
+
+        version = post.reload.latest_version
+
+        expect(existing_version.attachments_dataset.count).to eql(2)
+        expect(existing_version.mentions_dataset.count).to eql(2)
+
+        expect(version.attachments_dataset.count).to eql(2)
+        expect(version.attachments.map(&:id)).to eql(existing_version_attachments.map(&:id))
+
+        expect(version.mentions_dataset.count).to eql(2)
+        expect(version.mentions.map(&:id)).to eql(existing_version_mentions.map(&:id))
+      end
     end
 
     context 'when not authorized' do

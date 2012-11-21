@@ -210,13 +210,17 @@ module TentD
             if env.params.data.has_key?(:version) && env.params.data.keys.length == 1
               # revert to post version
 
-              version = post.versions.first(:version => env.params.data.version)
+              version = post.versions_dataset.first(:version => env.params.data.version)
               return env unless version # 404
 
               latest_version = post.latest_version(:fields => [:id])
 
               post.update(version.attributes.slice(*Model::Post.write_attributes))
               latest_version = post.latest_version(:fields => [:id])
+
+              latest_version.db[:post_versions_mentions].with_sql("INSERT INTO post_versions_mentions (mention_id, post_version_id) SELECT mentions.mention_id, ? AS post_version_id FROM post_versions_mentions AS mentions WHERE mentions.post_version_id = ?", latest_version.id, version.id).insert
+
+              latest_version.db[:post_versions_attachments].with_sql("INSERT INTO post_versions_attachments (post_attachment_id, post_version_id) SELECT attachments.post_attachment_id, ? AS post_version_id FROM post_versions_attachments AS attachments WHERE attachments.post_version_id = ?", latest_version.id, version.id).insert
 
               env.response = post
             else
