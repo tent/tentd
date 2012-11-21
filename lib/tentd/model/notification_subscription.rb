@@ -25,7 +25,7 @@ module TentD
       end
 
       def self.notify_all(type, post_id)
-        post = Post.select(:id, :original, :public, :user_id).first(:id => post_id)
+        post = Post.select(:id, :original, :public, :user_id, :type_base).first(:id => post_id)
         return unless post
         if post.original && post.public
           NotificationSubscription.select(
@@ -42,45 +42,42 @@ module TentD
             )
           end
         elsif !post.original
-          # TODO needs spec
-          # q = NotificationSubscription.select(
-          #   :id, :app_authorization_id, :follower_id
-          # ).where(
-          #   :user_id => post.user_id,
-          #   :type_base => [TentType.new(type).base, 'all']
-          # ).where(
-          #   Sequel.~(:app_authorization_id => nil)
-          # ).all.each do |subscription|
-          #   next unless post.can_notify?(subscription.subject)
-          #   Notifications.notify(
-          #     :subscription_id => subscription.id,
-          #     :post_id => post_id,
-          #     :view => subscription.type_view
-          #   )
-          # end
+          q = NotificationSubscription.select(
+            :id, :app_authorization_id
+          ).where(
+            :user_id => post.user_id,
+            :type_base => [TentType.new(type).base, 'all']
+          ).where(
+            Sequel.~(:app_authorization_id => nil)
+          ).all.each do |subscription|
+            next unless post.can_notify?(subscription.subject)
+            Notifications.notify(
+              :subscription_id => subscription.id,
+              :post_id => post_id,
+              :view => subscription.type_view
+            )
+          end
         else
-          # TODO needs spec
-          # SELECT "id", "type_base", "type_view", "type_version", "created_at", "updated_at", "user_id", "app_authorization_id", "follower_id" FROM "notification_subscriptions" WHERE "follower_id" IN (SELECT "id" FROM "followers" WHERE ("deleted_at" IS NULL AND "id" IN (SELECT "follower_access_id" FROM "permissions" WHERE "post_id" = 1))) ORDER BY "id"
-          # NotificationSubscription.join(
-          #   Follower,
-          #   :notification_subscriptions__follower_id => :followers_id
-          # ).join(
-          #   Permission,
-          #   :permissions__follower_access_id => :followers__id
-          # ).join(
-          #   Post,
-          #   :permissions__post_id => :posts__id
-          # ).where(
-          #   :notification_subscriptions__type_base => [type.base, 'all'],
-          #   :permissions__post_id => post.id
-          # ).select(
-          #   :notification_subscriptions__id,
-          #   :notification_subscriptions__app_authorization_id,
-          #   :notification_subscriptions__follower_id
-          # ).all.each do |subscription|
-          #   next unless post.can_notify?(subscription.subject)
-          #   Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
-          # end
+          NotificationSubscription.join(
+            Follower,
+            :notification_subscriptions__follower_id => :followers__id
+          ).join(
+            Permission,
+            :permissions__follower_access_id => :followers__id
+          ).join(
+            Post,
+            :permissions__post_id => :posts__id
+          ).where(
+            :notification_subscriptions__type_base => [TentType.new(type).base, 'all'],
+            :permissions__post_id => post.id
+          ).select(
+            :notification_subscriptions__id,
+            :notification_subscriptions__app_authorization_id,
+            :notification_subscriptions__follower_id
+          ).all.each do |subscription|
+            next unless post.can_notify?(subscription.subject)
+            Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
+          end
         end
       end
 

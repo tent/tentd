@@ -134,8 +134,8 @@ module TentD
         return true if public && original
         case app_or_follow
         when AppAuthorization
-          app_or_follow.scopes && app_or_follow.scopes.map(&:to_sym).include?(:read_posts) ||
-          app_or_follow.post_types && app_or_follow.post_types.include?(type.base)
+          (app_or_follow.scopes && app_or_follow.scopes.map(&:to_sym).include?(:read_posts)) ||
+          (app_or_follow.post_types && app_or_follow.post_types.include?(type.base))
         when Follower
           return false unless original
           q = permissions_dataset
