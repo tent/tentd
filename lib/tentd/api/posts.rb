@@ -226,7 +226,8 @@ module TentD
               post.update(env.params.data.slice(:content, :licenses, :mentions, :views))
 
               if env.params.attachments.kind_of?(Array)
-                Model::PostAttachment.where(:post_id => post.id).update(:post_id => nil, :post_version_id => version.id)
+                Model::PostAttachment.db[:post_versions_attachments].with_sql("INSERT INTO post_versions_attachments (post_attachment_id, post_version_id) SELECT post_attachments.id AS post_attachment_id, ? AS post_version_id FROM post_attachments WHERE post_id = ?", version.id, post.id).insert
+                Model::PostAttachment.where(:post_id => post.id).update(:post_id => nil)
               end
 
               env.response = post
@@ -254,11 +255,18 @@ module TentD
           post = env.response
           version = post.latest_version(:fields => [:id])
           env.params.attachments.each do |attachment|
-            Model::PostAttachment.create(:post => post,
-                                         :post_version => version,
-                                         :type => attachment.type,
-                                         :category => attachment.name, :name => attachment.filename,
-                                         :data => Base64.encode64(attachment.tempfile.read), :size => attachment.tempfile.size)
+            a = Model::PostAttachment.create(
+              :post => post,
+              :type => attachment.type,
+              :category => attachment.name, :name => attachment.filename,
+              :data => Base64.encode64(attachment.tempfile.read),
+              :size => attachment.tempfile.size
+            )
+
+            a.db[:post_versions_attachments].insert(
+              :post_attachment_id => a.id,
+              :post_version_id => version.id
+            )
           end
           env.response.reload
           env

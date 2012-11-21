@@ -20,21 +20,46 @@ describe TentD::Model::Post do
       let(:other_follower) { Fabricate(:follower, :entity => 'https://marks.example.com') }
       let(:entity_url) { 'https://alexdoe.example.org' }
 
+      let(:post_attributes) do
+        post_attrs = Fabricate.build(:post).attributes
+        post_attrs.delete(:id)
+        post_attrs.delete(:public_id)
+        post_attrs.delete(:user_id)
+        post_attrs
+      end
+
+      it "should create post version" do
+        post_attrs = post_attributes.merge(
+          :mentions => [
+            { :entity => entity_url }
+          ]
+        )
+
+        post = nil
+        expect(lambda {
+          expect(lambda {
+            expect(lambda {
+              post = described_class.create(post_attrs)
+            }).to change(described_class, :count).by(1)
+          }).to change(TentD::Model::PostVersion, :count).by(1)
+        }).to change(TentD::Model::Mention, :count).by(1)
+
+        expect(post.mentions_dataset.count).to eql(1)
+        expect(post.latest_version.mentions_dataset.count).to eql(1)
+      end
 
       it "should divide published_at by 1000 if it's in miliseconds" do
-        post_attributes = {
+        post_attrs = post_attributes.merge(
           :published_at => Time.at(1349471384657),
-          :type => 'https://tent.io/types/post/status/v0.1.0',
-          :content => {}
-        }
-        post = described_class.create(post_attributes)
+        )
+        post = described_class.create(post_attrs)
         expect(post.published_at.to_time.to_i).to eql(1349471384)
       end
 
 
       it 'should send notification to all mentioned entities not already subscribed' do
         post_type = 'https://tent.io/types/post/status/v0.1.0'
-        post_attrs = Fabricate.build(:post).attributes.merge(
+        post_attrs = post_attributes.merge(
           :type => post_type,
           :mentions => [
             { :entity => subscribed_follower.entity },
@@ -42,9 +67,6 @@ describe TentD::Model::Post do
             { :entity => entity_url },
           ]
         )
-        post_attrs.delete(:id)
-        post_attrs.delete(:public_id)
-        post_attrs.delete(:user_id)
 
         notification_subscription = Fabricate(:notification_subscription, :follower => subscribed_follower, :type => post_type)
         queue = TestNotificationQueue.new
@@ -553,21 +575,35 @@ describe TentD::Model::Post do
           other_attachment = nil
 
           expect(lambda {
-            attachments_foreign_key = post.class.all_association_reflections.find { |a| a[:name] == :attachments }[:keys].first
-            first_attachment = Fabricate(:post_attachment,
-                                         attachments_foreign_key => post.id,
+            if post.kind_of?(TentD::Model::PostVersion)
+              base_attrs = {}
+            else
+              base_attrs = {
+                :post_id => post.id
+              }
+            end
+
+            first_attachment = Fabricate(:post_attachment, base_attrs.merge(
                                          :category => 'foo',
                                          :type => 'text/plain',
                                          :name => 'foobar.txt',
                                          :data => 'Chunky Bacon',
-                                         :size => 4)
-            other_attachment = Fabricate(:post_attachment,
-                                         attachments_foreign_key => post.id,
+                                         :size => 4))
+            other_attachment = Fabricate(:post_attachment, base_attrs.merge(
                                          :category => 'bar',
                                          :type => 'application/javascript',
                                          :name => 'barbaz.js',
                                          :data => 'alert("Chunky Bacon")',
-                                         :size => 8)
+                                         :size => 8))
+
+            if post.kind_of?(TentD::Model::PostVersion)
+              [first_attachment, other_attachment].each do |a|
+                post.db[:post_versions_attachments].insert(
+                  :post_attachment_id => a.id,
+                  :post_version_id => post.id
+                )
+              end
+            end
           }).to change(post.attachments_dataset, :count).by(2)
 
           post.update(:views => {

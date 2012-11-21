@@ -12,8 +12,8 @@ module TentD
       serialize_attributes :json, :content, :views
 
       one_to_many :permissions, :primary_key => :post_id, :key => :post_id
-      one_to_many :attachments, :class => PostAttachment
-      one_to_many :mentions
+      many_to_many :attachments, :class => PostAttachment, :join_table => :post_versions_attachments, :left_key => :post_version_id, :right_key => :post_attachment_id
+      many_to_many :mentions, :join_table => :post_versions_mentions, :left_key => :post_version_id, :right_key => :mention_id
 
       many_to_one :post
       many_to_one :app

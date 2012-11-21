@@ -64,12 +64,15 @@ module TentD
 
         mentions.to_a.each do |mention|
           next unless mention[:entity]
-          Mention.create(
+          mention = Mention.create(
             :post_id => post.id,
             :entity => mention[:entity],
             :mentioned_post_id => mention[:post],
             :original_post => post.original,
-            :post_version_id => post.latest_version(:fields => [:id]).id
+          )
+          mention.db[:post_versions_mentions].insert(
+            :post_version_id => post.latest_version(:fields => [:id]).id,
+            :mention_id => mention.id
           )
         end
 
@@ -90,14 +93,25 @@ module TentD
         current_version = latest_version(:fields => [:id])
 
         if mentions_dataset.any?
-          mentions_dataset.update(:post_id => nil, :post_version_id => last_version.id)
+          query = <<SQL
+          INSERT INTO post_versions_mentions (mention_id, post_version_id)
+          SELECT mentions.id AS mention_id, ? AS post_version_id
+          FROM mentions
+          WHERE mentions.post_id = ?;
+SQL
+          mentions_dataset.db[:post_versions_mentions].with_sql(query, latest_version.id, id).insert
+          mentions_dataset.where(:post_id => id).count
+          mentions_dataset.update(:post_id => nil)
           mentions.to_a.each do |mention|
             next unless mention[:entity]
-            Mention.create(
+            m = Mention.create(
               :post_id => self.id,
               :entity => mention[:entity],
               :mentioned_post_id => mention[:post],
               :original_post => self.original,
+            )
+            Mention.db[:post_versions_mentions].insert(
+              :mention_id => m.id,
               :post_version_id => current_version.id
             )
           end

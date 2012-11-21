@@ -935,7 +935,8 @@ describe TentD::API::Posts do
     context 'with params[:version]' do
       it 'should get specified version of attachment' do
         post_version = Fabricate(:post_version, :post => post, :public_id => post.public_id, :version => 12)
-        new_attachment = Fabricate(:post_attachment, :post => nil, :post_version => post_version, :data => Base64.encode64('ChunkyBacon'))
+        new_attachment = Fabricate(:post_attachment, :post => nil, :data => Base64.encode64('ChunkyBacon'))
+        new_attachment.db[:post_versions_attachments].insert(:post_version_id => post_version.id, :post_attachment_id => new_attachment.id)
 
         expect(post.latest_version(:fields => [:id]).id).to eq(post_version.id)
         expect(new_attachment.name).to eq(attachment.name)
@@ -1019,7 +1020,7 @@ describe TentD::API::Posts do
 
             existing_mentions.each do |m|
               m.reload
-              expect(m.post_version_id).to_not be_nil
+              expect(m.post_versions_dataset.count).to eql(1)
               expect(m.post_id).to be_nil
             end
           }).to change(TentD::Model::Mention, :count).by(2)
@@ -1032,6 +1033,9 @@ describe TentD::API::Posts do
                                  { :filename => 'a', :content_type => 'application/json', :content => 'asdf123' },
                                  { :filename => 'b', :content_type => 'text/plain', :content => '1234' }],
                         :bar => { :filename => 'bar.html', :content_type => 'text/html', :content => '54321' } }
+
+        last_version = post.latest_version
+
         expect(lambda {
           expect(lambda {
             expect(lambda {
@@ -1040,7 +1044,7 @@ describe TentD::API::Posts do
 
               existing_attachments.each do |a|
                 a.reload
-                expect(a.post_version_id).to_not be_nil
+                expect(a.post_versions_dataset.count).to eql(1)
                 expect(a.post_id).to be_nil
               end
             }).to change(TentD::Model::Post, :count).by(0)
@@ -1049,6 +1053,8 @@ describe TentD::API::Posts do
 
         post.reload
         expect(post.attachments.map(&:id)).to eq(post.latest_version.attachments.map(&:id))
+
+        expect(last_version.attachments.map(&:id)).to eql(existing_attachments.map(&:id))
       end
     end
 

@@ -4,7 +4,7 @@ module TentD
       include Serializable
 
       many_to_one :post
-      many_to_one :post_version
+      many_to_many :post_versions, :class => PostVersion, :join_table => :post_versions_attachments, :left_key => :post_attachment_id, :right_key => :post_version_id
 
       def before_create
         self.created_at = self.updated_at = Time.now
