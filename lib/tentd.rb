@@ -11,7 +11,6 @@ module TentD
 
   def self.new(options={})
     if database_url = options[:database] || ENV['DATABASE_URL']
-      DataMapper.setup(:default, database_url)
       Sequel.connect(database_url, :logger => Logger.new(ENV['DB_LOGFILE'] || STDOUT))
     end
 

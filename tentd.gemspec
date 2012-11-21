@@ -25,12 +25,6 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency 'pg'
   gem.add_runtime_dependency 'sequel'
 
-  # DataMapper stuff
-  gem.add_runtime_dependency 'data_mapper', '~> 1.2.0'
-  gem.add_runtime_dependency 'dm-ar-finders', '~> 1.2.0'
-  gem.add_runtime_dependency 'dm-constraints', '~> 1.2.0'
-  gem.add_runtime_dependency 'dm-postgres-adapter', '~> 1.2.0'
-
   gem.add_development_dependency 'rack-test', '~> 0.6.1'
   gem.add_development_dependency 'rspec', '~> 2.11'
   gem.add_development_dependency 'bundler'
