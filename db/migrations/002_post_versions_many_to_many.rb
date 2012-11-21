@@ -6,7 +6,7 @@ Sequel.migration do
 
       index [:post_version_id], :name=>:index_post_versions_attachments_post_version
       index [:post_attachment_id], :name=>:index_post_versions_attachments_attachment
-      index [:post_version_id, :post_attachment_id], :name => :index_post_versions_attachments
+      index [:post_version_id, :post_attachment_id], :name => :index_post_versions_attachments, :unique => true
     end
 
     create_table(:post_versions_mentions) do
@@ -15,7 +15,7 @@ Sequel.migration do
 
       index [:post_version_id], :name=>:index_post_versions_mentions_post_version
       index [:mention_id], :name=>:index_post_versions_mentions_mention_id
-      index [:post_version_id, :mention_id], :name => :index_post_versions_mentions
+      index [:post_version_id, :mention_id], :name => :index_post_versions_mentions, :unique => true
     end
 
     sql = <<SQL
