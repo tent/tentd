@@ -2,6 +2,7 @@ require 'jdbc/postgres' if RUBY_ENGINE == 'jruby'
 
 require 'sequel'
 require 'sequel/plugins/serialization'
+require 'tentd/sequel/plugins/paranoia'
 
 module TentD
   module Model

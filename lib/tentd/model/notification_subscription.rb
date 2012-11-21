@@ -59,17 +59,19 @@ module TentD
           end
         else
           NotificationSubscription.join(
-            Follower,
+            :followers,
             :notification_subscriptions__follower_id => :followers__id
           ).join(
             Permission,
             :permissions__follower_access_id => :followers__id
           ).join(
-            Post,
+            :posts,
             :permissions__post_id => :posts__id
           ).where(
             :notification_subscriptions__type_base => [TentType.new(type).base, 'all'],
-            :permissions__post_id => post.id
+            :permissions__post_id => post.id,
+            :followers__deleted_at => nil,
+            :posts__deleted_at => nil
           ).select(
             :notification_subscriptions__id,
             :notification_subscriptions__app_authorization_id,

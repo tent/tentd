@@ -4,6 +4,8 @@ module TentD
       include RandomPublicId
       include Serializable
 
+      plugin :paranoia
+
       one_to_many :permissions
 
       def before_create

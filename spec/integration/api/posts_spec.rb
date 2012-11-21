@@ -884,6 +884,10 @@ describe TentD::API::Posts do
           expect(last_response.status).to eq(200)
           expect(TentD::Model::Post.first(:id => post.id)).to be_nil
 
+          deleted_post = TentD::Model::Post.unfiltered.first(:id => post.id)
+          expect(deleted_post).to_not be_nil
+          expect(deleted_post.deleted_at).to_not be_nil
+
           deleted_post = post
           post = TentD::Model::Post.order(:id.asc).last
           expect(post.content['id']).to eq(deleted_post.public_id)

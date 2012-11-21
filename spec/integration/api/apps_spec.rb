@@ -372,6 +372,10 @@ describe TentD::API::Apps do
             delete "/apps/#{app.public_id}", params, env
             expect(last_response.status).to eq(200)
           }).to change(TentD::Model::App, :count).by(-1)
+
+          deleted_app = TentD::Model::App.unfiltered.first(:id => app.id)
+          expect(deleted_app).to_not be_nil
+          expect(deleted_app.deleted_at).to_not be_nil
         end
       end
     end

@@ -12,11 +12,12 @@ module TentD
           TentD::Model::App.first(:mac_key_id => mac_key_id)
         when 'u'
           TentD::Model::AppAuthorization.qualify.join(
-            TentD::Model::App,
+            :apps,
             :app_authorizations__app_id => :apps__id
           ).where(
             :apps__user_id => TentD::Model::User.current.id,
-            :app_authorizations__mac_key_id => mac_key_id
+            :app_authorizations__mac_key_id => mac_key_id,
+            :apps__deleted_at => nil
           ).first
         end
         env.potential_auth = Model::Following.first(:mac_key_id => mac_key_id) unless env.potential_auth

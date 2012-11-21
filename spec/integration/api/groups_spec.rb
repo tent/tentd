@@ -201,6 +201,10 @@ describe TentD::API::Groups do
         group = Fabricate(:group, :name => 'foo-bar-baz')
         expect(lambda { delete "/groups/#{group.public_id}", params, env }).
           to change(TentD::Model::Group, :count).by(-1)
+
+        deleted_group = TentD::Model::Group.unfiltered.first(:id => group.id)
+        expect(deleted_group).to_not be_nil
+        expect(deleted_group.deleted_at).to_not be_nil
       end
 
       it 'should returh 404 if group does not exist' do

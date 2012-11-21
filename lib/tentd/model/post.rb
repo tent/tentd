@@ -9,6 +9,7 @@ module TentD
       include Permissible
       include PermissiblePost
 
+      plugin :paranoia
       plugin :serialization
       serialize_attributes :pg_array, :licenses
       serialize_attributes :json, :content, :views

@@ -7,6 +7,7 @@ module TentD
       include RandomPublicId
       include Serializable
 
+      plugin :paranoia
       plugin :serialization
       serialize_attributes :pg_array, :redirect_uris
       serialize_attributes :json, :scopes

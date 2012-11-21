@@ -9,6 +9,7 @@ module TentD
       include TypeProperties
       include Permissible
 
+      plugin :paranoia
       plugin :serialization
       serialize_attributes :json, :content
 

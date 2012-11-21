@@ -1,6 +1,8 @@
 module TentD
   module Model
     class User < Sequel::Model(:users)
+      plugin :paranoia
+
       one_to_many :posts
       one_to_many :post_versions
       one_to_many :apps

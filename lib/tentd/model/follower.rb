@@ -8,6 +8,7 @@ module TentD
       include Serializable
       include Permissible
 
+      plugin :paranoia
       plugin :serialization
       serialize_attributes :pg_array, :groups, :licenses
       serialize_attributes :json, :profile

@@ -687,6 +687,10 @@ describe TentD::API::Followings do
           expect(lambda { delete "/followings/#{following.public_id}", params, env }).
             to change(TentD::Model::Following, :count).by(-1)
           http_stubs.verify_stubbed_calls
+
+          deleted_following = TentD::Model::Following.unfiltered.first(:id => following.id)
+          expect(deleted_following).to_not be_nil
+          expect(deleted_following.deleted_at).to_not be_nil
         end
       end
 

@@ -210,7 +210,7 @@ describe TentD::API::Followers do
         "mac_timestamp_delta" => follower.mac_timestamp_delta,
         "types" => ["https://tent.io/types/post/status/v0.1.x#full", "https://tent.io/types/post/photo/v0.1.x#meta"]
       }
-      follower.destroy
+      TentD::Model::Follower.delete
       data
     end
 
@@ -536,6 +536,10 @@ describe TentD::API::Followers do
           delete "/followers/#{follower.public_id}", params, env
           expect(last_response.status).to eql(200)
         }).to change(TentD::Model::Follower, :count).by(-1)
+
+        deleted_follower = TentD::Model::Follower.unfiltered.first(:id => follower.id)
+        expect(deleted_follower).to_not be_nil
+        expect(deleted_follower.deleted_at).to_not be_nil
       end
 
       it 'should create post (notification)' do
