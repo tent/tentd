@@ -23,12 +23,16 @@ module TentD
       end
 
       def before_save
-        if scopes.to_a.map(&:to_s).include?('follow_ui') && follow_url
-          # TODO: fix this query
-          # _auths = app.user.apps.authorizations.all(:follow_url.not => nil, :id.not => id)
-          # _auths.each { |a| a.update(:scopes => a.scopes - ['follow_ui']) }
-        end
         self.notification_url = nil if notification_url.to_s == ''
+        super
+      end
+
+      def after_save
+        if scopes.to_a.map(&:to_s).include?('follow_ui') && follow_url
+          q = AppAuthorization.qualify.join(App, :app_authorizations__app_id => :apps__id).where(:apps__user_id => app.user_id).where(Sequel.~(:follow_url => nil)).where("app_authorizations.scopes @> ARRAY['follow_ui']").where(Sequel.~(:app_authorizations__id => id))
+          _auths = q.all
+          _auths.each { |a| a.update(:scopes => a.scopes - ['follow_ui']) }
+        end
         super
       end
 

@@ -14,6 +14,25 @@ describe TentD::Model::AppAuthorization do
     end
   end
 
+  it 'should only allow a single app authorization to have a follow_url' do
+    app = Fabricate(:app)
+
+    auth = Fabricate(:app_authorization,
+      :app => app,
+      :follow_url => 'https://example.com/ui',
+      :scopes => %w( follow_ui )
+    )
+
+    auth2 = Fabricate(:app_authorization,
+      :app => app,
+      :follow_url => 'https://example.com/ui2',
+      :scopes => %w( follow_ui )
+    )
+
+    expect(auth.reload.scopes).to be_empty
+    expect(auth2.reload.scopes).to eql(['follow_ui'])
+  end
+
   describe '#as_json' do
     let(:app_attributes) do
       {
