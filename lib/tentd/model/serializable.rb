@@ -34,13 +34,11 @@ module TentD
 
         if self.class.associations.include?(:attachments)
           if options[:view] && respond_to?(:views) && (conditions = (views[options[:view]] || {})['attachments'])
-            conditions.map! { |c| c.slice('category', 'name', 'type').inject({}) { |m,(k,v)| m[k.to_sym] = v; m } }.reject! { |c| c.empty? }
+            conditions.map! { |c|
+              c.slice('category', 'name', 'type').inject({}) { |m,(k,v)| m[k.to_sym] = v; m }
+            }.reject! { |c| c.empty? }
 
-            # TODO: this should be a single query
-            attrs[:attachments] = conditions.inject(nil) { |memo, c|
-              q = attachments_dataset.where(c)
-              memo ? memo += q.all : q.all
-            }.sort_by { |a| a.id }
+            attrs[:attachments] = attachments_dataset.where(Sequel.|(*conditions)).order(:id.asc).all
           else
             attrs[:attachments] = attachments.map { |a| a.as_json } unless options[:view] == 'meta'
           end
