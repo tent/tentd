@@ -1,21 +1,21 @@
 Sequel.migration do
   change do
-    create_table(:app_authorizations, :ignore_index_errors=>true) do
+    create_table(:app_authorizations) do
       primary_key :id
-      String :public_id, :size=>50, :null=>false
-      String :post_types, :default=>"{}", :text=>true
-      String :profile_info_types, :default=>"{}", :text=>true
-      String :scopes, :default=>"{}", :text=>true
-      String :token_code, :size=>50
-      String :mac_key_id, :size=>50
-      String :mac_key, :size=>50
-      String :mac_algorithm, :default=>"hmac-sha-256", :size=>50
-      Integer :mac_timestamp_delta
-      String :notification_url, :text=>true
-      String :follow_url, :text=>true
-      DateTime :created_at
-      DateTime :updated_at
-      Integer :app_id, :null=>false
+      column :public_id, "character varying(50)", :null=>false
+      column :post_types, "text[]", :default=>"{}"
+      column :profile_info_types, "text[]", :default=>"{}"
+      column :scopes, "text[]", :default=>"{}"
+      column :token_code, "character varying(50)"
+      column :mac_key_id, "character varying(50)"
+      column :mac_key, "character varying(50)"
+      column :mac_algorithm, "character varying(50)", :default=>"hmac-sha-256"
+      column :mac_timestamp_delta, "integer"
+      column :notification_url, "text"
+      column :follow_url, "text"
+      column :created_at, "timestamp without time zone"
+      column :updated_at, "timestamp without time zone"
+      column :app_id, "integer", :null=>false
       
       index [:app_id], :name=>:index_app_authorizations_app
       index [:mac_key_id], :name=>:unique_app_authorizations_mac_key_id, :unique=>true
@@ -23,113 +23,113 @@ Sequel.migration do
       index [:public_id], :name=>:unique_app_authorizations_upublic_id, :unique=>true
     end
     
-    create_table(:apps, :ignore_index_errors=>true) do
+    create_table(:apps) do
       primary_key :id
-      String :public_id, :size=>50, :null=>false
-      String :name, :text=>true, :null=>false
-      String :description, :text=>true
-      String :url, :text=>true, :null=>false
-      String :icon, :text=>true
-      String :redirect_uris, :default=>"{}", :text=>true
-      String :scopes, :default=>"{}", :text=>true
-      String :mac_key_id, :size=>50
-      String :mac_key, :size=>50
-      String :mac_algorithm, :default=>"hmac-sha-256", :size=>50
-      Integer :mac_timestamp_delta
-      DateTime :created_at
-      DateTime :updated_at
-      DateTime :deleted_at
-      Integer :user_id, :null=>false
+      column :public_id, "character varying(50)", :null=>false
+      column :name, "text", :null=>false
+      column :description, "text"
+      column :url, "text", :null=>false
+      column :icon, "text"
+      column :redirect_uris, "text[]", :default=>"{}"
+      column :scopes, "text", :default=>"{}"
+      column :mac_key_id, "character varying(50)"
+      column :mac_key, "character varying(50)"
+      column :mac_algorithm, "character varying(50)", :default=>"hmac-sha-256"
+      column :mac_timestamp_delta, "integer"
+      column :created_at, "timestamp without time zone"
+      column :updated_at, "timestamp without time zone"
+      column :deleted_at, "timestamp without time zone"
+      column :user_id, "integer", :null=>false
       
       index [:user_id], :name=>:index_apps_user
       index [:mac_key_id], :name=>:unique_apps_mac_key_id, :unique=>true
       index [:public_id], :name=>:unique_apps_upublic_id, :unique=>true
     end
     
-    create_table(:followers, :ignore_index_errors=>true) do
+    create_table(:followers) do
       primary_key :id
-      String :public_id, :size=>50, :null=>false
-      String :groups, :default=>"{}", :text=>true
-      String :entity, :text=>true, :null=>false
-      TrueClass :public, :default=>true
-      String :profile, :default=>"{}", :text=>true
-      String :licenses, :default=>"{}", :text=>true
-      String :notification_path, :text=>true, :null=>false
-      String :mac_key_id, :size=>50
-      String :mac_key, :size=>50
-      String :mac_algorithm, :default=>"hmac-sha-256", :size=>50
-      Integer :mac_timestamp_delta
-      DateTime :created_at
-      DateTime :updated_at
-      DateTime :deleted_at
-      Integer :user_id, :null=>false
+      column :public_id, "character varying(50)", :null=>false
+      column :groups, "text[]", :default=>"{}"
+      column :entity, "text", :null=>false
+      column :public, "boolean", :default=>true
+      column :profile, "text", :default=>"{}"
+      column :licenses, "text[]", :default=>"{}"
+      column :notification_path, "text", :null=>false
+      column :mac_key_id, "character varying(50)"
+      column :mac_key, "character varying(50)"
+      column :mac_algorithm, "character varying(50)", :default=>"hmac-sha-256"
+      column :mac_timestamp_delta, "integer"
+      column :created_at, "timestamp without time zone"
+      column :updated_at, "timestamp without time zone"
+      column :deleted_at, "timestamp without time zone"
+      column :user_id, "integer", :null=>false
       
       index [:user_id], :name=>:index_followers_user
       index [:mac_key_id], :name=>:unique_followers_mac_key_id, :unique=>true
       index [:public_id], :name=>:unique_followers_upublic_id, :unique=>true
     end
     
-    create_table(:followings, :ignore_index_errors=>true) do
+    create_table(:followings) do
       primary_key :id
-      String :public_id, :size=>50, :null=>false
-      String :remote_id, :size=>50
-      String :groups, :default=>"{}", :text=>true
-      String :entity, :text=>true, :null=>false
-      TrueClass :public, :default=>true
-      String :profile, :default=>"{}", :text=>true
-      String :licenses, :default=>"{}", :text=>true
-      String :mac_key_id, :size=>50
-      String :mac_key, :size=>50
-      String :mac_algorithm, :size=>50
-      Integer :mac_timestamp_delta
-      DateTime :created_at
-      DateTime :updated_at
-      DateTime :deleted_at
-      TrueClass :confirmed, :default=>true
-      Integer :user_id, :null=>false
+      column :public_id, "character varying(50)", :null=>false
+      column :remote_id, "character varying(50)"
+      column :groups, "text[]", :default=>"{}"
+      column :entity, "text", :null=>false
+      column :public, "boolean", :default=>true
+      column :profile, "text", :default=>"{}"
+      column :licenses, "text[]", :default=>"{}"
+      column :mac_key_id, "character varying(50)"
+      column :mac_key, "character varying(50)"
+      column :mac_algorithm, "character varying(50)"
+      column :mac_timestamp_delta, "integer"
+      column :created_at, "timestamp without time zone"
+      column :updated_at, "timestamp without time zone"
+      column :deleted_at, "timestamp without time zone"
+      column :confirmed, "boolean", :default=>true
+      column :user_id, "integer", :null=>false
       
       index [:user_id], :name=>:index_followings_user
       index [:public_id], :name=>:unique_followings_upublic_id, :unique=>true
     end
     
-    create_table(:groups, :ignore_index_errors=>true) do
+    create_table(:groups) do
       primary_key :id
-      String :public_id, :size=>50, :null=>false
-      String :name, :text=>true, :null=>false
-      DateTime :created_at
-      DateTime :updated_at
-      DateTime :deleted_at
-      Integer :user_id, :null=>false
+      column :public_id, "character varying(50)", :null=>false
+      column :name, "text", :null=>false
+      column :created_at, "timestamp without time zone"
+      column :updated_at, "timestamp without time zone"
+      column :deleted_at, "timestamp without time zone"
+      column :user_id, "integer", :null=>false
       
       index [:user_id], :name=>:index_groups_user
       index [:public_id], :name=>:unique_groups_upublic_id, :unique=>true
     end
     
-    create_table(:notification_subscriptions, :ignore_index_errors=>true) do
+    create_table(:notification_subscriptions) do
       primary_key :id
-      String :type_base, :text=>true, :null=>false
-      String :type_view, :size=>50
-      String :type_version, :size=>50
-      DateTime :created_at
-      DateTime :updated_at
-      Integer :user_id, :null=>false
-      Integer :app_authorization_id
-      Integer :follower_id
+      column :type_base, "text", :null=>false
+      column :type_view, "character varying(50)"
+      column :type_version, "character varying(50)"
+      column :created_at, "timestamp without time zone"
+      column :updated_at, "timestamp without time zone"
+      column :user_id, "integer", :null=>false
+      column :app_authorization_id, "integer"
+      column :follower_id, "integer"
       
       index [:app_authorization_id], :name=>:index_notification_subscriptions_app_authorization
       index [:follower_id], :name=>:index_notification_subscriptions_follower
       index [:user_id], :name=>:index_notification_subscriptions_user
     end
     
-    create_table(:permissions, :ignore_index_errors=>true) do
+    create_table(:permissions) do
       primary_key :id
-      TrueClass :visible, :default=>true
-      Integer :post_id
-      String :group_public_id, :size=>50
-      Integer :following_id
-      Integer :follower_visibility_id
-      Integer :follower_access_id
-      Integer :profile_info_id
+      column :visible, "boolean", :default=>true
+      column :post_id, "integer"
+      column :group_public_id, "character varying(50)"
+      column :following_id, "integer"
+      column :follower_visibility_id, "integer"
+      column :follower_access_id, "integer"
+      column :profile_info_id, "integer"
       
       index [:follower_access_id], :name=>:index_permissions_follower_access
       index [:follower_visibility_id], :name=>:index_permissions_follower_visibility
@@ -139,45 +139,45 @@ Sequel.migration do
       index [:profile_info_id], :name=>:index_permissions_profile_info
     end
     
-    create_table(:post_attachments, :ignore_index_errors=>true) do
+    create_table(:post_attachments) do
       primary_key :id
-      String :type, :text=>true, :null=>false
-      String :category, :text=>true, :null=>false
-      String :name, :text=>true, :null=>false
-      String :data, :text=>true, :null=>false
-      Integer :size, :null=>false
-      DateTime :created_at, :null=>false
-      DateTime :updated_at, :null=>false
-      Integer :post_id
-      Integer :post_version_id
+      column :type, "text", :null=>false
+      column :category, "text", :null=>false
+      column :name, "text", :null=>false
+      column :data, "text", :null=>false
+      column :size, "integer", :null=>false
+      column :created_at, "timestamp without time zone", :null=>false
+      column :updated_at, "timestamp without time zone", :null=>false
+      column :post_id, "integer"
+      column :post_version_id, "integer"
       
       index [:post_id], :name=>:index_post_attachments_post
       index [:post_version_id], :name=>:index_post_attachments_post_version
     end
     
-    create_table(:post_versions, :ignore_index_errors=>true) do
+    create_table(:post_versions) do
       primary_key :id
-      String :type_base, :text=>true, :null=>false
-      String :type_view, :size=>50
-      String :type_version, :size=>50
-      Integer :version, :null=>false
-      String :entity, :text=>true
-      String :public_id, :size=>50, :null=>false
-      TrueClass :public, :default=>false
-      String :licenses, :default=>"{}", :text=>true
-      String :content, :default=>"{}", :text=>true
-      String :views, :default=>"{}", :text=>true
-      DateTime :published_at
-      DateTime :received_at
-      DateTime :updated_at
-      DateTime :deleted_at
-      String :app_name, :text=>true
-      String :app_url, :text=>true
-      TrueClass :original, :default=>false
-      Integer :user_id, :null=>false
-      Integer :post_id, :null=>false
-      Integer :app_id
-      Integer :following_id
+      column :type_base, "text", :null=>false
+      column :type_view, "character varying(50)"
+      column :type_version, "character varying(50)"
+      column :version, "integer", :null=>false
+      column :entity, "text"
+      column :public_id, "character varying(50)", :null=>false
+      column :public, "boolean", :default=>false
+      column :licenses, "text[]", :default=>"{}"
+      column :content, "text", :default=>"{}"
+      column :views, "text", :default=>"{}"
+      column :published_at, "timestamp without time zone"
+      column :received_at, "timestamp without time zone"
+      column :updated_at, "timestamp without time zone"
+      column :deleted_at, "timestamp without time zone"
+      column :app_name, "text"
+      column :app_url, "text"
+      column :original, "boolean", :default=>false
+      column :user_id, "integer", :null=>false
+      column :post_id, "integer", :null=>false
+      column :app_id, "integer"
+      column :following_id, "integer"
       
       index [:app_id], :name=>:index_post_versions_app
       index [:following_id], :name=>:index_post_versions_following
@@ -185,27 +185,27 @@ Sequel.migration do
       index [:user_id], :name=>:index_post_versions_user
     end
     
-    create_table(:posts, :ignore_index_errors=>true) do
+    create_table(:posts) do
       primary_key :id
-      String :public_id, :size=>50, :null=>false
-      String :type_base, :text=>true, :null=>false
-      String :type_view, :size=>50
-      String :type_version, :size=>50
-      String :entity, :text=>true
-      TrueClass :public, :default=>false
-      String :licenses, :default=>"{}", :text=>true
-      String :content, :default=>"{}", :text=>true
-      String :views, :default=>"{}", :text=>true
-      DateTime :published_at
-      DateTime :received_at
-      DateTime :updated_at
-      DateTime :deleted_at
-      String :app_name, :text=>true
-      String :app_url, :text=>true
-      TrueClass :original, :default=>false
-      Integer :user_id, :null=>false
-      Integer :app_id
-      Integer :following_id
+      column :public_id, "character varying(50)", :null=>false
+      column :type_base, "text", :null=>false
+      column :type_view, "character varying(50)"
+      column :type_version, "character varying(50)"
+      column :entity, "text"
+      column :public, "boolean", :default=>false
+      column :licenses, "text[]", :default=>"{}"
+      column :content, "text", :default=>"{}"
+      column :views, "text", :default=>"{}"
+      column :published_at, "timestamp without time zone"
+      column :received_at, "timestamp without time zone"
+      column :updated_at, "timestamp without time zone"
+      column :deleted_at, "timestamp without time zone"
+      column :app_name, "text"
+      column :app_url, "text"
+      column :original, "boolean", :default=>false
+      column :user_id, "integer", :null=>false
+      column :app_id, "integer"
+      column :following_id, "integer"
       
       index [:app_id], :name=>:index_posts_app
       index [:following_id], :name=>:index_posts_following
@@ -213,33 +213,33 @@ Sequel.migration do
       index [:public_id, :entity], :name=>:unique_posts_upublic_id, :unique=>true
     end
     
-    create_table(:profile_info, :ignore_index_errors=>true) do
+    create_table(:profile_info) do
       primary_key :id
-      String :type_base, :text=>true, :null=>false
-      String :type_view, :size=>50
-      String :type_version, :size=>50
-      TrueClass :public, :default=>false
-      String :content, :default=>"{}", :text=>true
-      DateTime :created_at
-      DateTime :updated_at
-      DateTime :deleted_at
-      Integer :user_id, :null=>false
+      column :type_base, "text", :null=>false
+      column :type_view, "character varying(50)"
+      column :type_version, "character varying(50)"
+      column :public, "boolean", :default=>false
+      column :content, "text", :default=>"{}"
+      column :created_at, "timestamp without time zone"
+      column :updated_at, "timestamp without time zone"
+      column :deleted_at, "timestamp without time zone"
+      column :user_id, "integer", :null=>false
       
       index [:user_id], :name=>:index_profile_info_user
     end
     
     create_table(:users) do
       primary_key :id
-      DateTime :created_at
-      DateTime :updated_at
-      DateTime :deleted_at
+      column :created_at, "timestamp without time zone"
+      column :updated_at, "timestamp without time zone"
+      column :deleted_at, "timestamp without time zone"
     end
     
-    create_table(:mentions, :ignore_index_errors=>true) do
+    create_table(:mentions) do
       primary_key :id
-      String :entity, :text=>true, :null=>false
-      TrueClass :original_post, :default=>false
-      String :mentioned_post_id, :size=>50
+      column :entity, "text", :null=>false
+      column :original_post, "boolean", :default=>false
+      column :mentioned_post_id, "character varying(50)"
       foreign_key :post_id, :posts, :key=>[:id], :on_delete=>:cascade, :on_update=>:cascade
       foreign_key :post_version_id, :post_versions, :key=>[:id], :on_delete=>:cascade, :on_update=>:cascade
       
