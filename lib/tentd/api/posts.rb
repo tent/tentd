@@ -176,31 +176,6 @@ module TentD
           post.published_at = Time.at(post.published_at.to_i) if post.published_at
           post.received_at = Time.at(post.received_at.to_i) if post.received_at
         end
-
-        def assign_permissions(post, permissions)
-          return unless post.original && permissions
-          if permissions.groups && permissions.groups.kind_of?(Array)
-            permissions.groups.each do |g|
-              next unless g.id
-              group = Model::Group.first(:public_id => g.id, :fields => [:id])
-              post.permissions.create(:group => group) if group
-            end
-          end
-
-          if permissions.entities && permissions.entities.kind_of?(Hash)
-            permissions.entities.each do |entity,visible|
-              next unless visible
-              followers = Model::Follower.all(:entity => entity, :fields => [:id])
-              followers.each do |follower|
-                post.permissions.create(:follower_access => follower)
-              end
-              followings = Model::Following.all(:entity => entity, :fields => [:id])
-              followings.each do |following|
-                post.permissions.create(:following => following)
-              end
-            end
-          end
-        end
       end
 
       class Update < Middleware
