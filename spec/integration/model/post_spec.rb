@@ -749,14 +749,6 @@ describe TentD::Model::Post do
     expect(post.public_id).to_not be_nil
   end
 
-  xit "should ensure public_id is unique" do
-    first_post = Fabricate(:post)
-    post = Fabricate.build(:post, :public_id => first_post.public_id)
-    post.save
-    expect(post).to be_saved
-    expect(post.public_id).to_not eql(first_post.public_id)
-  end
-
   describe "can_notify?" do
     let(:post) { Fabricate.build(:post) }
 
