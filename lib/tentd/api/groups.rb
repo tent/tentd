@@ -98,7 +98,7 @@ module TentD
               env.notify_action = 'create'
               env.notify_instance = group
             end
-          rescue DataObjects::IntegrityError # hack to ignore duplicate groups
+          rescue Sequel::DatabaseError # hack to ignore duplicate groups
             env.response = Model::Group.first(:public_id => data.public_id)
           end
           env

@@ -170,6 +170,15 @@ describe TentD::API::Groups do
           to change(TentD::Model::Group, :count).by(1)
       end
 
+      it 'should return existing group when public_id taken' do
+        group = Fabricate(:group)
+        expect(lambda {
+          json_post "/groups", { :name => 'bacon-bacon', :public_id => group.public_id }, env
+          expect(last_response.status).to eq(200)
+          expect(Yajl::Parser.parse(last_response.body)['id']).to eq(group.public_id)
+        }).to_not change(TentD::Model::Group, :count)
+      end
+
       it 'should create group with specified public_id' do
         TentD::Model::Group.destroy
         data = {
