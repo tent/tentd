@@ -55,7 +55,7 @@ module TentD
 
       def self.create(data, options={})
         if data[:published_at] && ((data[:published_at].to_time.to_i - Time.now.to_i) > 1000000000)
-          # time givin in miliseconds instead of seconds
+          # time given in milliseconds instead of seconds
           data[:published_at] = Time.at(data[:published_at].to_time.to_i / 1000) 
         end
 
