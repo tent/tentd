@@ -528,6 +528,29 @@ describe TentD::Model::Post do
         it 'should only return public attributes' do
           expect(post.as_json).to eql(public_attributes)
         end
+
+        context 'when mentions exist' do
+          it 'should return public attributes with mentions' do
+            if post.kind_of?(TentD::Model::PostVersion)
+              mention = Fabricate(:mention, :mentioned_post_id => Fabricate(:post).id)
+              post.db[:post_versions_mentions].insert(
+                :mention_id => mention.id,
+                :post_version_id => post.id
+              )
+            else
+              mention = Fabricate(:mention, :post => post, :mentioned_post_id => Fabricate(:post).id)
+            end
+
+            res = post.as_json
+            mentions = res.delete(:mentions)
+            expected_attributes = public_attributes.dup
+            expected_attributes.delete(:mentions)
+
+            expect(res).to eq(expected_attributes)
+            expect(mentions.size).to eq(1)
+            expect(mentions.first).to eql({ :entity => mention.entity, :post => mention.mentioned_post_id })
+          end
+        end
       end
 
       context 'with options[:permissions] = true' do
