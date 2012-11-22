@@ -63,10 +63,10 @@ describe TentD::API::Profile do
           profile_infos << Fabricate(:basic_profile_info, :public => false, :user_id => other_user.id)
 
           json_get '/profile', params, env
-          expect(last_response.body).to eql({
+          expect(Yajl::Parser.parse(last_response.body)).to eql(Hashie::Mash.new(
             "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json),
             "#{ profile_infos.last.type.uri }" => profile_infos.last.content.merge(:permissions => profile_infos.first.permissions_json)
-          }.to_json)
+          ).to_hash)
         end
 
         it 'should not return profile info for another user' do
