@@ -157,7 +157,7 @@ module TentD
         end
 
         def anonymous_publisher?(auth, post)
-          !auth && post.entity && !Model::Following.where(:entity => post.entity).any?
+          !auth && post.entity && !Model::Following.where(:user_id => Model::User.current.id, :entity => post.entity).any?
         end
 
         def set_app_details(post)

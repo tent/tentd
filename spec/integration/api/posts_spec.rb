@@ -940,6 +940,24 @@ describe TentD::API::Posts do
         json_post "/posts", post_attributes.merge(:entity => 'https://example.org'), env.merge('tent.entity' => 'https://example.org')
         expect(last_response.status).to eq(403)
       end
+
+      context 'when following belongs to another user' do
+        it 'should allow post by entity' do
+          entity = 'https://other.example.com'
+          following = Fabricate(:following, :entity => entity, :user_id => other_user.id)
+
+          post_attributes = p.attributes
+          post_attributes[:id] = rand(36 ** 6).to_s(36)
+          post_attributes[:type] = p.type.uri
+          json_post "/posts", post_attributes.merge(:entity => entity), env
+          expect(last_response.status).to eq(200)
+          body = JSON.parse(last_response.body)
+          post = TentD::Model::Post.order(:id.asc).last
+          expect(body['id']).to eq(post.public_id)
+          expect(post.public_id).to eq(post_attributes[:id])
+          expect(post.user_id).to eq(current_user.id)
+        end
+      end
     end
   end
 
