@@ -71,7 +71,7 @@ module TentD
         saved = !!update(data.slice(*self.class.public_attributes))
 
         if saved && data[:post_types] && data[:post_types] != _post_types
-          notification_subscriptions_dataset.where(Sequel.~(:type_base => post_types.map { |t| TentType.new(t).base })).destroy
+          notification_subscriptions_dataset.where(:user_id => User.current.id).where(Sequel.~(:type_base => post_types.map { |t| TentType.new(t).base })).destroy
 
           data[:post_types].map { |t| TentType.new(t) }.each do |type|
             next if notification_subscriptions_dataset.first(:type_base => type.base)
