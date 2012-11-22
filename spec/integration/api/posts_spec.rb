@@ -25,6 +25,8 @@ describe TentD::API::Posts do
 
   let(:env) { Hash.new }
   let(:params) { Hash.new }
+  let(:current_user) { TentD::Model::User.current }
+  let(:other_user) { TentD::Model::User.create }
 
   describe 'GET /notifications/:following_id' do
     context 'when following' do
@@ -45,11 +47,22 @@ describe TentD::API::Posts do
         expect(last_response.body).to_not eq(params[:challenge])
       end
     end
+
+    context 'when another user following' do
+      it 'should return 404' do
+        following = Fabricate(:following, :user_id => other_user.id)
+        params[:challenge] = '123'
+        json_get "/notifications/#{following.public_id}", params, env
+        expect(last_response.status).to eq(404)
+        expect(last_response.body).to_not eq(params[:challenge])
+      end
+    end
   end
 
   describe 'GET /posts/count' do
     it_should_get_count = proc do
       it 'should return count of posts' do
+        post = Fabricate(:post, :public => true, :user_id => other_user.id)
         post = Fabricate(:post, :public => true)
         json_get '/posts/count', params, env
         expect(last_response.body).to eq(1.to_json)
@@ -65,7 +78,6 @@ describe TentD::API::Posts do
         params[:post_types] = type.uri
         json_get '/posts/count', params, env
         expect(last_response.body).to eq(1.to_json)
-
       end
     end
 
@@ -195,6 +207,12 @@ describe TentD::API::Posts do
         it "should not find existing post by actual id" do
           post = Fabricate(:post, :public => true)
           json_get "/posts/#{post.id}"
+          expect(last_response.status).to eq(404)
+        end
+
+        it "should not find post belonging to another user" do
+          post = Fabricate(:post, :public => true, :user_id => other_user.id)
+          json_get "/posts/#{post.public_id}"
           expect(last_response.status).to eq(404)
         end
 
@@ -389,6 +407,15 @@ describe TentD::API::Posts do
           json_get '/posts', params, env
           expect(JSON.parse(last_response.body).size).to eq(1)
         end
+      end
+
+      it "should only return posts for current user" do
+        post = Fabricate(:post, :public => post_public?)
+        other_post = Fabricate(:post, :public => post_public?, :user_id => other_user.id)
+        json_get "/posts", params, env
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(1)
+        expect(body.first['id']).to eq(post.public_id)
       end
 
       it "should filter by params[:post_types]" do
@@ -650,6 +677,7 @@ describe TentD::API::Posts do
         post = TentD::Model::Post.order(:id.asc).last
         expect(post.app_name).to eq(application.name)
         expect(post.app_url).to eq(application.url)
+        expect(post.user_id).to eq(current_user.id)
         body = JSON.parse(last_response.body)
         expect(body['id']).to eq(post.public_id)
         expect(body['app']).to eq('url' => application.url, 'name' => application.name)
@@ -871,6 +899,14 @@ describe TentD::API::Posts do
           expect(last_response.status).to eq(200)
           expect(TentD::Model::Post.first(:id => p.id)).to be_nil
         end
+
+        it "should not trigger a post deletion for another user" do
+          env['current_auth'] = following
+          p.update(:user_id => other_user.id)
+          json_post "/notifications/#{following.public_id}", post_attributes, env
+          expect(TentD::Model::Post.first(:id => p.id)).to_not be_nil
+          expect(last_response.status).to eq(200)
+        end
       end
     end
 
@@ -894,6 +930,7 @@ describe TentD::API::Posts do
         post = TentD::Model::Post.order(:id.asc).last
         expect(body['id']).to eq(post.public_id)
         expect(post.public_id).to eq(post_attributes[:id])
+        expect(post.user_id).to eq(current_user.id)
       end
 
       it 'should not allow posting as the entity' do
@@ -927,6 +964,17 @@ describe TentD::API::Posts do
           expect(post.content['id']).to eq(deleted_post.public_id)
           expect(post.type.base).to eq('https://tent.io/types/post/delete')
           expect(post.type_version).to eq('0.1.0')
+        end
+      end
+
+      context 'when post belongs to another user' do
+        let!(:post) { Fabricate(:post, :original => true, :user_id => other_user.id) }
+
+        it 'should return 404' do
+          expect(lambda {
+            delete "/posts/#{post.public_id}", params, env
+            expect(last_response.status).to eq(404)
+          }).to_not change(TentD::Model::Post, :count)
         end
       end
 
@@ -997,6 +1045,15 @@ describe TentD::API::Posts do
       get "/posts/asdf/attachments/asdf"
       expect(last_response.status).to eq(404)
     end
+
+    context 'when post belongs to another user' do
+      let(:post) { Fabricate(:post, :user_id => other_user.id) }
+
+      it 'should return 404' do
+        get "/posts/#{post.public_id}/attachments/#{attachment.name}", {}, 'HTTP_ACCEPT' => attachment.type
+        expect(last_response.status).to eq(404)
+      end
+    end
   end
 
   describe 'PUT /posts/:post_id' do
@@ -1004,6 +1061,20 @@ describe TentD::API::Posts do
 
     context 'when authorized' do
       before { authorize!(:write_posts) }
+
+      context 'when post belongs to another user' do
+        let(:post) { Fabricate(:post, :user_id => other_user.id) }
+
+        it 'should return 404' do
+          post_attributes = {
+            :content => {
+              "text" => "Foo Bar Baz"
+            }
+          }
+          json_put "/posts/#{post.public_id}", post_attributes, env
+          expect(last_response.status).to eq(404)
+        end
+      end
 
       it 'should update post' do
         Fabricate(:post_attachment, :post => post)

@@ -10,7 +10,7 @@ module TentD
             env.params[key] = nil
             memo
           }
-          posts = Model::Post.select(:id, :public_id, :entity).where(:public_id => id_mapping.keys).all
+          posts = Model::Post.select(:id, :public_id, :entity).where(:user_id => Model::User.current.id, :public_id => id_mapping.keys).all
           id_mapping.each_pair do |public_id, key|
             entity = env.params["#{key}_entity"]
             entity ||= env['tent.entity']
@@ -219,7 +219,7 @@ module TentD
       class Destroy < Middleware
         def action(env)
           authorize_env!(env, :write_posts)
-          if (post = TentD::Model::Post.first(:id => env.params.post_id)) && post.destroy
+          if (post = TentD::Model::Post.first(:user_id => Model::User.current.id, :id => env.params.post_id)) && post.destroy
             raise Unauthorized unless post.original
             env.response = ''
             env.notify_deleted_post = post
@@ -290,7 +290,7 @@ module TentD
 
       class ConfirmFollowing < Middleware
         def action(env)
-          if Model::Following.where(:public_id => env.params.following_id).any?
+          if Model::Following.where(:user_id => Model::User.current.id, :public_id => env.params.following_id).any?
             [200, { 'Content-Type' => 'text/plain' }, [env.params.challenge]]
           else
             [404, {}, []]
@@ -306,7 +306,7 @@ module TentD
             when 'https://tent.io/types/post/profile'
               Notifications.update_following_profile(:following_id => post.following.id)
             when 'https://tent.io/types/post/delete'
-              if deleted_post = Model::Post.first(:public_id => post.content['id'], :following_id => env.current_auth.id)
+              if deleted_post = Model::Post.first(:user_id => Model::User.current.id, :public_id => post.content['id'], :following_id => env.current_auth.id)
                 deleted_post.destroy
               end
             end
