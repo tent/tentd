@@ -1,7 +1,138 @@
 require 'spec_helper'
+require 'hashie'
 
 describe TentD::Model::Post do
   let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
+  let(:current_user) { TentD::Model::User.current }
+  let(:other_user) { TentD::Model::User.create }
+
+  describe '#assign_permissions(permissions)' do
+    let(:post) { Fabricate(:post) }
+
+    should_create_permission = proc {
+      it 'should create permission' do
+        expect(lambda {
+          post.assign_permissions(permissions)
+        }).to change(TentD::Model::Permission, :count).by(1)
+      end
+    }
+
+    should_not_create_permission = proc {
+      it 'should not create permission' do
+        expect(lambda {
+          post.assign_permissions(permissions)
+        }).to_not change(TentD::Model::Permission, :count)
+      end
+    }
+
+    context 'with groups' do
+      let(:permissions) {
+        Hashie::Mash.new(
+          :groups => [Hashie::Mash.new(:id => group.public_id)]
+        )
+      }
+
+      context 'when group exists' do
+        let(:group) { Fabricate(:group) }
+
+        context &should_create_permission
+
+        context 'when group belongs to another user' do
+          let(:group) { Fabricate(:group, :user_id => other_user.id) }
+
+          context &should_not_create_permission
+        end
+      end
+
+      context 'when group does not exist' do
+        let(:group) { Hashie::Mash.new(:public_id => 'some-id') }
+
+        context &should_not_create_permission
+      end
+    end
+
+    context 'with follower entities' do
+      let(:permissions) {
+        Hashie::Mash.new(
+          :entities => {
+            follower.entity => true
+          }
+        )
+      }
+
+      context 'when follower exists' do
+        let(:follower) { Fabricate(:follower) }
+
+        context &should_create_permission
+
+        context 'when follower belongs to alother user' do
+          let(:follower) { Fabricate(:follower, :user_id => other_user.id) }
+
+          context &should_not_create_permission
+        end
+      end
+
+      context 'when follower does not exist' do
+        let(:follower) { Hashie::Mash.new(:entity => 'some-entity') }
+
+        context &should_not_create_permission
+      end
+    end
+
+    context 'with following entities' do
+      let(:permissions) {
+        Hashie::Mash.new(
+          :entities => {
+            following.entity => true
+          }
+        )
+      }
+
+      context 'when following exists' do
+        let(:following) { Fabricate(:following) }
+
+        context &should_create_permission
+
+        context 'when following belongs to another user' do
+          let(:following) { Fabricate(:following, :user_id => other_user.id) }
+
+          context &should_not_create_permission
+        end
+      end
+
+      context 'when following does not exist' do
+        let(:following) { Hashie::Mash.new(:entity => 'some-entity') }
+
+        context &should_not_create_permission
+      end
+    end
+
+    context 'with public' do
+      let(:permissions) {
+        Hashie::Mash.new(
+          :public => is_public
+        )
+      }
+
+      context 'when true' do
+        let(:is_public) { true }
+
+        it 'should set post to public' do
+          post.assign_permissions(permissions)
+          expect(post.reload.public).to be_true
+        end
+      end
+
+      context 'when false' do
+        let(:is_public) { false }
+
+        it 'should set post to private' do
+          post.assign_permissions(permissions)
+          expect(post.reload.public).to be_false
+        end
+      end
+    end
+  end
 
   describe '.create(data)' do
     context 'when posted on behalf of this server (original)' do

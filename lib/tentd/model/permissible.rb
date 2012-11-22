@@ -32,7 +32,7 @@ module TentD
         if permissions.groups && permissions.groups.kind_of?(Array)
           permissions.groups.each do |g|
             next unless g.id
-            next unless group = Model::Group.select(:id).first(:public_id => g.id)
+            next unless group = Group.select(:id).first(:user_id => User.current.id, :public_id => g.id)
             Permission.create(
               self.class.send(:permissions_relationship_foreign_key) => self.id,
               :group => group
@@ -43,14 +43,14 @@ module TentD
         if permissions.entities && permissions.entities.kind_of?(Hash)
           permissions.entities.each do |entity,visible|
             next unless visible
-            followers = Model::Follower.select(:id).where(:entity => entity).all
+            followers = Follower.select(:id).where(:user_id => User.current.id, :entity => entity).all
             followers.each do |follower|
               Permission.create(
                 self.class.send(:permissions_relationship_foreign_key) => self.id,
                 :follower_access => follower
               )
             end
-            followings = Model::Following.select(:id).where(:entity => entity).all
+            followings = Following.select(:id).where(:user_id => User.current.id, :entity => entity).all
             followings.each do |following|
               Permission.create(
                 self.class.send(:permissions_relationship_foreign_key) => self.id,
