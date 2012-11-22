@@ -15,6 +15,8 @@ describe TentD::API::Followings do
 
   let(:env) { Hash.new }
   let(:params) { Hash.new }
+  let(:current_user) { TentD::Model::User.current }
+  let(:other_user) { TentD::Model::User.create }
 
   def stub_notification_http!
     http_stubs.post('/notifications') { [200, {}, []] }
@@ -23,6 +25,7 @@ describe TentD::API::Followings do
   describe 'GET /followings/count' do
     it 'should return count of followings' do
       following = Fabricate(:following, :public => true)
+      other_following = Fabricate(:following, :public => true, :user_id => other_user.id)
       json_get '/followings/count', params, env
       expect(last_response.body).to eql(1.to_json)
     end
@@ -43,7 +46,7 @@ describe TentD::API::Followings do
 
     with_params = proc do
       it 'should order id desc' do
-        TentD::Model::Following.destroy
+        TentD::Model::Following.delete
         first_following = Fabricate(:following, :public => true)
         last_following = Fabricate(:following, :public => true)
 
@@ -51,6 +54,18 @@ describe TentD::API::Followings do
         body = JSON.parse(last_response.body)
         body_ids = body.map { |i| i['id'] }
         expect(body_ids).to eql([last_following.public_id, first_following.public_id])
+      end
+
+      it 'should only return followings for current user' do
+        TentD::Model::Following.delete
+        following = Fabricate(:following, :public => true)
+        other_following = Fabricate(:following, :public => true, :user_id => other_user.id)
+
+        json_get "/followings", params, env
+        body = JSON.parse(last_response.body)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids.size).to eql(1)
+        expect(body_ids).to eql([following.public_id])
       end
 
       context '[:entity]' do
@@ -294,6 +309,15 @@ describe TentD::API::Followings do
         json_get "/followings/invalid-id", params, env
         expect(last_response.status).to eql(403)
       end
+
+      context 'following belongs to another user' do
+        let(:following) { Fabricate(:following, :public => true, :user_id => other_user.id) }
+
+        it 'should return 403' do
+          json_get "/followings/#{following.public_id}", params, env
+          expect(last_response.status).to eql(403)
+        end
+      end
     end
 
     with_permissions = proc do
@@ -345,6 +369,15 @@ describe TentD::API::Followings do
 
     context 'when read_followings scope authorized' do
       before { authorize!(:read_followings) }
+
+      context 'following belongs to another user' do
+        let(:following) { Fabricate(:following, :public => false, :user_id => other_user.id) }
+
+        it 'should return 404' do
+          json_get "/followings/#{following.public_id}", params, env
+          expect(last_response.status).to eql(404)
+        end
+      end
 
       it 'should return private following without mac keys' do
         following = Fabricate(:following, :public => false)
@@ -489,7 +522,7 @@ describe TentD::API::Followings do
 
             expect(lambda {
               json_post 'followings', data, env
-            }).to change(TentD::Model::Following, :count).by(1)
+            }).to change(TentD::Model::Following.where(:user_id => current_user.id), :count).by(1)
 
             following = TentD::Model::Following.order(:id.asc).last
             expect(following.public_id).to eql(data[:id])
@@ -544,7 +577,7 @@ describe TentD::API::Followings do
             Fabricate(:following, :entity => following_data['entity'], :confirmed => true)
             expect(lambda {
               json_post '/followings', following_data, env
-            }).to change(TentD::Model::Following, :count).by(0)
+            }).to change(TentD::Model::Following.where(:user_id => current_user.id), :count).by(0)
             expect(last_response.status).to eql(409)
           end
         end
@@ -557,7 +590,7 @@ describe TentD::API::Followings do
             following = Fabricate(:following, :entity => following_data['entity'], :confirmed => false)
             expect(lambda {
               json_post '/followings', following_data, env
-            }).to change(TentD::Model::Following, :count).by(0)
+            }).to change(TentD::Model::Following.where(:user_id => current_user.id), :count).by(0)
             expect(last_response.status).to eql(200)
             expect(following.reload.confirmed).to eql(true)
           end
@@ -574,7 +607,7 @@ describe TentD::API::Followings do
         it 'should create following' do
           expect(lambda {
             json_post '/followings', following_data, env
-          }).to change(TentD::Model::Following, :count).by(1)
+          }).to change(TentD::Model::Following.where(:user_id => current_user.id), :count).by(1)
 
           following = TentD::Model::Following.order(:id.asc).last
           expect(following.entity.to_s).to eql(actual_entity_url)
@@ -619,6 +652,15 @@ describe TentD::API::Followings do
         data[:mac_algorithm] = 'hmac-sha-1'
         data[:mac_timestamp_delta] = Time.now.to_i
         data
+      end
+
+      context 'when following belongs to another user' do
+        let(:following) { Fabricate(:following, :public => false, :user_id => other_user.id) }
+
+        it 'should return 404' do
+          json_put "/followings/#{following.public_id}", data, env
+          expect(last_response.status).to eql(404)
+        end
       end
 
       it 'should update following' do
@@ -685,7 +727,7 @@ describe TentD::API::Followings do
           }
           TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
           expect(lambda { delete "/followings/#{following.public_id}", params, env }).
-            to change(TentD::Model::Following, :count).by(-1)
+            to change(TentD::Model::Following.where(:user_id => current_user.id), :count).by(-1)
           http_stubs.verify_stubbed_calls
 
           deleted_following = TentD::Model::Following.unfiltered.first(:id => following.id)
@@ -697,6 +739,15 @@ describe TentD::API::Followings do
       context 'when does not exist' do
         it 'should return 404' do
           expect(lambda { delete "/followings/invalid-id", params, env }).
+            to_not change(TentD::Model::Following, :count)
+          expect(last_response.status).to eql(404)
+        end
+      end
+
+      context 'when belongs to another user' do
+        it 'should return 404' do
+          following.update(:user_id => other_user.id)
+          expect(lambda { delete "/followings/#{following.public_id}", params, env }).
             to_not change(TentD::Model::Following, :count)
           expect(last_response.status).to eql(404)
         end
@@ -728,6 +779,15 @@ describe TentD::API::Followings do
       expect(last_response.body).to eql('{}')
       expect(last_response.headers['Content-Type']).to eql('application/json')
       http_stubs.verify_stubbed_calls
+    end
+
+    context 'when belongs to another user' do
+      let(:following) { Fabricate(:following, :user_id => other_user.id) }
+
+      it 'should return 404' do
+        json_get("/followings/#{following.public_id}/profile", {}, env)
+        expect(last_response.status).to eql(404)
+      end
     end
   end
 
