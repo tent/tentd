@@ -26,6 +26,27 @@ describe TentD::API::Posts do
   let(:env) { Hash.new }
   let(:params) { Hash.new }
 
+  describe 'GET /notifications/:following_id' do
+    context 'when following' do
+      it 'should echo challange' do
+        following = Fabricate(:following)
+        params[:challenge] = '123'
+        json_get "/notifications/#{following.public_id}", params, env
+        expect(last_response.status).to eq(200)
+        expect(last_response.body).to eq(params[:challenge])
+      end
+    end
+
+    context 'when not following' do
+      it 'should return 404' do
+        params[:challenge] = '123'
+        json_get '/notifications/not-following-id', params, env
+        expect(last_response.status).to eq(404)
+        expect(last_response.body).to_not eq(params[:challenge])
+      end
+    end
+  end
+
   describe 'GET /posts/count' do
     it_should_get_count = proc do
       it 'should return count of posts' do

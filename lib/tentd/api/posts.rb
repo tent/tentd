@@ -290,7 +290,7 @@ module TentD
 
       class ConfirmFollowing < Middleware
         def action(env)
-          if Model::Following.first(:public_id => env.params.following_id)
+          if Model::Following.where(:public_id => env.params.following_id).any?
             [200, { 'Content-Type' => 'text/plain' }, [env.params.challenge]]
           else
             [404, {}, []]
