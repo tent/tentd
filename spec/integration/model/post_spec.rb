@@ -145,6 +145,42 @@ describe TentD::Model::Post do
     end
   end
 
+  describe 'fetch_all' do
+    context 'when requested post types specifically allowed' do
+      it 'should return posts matching requested and allowed post types' do
+        status_type = 'https://tent.io/types/post/status/v0.1.0'
+        essay_type = 'https://tent.io/types/post/essay/v0.1.0'
+        status_post = Fabricate(:post, :type => status_type, :public => false)
+        essay_post = Fabricate(:post, :type => essay_type, :public => false)
+        params = Hashie::Mash.new(
+          :post_types => [status_type, essay_type].join(',')
+        )
+        current_auth = Hashie::Mash.new(
+          :post_types => [status_type]
+        )
+        res = TentD::Model::Post.fetch_all(params, current_auth)
+        expect(res.size).to eq(1)
+        expect(res.first.id).to eq(status_post.id)
+      end
+
+      it 'should return all posts matching requested types if public' do
+        status_type = 'https://tent.io/types/post/status/v0.1.0'
+        essay_type = 'https://tent.io/types/post/essay/v0.1.0'
+        status_post = Fabricate(:post, :type => status_type, :public => true)
+        essay_post = Fabricate(:post, :type => essay_type, :public => true)
+        params = Hashie::Mash.new(
+          :post_types => [status_type, essay_type].join(',')
+        )
+        current_auth = Hashie::Mash.new(
+          :post_types => [status_type]
+        )
+        res = TentD::Model::Post.fetch_all(params, current_auth)
+        expect(res.size).to eq(2)
+        expect(res.map(&:id).sort).to eq([status_post.id, essay_post.id].sort)
+      end
+    end
+  end
+
   describe 'fetch_with_permissions(params, current_auth)' do
     let(:group) { Fabricate(:group, :name => 'friends') }
     let(:params) { Hash.new }
