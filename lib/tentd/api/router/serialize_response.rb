@@ -8,7 +8,6 @@ module TentD
           response = if env.response
             env.response.kind_of?(String) ? env.response : serialize_response(env, env.response)
           end
-          raise StandardError.new(env.response.class.name) if response =~ /#<TentD/
           status = env['response.status'] || (response ? 200 : 404)
           headers = if env['response.type'] || status == 200 && response && !response.empty?
                       { 'Content-Type' => env['response.type'] || MEDIA_TYPE } 
