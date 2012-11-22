@@ -14,13 +14,13 @@ describe TentD::Model::Following do
 
     context 'without options' do
       it 'should return public attributes' do
-        expect(following.as_json).to eq(public_attributes)
+        expect(following.as_json).to eql(public_attributes)
       end
     end
 
     context 'with options[:mac]' do
       it 'should return mac key' do
-        expect(following.as_json(:mac => true)).to eq(public_attributes.merge(
+        expect(following.as_json(:mac => true)).to eql(public_attributes.merge(
           :mac_key_id => following.mac_key_id,
           :mac_key => following.mac_key,
           :mac_algorithm => following.mac_algorithm
@@ -30,7 +30,7 @@ describe TentD::Model::Following do
 
     context 'with options[:groups]' do
       it 'should return groups' do
-        expect(following.as_json(:groups => true)).to eq(public_attributes.merge(
+        expect(following.as_json(:groups => true)).to eql(public_attributes.merge(
           :groups => following.groups
         ))
       end
@@ -39,12 +39,12 @@ describe TentD::Model::Following do
     context 'with options[:permissions]' do
       let(:follower) { Fabricate(:follower) }
       let(:group) { Fabricate(:group) }
-      let(:entity_permission) { Fabricate(:permission, :follower_access => follower) }
-      let(:group_permission) { Fabricate(:permission, :group => group) }
-      let(:following) { Fabricate(:following, :permissions => [group_permission, entity_permission]) }
+      let(:following) { Fabricate(:following) }
+      let!(:entity_permission) { Fabricate(:permission, :follower_access => follower, :following => following) }
+      let!(:group_permission) { Fabricate(:permission, :group => group, :following => following) }
 
       it 'should return detailed permissions' do
-        expect(following.as_json(:permissions => true)).to eq(public_attributes.merge(
+        expect(following.as_json(:permissions => true)).to eql(public_attributes.merge(
           :permissions => {
             :public => following.public,
             :groups => [group.public_id],
@@ -58,7 +58,7 @@ describe TentD::Model::Following do
 
     context 'with options[:app]' do
       it 'should return additional attribtues' do
-        expect(following.as_json(:app => true)).to eq(public_attributes.merge(
+        expect(following.as_json(:app => true)).to eql(public_attributes.merge(
           :profile => following.profile,
           :licenses => following.licenses,
           :remote_id => nil,
@@ -80,6 +80,7 @@ describe TentD::Model::Following do
         }
       }
     }
+
     before { TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs]) }
 
     it 'should update a profile' do
@@ -89,9 +90,9 @@ describe TentD::Model::Following do
       described_class.update_profile(following.id)
       following.reload
 
-      expect(following.profile).to eq(updated_profile)
-      expect(following.licenses).to eq(updated_profile.values.first['licenses'])
-      expect(following.entity).to eq(updated_profile.values.first['entity'])
+      expect(following.profile).to eql(updated_profile)
+      expect(following.licenses).to eql(updated_profile.values.first['licenses'])
+      expect(following.entity).to eql(updated_profile.values.first['entity'])
     end
 
     context 'when entity changed' do
@@ -107,8 +108,8 @@ describe TentD::Model::Following do
         post.reload
         mention.reload
 
-        expect(post.entity).to eq(updated_profile.values.first['entity'])
-        expect(mention.entity).to eq(updated_profile.values.first['entity'])
+        expect(post.entity).to eql(updated_profile.values.first['entity'])
+        expect(mention.entity).to eql(updated_profile.values.first['entity'])
       end
     end
   end

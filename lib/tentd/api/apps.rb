@@ -6,7 +6,7 @@ module TentD
       class GetActualId < Middleware
         def action(env)
           if env.params.app_id
-            if app = Model::App.first(:public_id => env.params.app_id)
+            if app = Model::App.first(:user_id => Model::User.current.id, :public_id => env.params.app_id)
               env.params.app_id = app.id
             else
               env.params.app_id = nil
@@ -61,7 +61,7 @@ module TentD
 
       class GetAll < Middleware
         def action(env)
-          env.response = Model::App.all
+          env.response = Model::App.where(:user_id => Model::User.current.id).all
           env
         end
       end
@@ -104,7 +104,7 @@ module TentD
             data.post_types = data.post_types.to_a.map { |url| URI.decode(url) }
             data.profile_info_types = data.profile_info_types.to_a.map { |url| URI.decode(url) }
             data.public_id = data.id if data.id
-            authorization = app.authorizations.create_from_params(data.slice(
+            attributes = data.slice(
               :post_types,
               :profile_info_types,
               :scopes,
@@ -116,7 +116,8 @@ module TentD
               :public_id
             ).merge(
               :app_id => env.params.app_id
-            ))
+            )
+            authorization = Model::AppAuthorization.create_from_params(attributes)
             env.response = authorization
           end
           env
@@ -156,7 +157,7 @@ module TentD
 
       class Destroy < Middleware
         def action(env)
-          if (app = Model::App.get(env.params.app_id)) && app.destroy
+          if (app = Model::App.first(:id => env.params.app_id)) && app.destroy
             env.response = ''
           end
           env

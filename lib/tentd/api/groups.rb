@@ -21,7 +21,7 @@ module TentD
         def action(env)
           [:group_id, :before_id, :since_id].select { |k| env.params.has_key?(k) }.each do |id_key|
             if env.params[id_key]
-              if g = Model::Group.first(:public_id => env.params[id_key])
+              if g = Model::Group.first(:user_id => Model::User.current.id, :public_id => env.params[id_key])
                 env.params[id_key] = g.id
               else
                 env.params[id_key] = nil
@@ -43,28 +43,26 @@ module TentD
         def action(env)
           if (env.params.has_key?(:since_id) && env.params.since_id.nil?) || (env.params.has_key?(:before_id) && env.params.before_id.nil?)
             env.response = []
-            return
+            return env
           end
 
-          conditions = {}
-          conditions[:id.lt] = env.params.before_id if env.params.before_id
-          conditions[:id.gt] = env.params.since_id if env.params.since_id
-          conditions[:limit] = [env.params.limit.to_i, MAX_PER_PAGE].min if env.params.limit
-          conditions[:limit] ||= PER_PAGE
+          query = Model::Group.where(:user_id => Model::User.current.id)
+          query = query.where { id < env.params.before_id } if env.params.before_id
+          query = query.where { id > env.params.since_id } if env.params.since_id
+
+          limit = env.params.limit ? [env.params.limit.to_i, MAX_PER_PAGE].min : PER_PAGE
+          query = query.limit(limit) if limit != 0
+
           if env.params.return_count
-            env.response = Model::Group.count(conditions)
+            env.response = limit.to_i == 0 ? 0 : query.count
           else
             if env.params.order == 'asc'
-              conditions[:order] = :id.asc
+              query = query.order(:id.asc)
             else
-              conditions[:order] = :id.desc
+              query = query.order(:id.desc)
             end
 
-            if conditions[:limit] == 0
-              env.response = []
-            else
-              env.response = Model::Group.all(conditions)
-            end
+            env.response = limit.to_i == 0 ? [] : query.all
           end
           env
         end
@@ -100,7 +98,7 @@ module TentD
               env.notify_action = 'create'
               env.notify_instance = group
             end
-          rescue DataObjects::IntegrityError # hack to ignore duplicate groups
+          rescue Sequel::DatabaseError # hack to ignore duplicate groups
             env.response = Model::Group.first(:public_id => data.public_id)
           end
           env

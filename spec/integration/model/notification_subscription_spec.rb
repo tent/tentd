@@ -31,13 +31,13 @@ describe TentD::Model::NotificationSubscription do
   it 'should require type_version unless type_base set to all' do
     expect(lambda {
       described_class.create(:type => 'https://tent.io/types/post/photo')
-    }).to_not change(described_class, :count)
+    }).to raise_error(Sequel::ValidationFailed)
   end
 
   context "notifications" do
     let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
     let(:post) { Fabricate(:post) }
-    before { TentD::Model::NotificationSubscription.all.destroy! }
+    before { TentD::Model::NotificationSubscription.destroy }
 
     context "to everyone" do
       let!(:subscription) { Fabricate(:notification_subscription, :follower => Fabricate(:follower)) }
@@ -52,12 +52,38 @@ describe TentD::Model::NotificationSubscription do
     end
 
     context "to a follower" do
-      let(:subscription) { Fabricate(:notification_subscription, :follower => Fabricate(:follower)) }
+      let!(:follower) { Fabricate(:follower) }
+      let!(:subscription) { Fabricate(:notification_subscription, :follower => follower) }
 
       it 'should notify about a post' do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
         http_stubs.post('/notifications/asdf') { [200, {}, nil] }
         expect(subscription.notify_about(post.id)).to be_true
+      end
+
+      context 'when post is private' do
+        let(:post) { Fabricate(:post, :public => false, :original => true) }
+
+        context 'when permissible' do
+          let!(:permission) {
+            Fabricate(:permission, :follower_access_id => follower.id, :post_id => post.id)
+          }
+
+          it 'should notify about a post' do
+            TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+            http_stubs.post('/notifications/asdf') { [200, {}, nil] }
+
+            described_class.notify_all(post.type.uri, post.id)
+            http_stubs.verify_stubbed_calls
+          end
+        end
+
+        context 'when not permissible' do
+          it 'should not notify about a post' do
+            TentD::Notifications.expects(:notify).never
+            described_class.notify_all(post.type.uri, post.id)
+          end
+        end
       end
     end
 
@@ -68,6 +94,42 @@ describe TentD::Model::NotificationSubscription do
         TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
         http_stubs.post('/notifications') { [200, {}, nil] }
         expect(subscription.notify_about(post.id)).to be_true
+      end
+
+      context 'when post not original' do
+        context 'when permissible via post type' do
+          let(:post) { Fabricate(:post, :public => false, :original => false) }
+          let!(:subscription) {
+            Fabricate(:notification_subscription,
+              :type_base => post.type_base,
+              :app_authorization => Fabricate(:app_authorization, :app => Fabricate(:app), :notification_url => 'http://example.org/webhooks/123', :post_types => [post.type_base])
+            )
+          }
+
+          it 'should notify about a post' do
+            TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+            http_stubs.post('/webhooks/123') { [200, {}, nil] }
+            described_class.notify_all(post.type.uri, post.id)
+            http_stubs.verify_stubbed_calls
+          end
+        end
+
+        context 'when permissible via scope' do
+          let(:post) { Fabricate(:post, :public => false, :original => false) }
+          let!(:subscription) {
+            Fabricate(:notification_subscription,
+              :type_base => post.type_base,
+              :app_authorization => Fabricate(:app_authorization, :app => Fabricate(:app), :notification_url => 'http://example.org/webhooks/123', :scopes => %w( read_posts ))
+            )
+          }
+
+          it 'should notify about a post' do
+            TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+            http_stubs.post('/webhooks/123') { [200, {}, nil] }
+            described_class.notify_all(post.type.uri, post.id)
+            http_stubs.verify_stubbed_calls
+          end
+        end
       end
     end
 

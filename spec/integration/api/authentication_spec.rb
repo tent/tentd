@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'hashie'
 
 describe 'Authentication' do
 
@@ -36,8 +37,6 @@ describe 'Authentication' do
       context 'when follower' do
         let(:mac_key_id_prefix) { "s" }
         let(:subject) {
-          DataMapper.auto_migrate!
-          TentD::Model::User.current = TentD::Model::User.first_or_create
           Fabricate(:follower, :mac_key_id => mac_key_id, :mac_algorithm => mac_algorithm, :mac_key => mac_key)
         }
 
@@ -47,8 +46,6 @@ describe 'Authentication' do
       context 'when following' do
         let(:mac_key_id_prefix) { "s" }
         let(:subject) {
-          DataMapper.auto_migrate!
-          TentD::Model::User.current = TentD::Model::User.first_or_create
           Fabricate(:following, :mac_key_id => mac_key_id, :mac_algorithm => mac_algorithm, :mac_key => mac_key)
         }
 
@@ -59,7 +56,6 @@ describe 'Authentication' do
     context 'when app' do
       let(:mac_key_id_prefix) { "a" }
       let(:subject) {
-        TentD::Model::App.all.destroy!
         Fabricate(:app, :mac_key_id => mac_key_id, :mac_algorithm => mac_algorithm, :mac_key => mac_key)
       }
 

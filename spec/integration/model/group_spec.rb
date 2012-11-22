@@ -7,14 +7,6 @@ describe TentD::Model::Group do
     expect(group.public_id).to be_a(String)
   end
 
-  # TODO: Debug DataMapper, catching exception and updating public_id fails to save
-  xit 'should never set duplicate public_id' do
-    first_group = Fabricate(:group)
-    group = Fabricate(:group, :public_id => first_group.public_id)
-    expect(group).to be_saved
-    expect(group.public_id).to_not eq(first_group.public_id)
-  end
-
   describe '#as_json' do
     let(:public_attributes) do
       {

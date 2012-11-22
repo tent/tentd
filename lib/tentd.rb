@@ -1,5 +1,6 @@
 require 'tentd/version'
 require 'tent-client'
+require 'logger'
 
 module TentD
   autoload :API, 'tentd/api'
@@ -9,8 +10,8 @@ module TentD
   autoload :TentType, 'tentd/tent_type'
 
   def self.new(options={})
-    if options[:database] || ENV['DATABASE_URL']
-      DataMapper.setup(:default, options[:database] || ENV['DATABASE_URL'])
+    if database_url = options[:database] || ENV['DATABASE_URL']
+      Sequel.connect(database_url, :logger => Logger.new(ENV['DB_LOGFILE'] || STDOUT))
     end
 
     require "tentd/notifications/#{options[:job_backend] || 'girl_friday'}"

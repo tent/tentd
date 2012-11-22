@@ -26,27 +26,36 @@ module TentD
         end
       end
 
-      def assign_permissions(permissions, permissions_relationship_name=:permissions)
+      def assign_permissions(permissions)
         return unless permissions.kind_of?(Hash)
 
         if permissions.groups && permissions.groups.kind_of?(Array)
           permissions.groups.each do |g|
             next unless g.id
-            group = Model::Group.first(:public_id => g.id, :fields => [:id])
-            self.send(permissions_relationship_name).create(:group => group) if group
+            next unless group = Group.select(:id).first(:user_id => User.current.id, :public_id => g.id)
+            Permission.create(
+              self.class.send(:permissions_relationship_foreign_key) => self.id,
+              :group => group
+            )
           end
         end
 
         if permissions.entities && permissions.entities.kind_of?(Hash)
           permissions.entities.each do |entity,visible|
             next unless visible
-            followers = Model::Follower.all(:entity => entity, :fields => [:id])
+            followers = Follower.select(:id).where(:user_id => User.current.id, :entity => entity).all
             followers.each do |follower|
-              self.send(permissions_relationship_name).create(:follower_access => follower)
+              Permission.create(
+                self.class.send(:permissions_relationship_foreign_key) => self.id,
+                :follower_access => follower
+              )
             end
-            followings = Model::Following.all(:entity => entity, :fields => [:id])
+            followings = Following.select(:id).where(:user_id => User.current.id, :entity => entity).all
             followings.each do |following|
-              self.send(permissions_relationship_name).create(:following => following)
+              Permission.create(
+                self.class.send(:permissions_relationship_foreign_key) => self.id,
+                :following => following
+              )
             end
           end
         end
@@ -56,8 +65,8 @@ module TentD
         end
       end
 
-      def visibility_permissions_relationship
-        relationships.map(&:name).include?(:visibility_permissions) ? visibility_permissions : permissions
+      def visibility_permissions_relationship_name
+        self.class.associations.include?(:visibility_permissions) ? :visibility_permissions : :permissions
       end
 
       module ClassMethods
@@ -93,7 +102,7 @@ module TentD
 
           query << "AND #{table_name}.deleted_at IS NULL"
 
-          if properties[:original]
+          if columns.include?(:original)
             query << "AND original = ?"
             query_bindings << true
           end
@@ -110,8 +119,7 @@ module TentD
 
             query << "LIMIT 1"
 
-            records = find_by_sql([query.join(' '), *query_bindings])
-            records.first
+            with_sql(query.join(' '), *query_bindings).first
           end
         end
 
@@ -168,11 +176,9 @@ module TentD
           end
 
           if params.return_count
-            DataMapper.repository(:default).adapter.send(:with_connection) do |connection|
-              connection.create_command(query.join(' ')).execute_reader(*query_bindings).to_a.first['count']
-            end
+            with_sql(query.join(' '), *query_bindings).all.first[:count]
           else
-            find_by_sql([query.join(' '), *query_bindings])
+            with_sql(query.join(' '), *query_bindings).all
           end
         end
 
@@ -211,11 +217,9 @@ module TentD
             end
 
             if params.return_count
-              DataMapper.repository(:default).adapter.send(:with_connection) do |connection|
-                connection.create_command(query.join(' ')).execute_reader(*query_bindings).to_a.first['count']
-              end
+              with_sql(query.join(' '), *query_bindings).all.first[:count]
             else
-              find_by_sql([query.join(' '), *query_bindings])
+              with_sql(query.join(' '), *query_bindings).all
             end
           end
         end
@@ -230,22 +234,20 @@ module TentD
           end
         end
 
-        protected
-
-        def table_name
-          storage_names[repository_name]
-        end
-
         def permissions_relationship_name
-          relationships.map(&:name).include?(:access_permissions) ? :access_permissions : :permissions
+          associations.include?(:access_permissions) ? :access_permissions : :permissions
         end
 
         def permissions_relationship_foreign_key
-          send(permissions_relationship_name).relationships.first.child_key.first.name
+          all_association_reflections.find { |a| a[:name] == permissions_relationship_name }[:keys].first
         end
 
         def visibility_permissions_relationship_foreign_key
-          relationships.map(&:name).include?(:visibility_permissions) ? visibility_permissions.relationships.first.child_key.first.name : permissions_relationship_foreign_key
+          if associations.include?(:visibility_permissions)
+            all_association_reflections.find { |a| a[:name] == :visibility_permissions }[:keys].first
+          else
+            permissions_relationship_foreign_key
+          end
         end
       end
     end

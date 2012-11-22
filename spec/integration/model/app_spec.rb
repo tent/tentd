@@ -54,8 +54,8 @@ describe TentD::Model::App do
         options = { :app => true }
         expect(app.as_json(options)).to eq(public_attributes.merge(
           :authorizations => [authorization.as_json(options)],
-          :created_at => app.created_at.to_time.to_i,
-          :updated_at => app.updated_at.to_time.to_i
+          :created_at => app.created_at.to_i,
+          :updated_at => app.updated_at.to_i
         ))
       end
     end

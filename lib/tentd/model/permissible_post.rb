@@ -157,7 +157,7 @@ module TentD
         end
 
         def mentions_relationship_foreign_key
-          mentions.relationships.first.child_key.first.name
+          all_association_reflections.find { |a| a[:name] == :mentions }[:keys].first
         end
       end
     end

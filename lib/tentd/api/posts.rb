@@ -10,11 +10,7 @@ module TentD
             env.params[key] = nil
             memo
           }
-          scope = Model::Post.default_scope.dup
-          scope.delete(:deleted_at)
-          posts = Model::Post.send(:with_exclusive_scope, scope) { |q|
-            Model::Post.all(:public_id => id_mapping.keys, :fields => [:id, :public_id, :entity]).to_a
-          }
+          posts = Model::Post.select(:id, :public_id, :entity).where(:user_id => Model::User.current.id, :public_id => id_mapping.keys).all
           id_mapping.each_pair do |public_id, key|
             entity = env.params["#{key}_entity"]
             entity ||= env['tent.entity']
@@ -30,22 +26,23 @@ module TentD
       class GetOne < Middleware
         def action(env)
           if authorize_env?(env, :read_posts)
-            conditions = { :id => env.params.post_id }
+            q = Model::Post.where(:id => env.params.post_id)
+
             unless env.current_auth.post_types.include?('all')
-              conditions[:type_base] = env.current_auth.post_types.map { |t| TentType.new(t).base }
+              q = q.where(:type_base => env.current_auth.post_types.map { |t| TentType.new(t).base })
             end
 
             if env.params.version
-              conditions[:fields] = [:id]
+              q = q.select(:id)
             end
 
-            post = Model::Post.first(conditions)
+            post = q.first
           else
             post = Model::Post.find_with_permissions(env.params.post_id, env.current_auth)
           end
           if post
             if env.params.version
-              if post_version = post.versions.first(:version => env.params.version.to_i)
+              if post_version = post.versions_dataset.first(:version => env.params.version.to_i)
                 post = post_version
               else
                 post = nil
@@ -103,7 +100,7 @@ module TentD
             data.public_id = env.params.data.id
             begin
               Model::Post.create(data, :dont_notify_mentions => true)
-            rescue DataObjects::IntegrityError # hack to ignore duplicate posts
+            rescue Sequel::DatabaseError # hack to ignore duplicate posts
               Model::Post.first(:public_id => data.public_id)
             end
           else
@@ -160,7 +157,7 @@ module TentD
         end
 
         def anonymous_publisher?(auth, post)
-          !auth && post.entity && !Model::Following.first(:entity => post.entity, :fields => [:id])
+          !auth && post.entity && !Model::Following.where(:user_id => Model::User.current.id, :entity => post.entity).any?
         end
 
         def set_app_details(post)
@@ -179,45 +176,41 @@ module TentD
           post.published_at = Time.at(post.published_at.to_i) if post.published_at
           post.received_at = Time.at(post.received_at.to_i) if post.received_at
         end
-
-        def assign_permissions(post, permissions)
-          return unless post.original && permissions
-          if permissions.groups && permissions.groups.kind_of?(Array)
-            permissions.groups.each do |g|
-              next unless g.id
-              group = Model::Group.first(:public_id => g.id, :fields => [:id])
-              post.permissions.create(:group => group) if group
-            end
-          end
-
-          if permissions.entities && permissions.entities.kind_of?(Hash)
-            permissions.entities.each do |entity,visible|
-              next unless visible
-              followers = Model::Follower.all(:entity => entity, :fields => [:id])
-              followers.each do |follower|
-                post.permissions.create(:follower_access => follower)
-              end
-              followings = Model::Following.all(:entity => entity, :fields => [:id])
-              followings.each do |following|
-                post.permissions.create(:following => following)
-              end
-            end
-          end
-        end
       end
 
       class Update < Middleware
         def action(env)
           authorize_env!(env, :write_posts)
           if post = TentD::Model::Post.first(:id => env.params.post_id)
-            version = post.latest_version(:fields => [:id])
-            post.update(env.params.data.slice(:content, :licenses, :mentions, :views))
+            if env.params.data.has_key?(:version) && env.params.data.keys.length == 1
+              # revert to post version
 
-            if env.params.attachments.kind_of?(Array)
-              Model::PostAttachment.all(:post_id => post.id).update(:post_id => nil, :post_version_id => version.id)
+              version = post.versions_dataset.first(:version => env.params.data.version)
+              return env unless version # 404
+
+              latest_version = post.latest_version(:fields => [:id])
+
+              post.update(version.attributes.slice(*Model::Post.write_attributes))
+              latest_version = post.latest_version(:fields => [:id])
+
+              latest_version.db[:post_versions_mentions].with_sql("INSERT INTO post_versions_mentions (mention_id, post_version_id) SELECT mentions.mention_id, ? AS post_version_id FROM post_versions_mentions AS mentions WHERE mentions.post_version_id = ?", latest_version.id, version.id).insert
+
+              latest_version.db[:post_versions_attachments].with_sql("INSERT INTO post_versions_attachments (post_attachment_id, post_version_id) SELECT attachments.post_attachment_id, ? AS post_version_id FROM post_versions_attachments AS attachments WHERE attachments.post_version_id = ?", latest_version.id, version.id).insert
+
+              env.response = post
+            else
+              # update post
+
+              version = post.latest_version(:fields => [:id])
+              post.update(env.params.data.slice(:content, :licenses, :mentions, :views))
+
+              if env.params.attachments.kind_of?(Array)
+                Model::PostAttachment.db[:post_versions_attachments].with_sql("INSERT INTO post_versions_attachments (post_attachment_id, post_version_id) SELECT post_attachments.id AS post_attachment_id, ? AS post_version_id FROM post_attachments WHERE post_id = ?", version.id, post.id).insert
+                Model::PostAttachment.where(:post_id => post.id).update(:post_id => nil)
+              end
+
+              env.response = post
             end
-
-            env.response = post
           end
           env
         end
@@ -226,7 +219,7 @@ module TentD
       class Destroy < Middleware
         def action(env)
           authorize_env!(env, :write_posts)
-          if (post = TentD::Model::Post.first(:id => env.params.post_id)) && post.destroy
+          if (post = TentD::Model::Post.first(:user_id => Model::User.current.id, :id => env.params.post_id)) && post.destroy
             raise Unauthorized unless post.original
             env.response = ''
             env.notify_deleted_post = post
@@ -241,11 +234,18 @@ module TentD
           post = env.response
           version = post.latest_version(:fields => [:id])
           env.params.attachments.each do |attachment|
-            Model::PostAttachment.create(:post => post,
-                                         :post_version => version,
-                                         :type => attachment.type,
-                                         :category => attachment.name, :name => attachment.filename,
-                                         :data => Base64.encode64(attachment.tempfile.read), :size => attachment.tempfile.size)
+            a = Model::PostAttachment.create(
+              :post => post,
+              :type => attachment.type,
+              :category => attachment.name, :name => attachment.filename,
+              :data => Base64.encode64(attachment.tempfile.read),
+              :size => attachment.tempfile.size
+            )
+
+            a.db[:post_versions_attachments].insert(
+              :post_attachment_id => a.id,
+              :post_version_id => version.id
+            )
           end
           env.response.reload
           env
@@ -277,7 +277,7 @@ module TentD
         def action(env)
           return env unless env.response
           type = env['HTTP_ACCEPT'].split(/;|,/).first if env['HTTP_ACCEPT']
-          attachment = env.response.attachments.first(:type => type, :name => env.params.attachment_name, :fields => [:data])
+          attachment = env.response.attachments_dataset.select(:data).first(:type => type, :name => env.params.attachment_name)
           if attachment
             env.response = Base64.decode64(attachment.data)
             env['response.type'] = type
@@ -290,7 +290,7 @@ module TentD
 
       class ConfirmFollowing < Middleware
         def action(env)
-          if Model::Following.first(:public_id => env.params.following_id)
+          if Model::Following.where(:user_id => Model::User.current.id, :public_id => env.params.following_id).any?
             [200, { 'Content-Type' => 'text/plain' }, [env.params.challenge]]
           else
             [404, {}, []]
@@ -306,7 +306,7 @@ module TentD
             when 'https://tent.io/types/post/profile'
               Notifications.update_following_profile(:following_id => post.following.id)
             when 'https://tent.io/types/post/delete'
-              if deleted_post = Model::Post.first(:public_id => post.content['id'], :following_id => env.current_auth.id)
+              if deleted_post = Model::Post.first(:user_id => Model::User.current.id, :public_id => post.content['id'], :following_id => env.current_auth.id)
                 deleted_post.destroy
               end
             end

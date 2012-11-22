@@ -1,28 +1,22 @@
 module TentD
   module Model
-    class User
-      include DataMapper::Resource
+    class User < Sequel::Model(:users)
+      plugin :paranoia
 
-      storage_names[:default] = 'users'
+      one_to_many :posts
+      one_to_many :post_versions
+      one_to_many :apps
+      one_to_many :followings
+      one_to_many :followers
+      one_to_many :groups
+      one_to_many :profile_infos, :class => ProfileInfo
+      one_to_many :notification_subscriptions
 
-      property :id, Serial
-      property :created_at, DateTime
-      property :updated_at, DateTime
-      property :deleted_at, ParanoidDateTime
-
-      has n, :posts, 'TentD::Model::Post'
-      has n, :post_versions, 'TentD::Model::PostVersion'
-      has n, :apps, 'TentD::Model::App'
-      has n, :followings, 'TentD::Model::Following'
-      has n, :followers, 'TentD::Model::Follower'
-      has n, :groups, 'TentD::Model::Group'
-      has n, :profile_infos, 'TentD::Model::ProfileInfo'
-      has n, :notification_subscriptions, 'TentD::Model::NotificationSubscription'
+      def self.first_or_create
+        first || create
+      end
 
       def self.current=(u)
-        relationships.each do |relationship|
-          relationship.child_model.default_scope(:default).update(:user => u)
-        end
         Thread.current[:user] = u
       end
 
@@ -31,7 +25,10 @@ module TentD
       end
 
       def profile_entity
-        info = profile_infos.first(:type_base => ProfileInfo::TENT_PROFILE_TYPE.base, :order => :type_version.desc)
+        info = profile_infos_dataset.where(
+          :type_base => ProfileInfo::TENT_PROFILE_TYPE.base,
+          :type_version => ProfileInfo::TENT_PROFILE_TYPE.version.to_s
+        ).order(:type_version.desc).first
         info.content['entity'] if info
       end
     end

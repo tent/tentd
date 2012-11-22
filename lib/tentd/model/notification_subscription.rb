@@ -1,43 +1,82 @@
 module TentD
   module Model
-    class NotificationSubscription
+    class NotificationSubscription < Sequel::Model(:notification_subscriptions)
       NotificationError = Class.new(StandardError)
 
-      include DataMapper::Resource
       include TypeProperties
-      include UserScoped
 
-      storage_names[:default] = 'notification_subscriptions'
+      many_to_one :app_authorization
+      many_to_one :follower
 
-      property :id, Serial
-      property :created_at, DateTime
-      property :updated_at, DateTime
+      def before_create
+        self.user_id ||= User.current.id
+        self.created_at = Time.now
+        super
+      end
 
-      belongs_to :app_authorization, 'TentD::Model::AppAuthorization', :required => false
-      belongs_to :follower, 'TentD::Model::Follower', :required => false
+      def before_save
+        self.updated_at = Time.now
+        super
+      end
 
-      def subject
-        app_authorization || follower
+      def self.notify(subscription_id, post_id)
+        subscription = first(:id => subscription_id)
+        subscription.notify_about(post_id) if subscription
       end
 
       def self.notify_all(type, post_id)
-        post = Post.first(:id => post_id, :fields => [:id, :original, :public])
+        post = Post.select(:id, :original, :public, :user_id, :type_base).first(:id => post_id)
         return unless post
         if post.original && post.public
-          post.user.notification_subscriptions.all(:type_base => [TentType.new(type).base, 'all'],
-                                                   :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
+          NotificationSubscription.select(
+            :id, :app_authorization_id, :follower_id
+          ).where(
+            :user_id => post.user_id,
+            :type_base => [TentType.new(type).base, 'all']
+          ).all.each do |subscription|
             next unless post.can_notify?(subscription.subject)
-            Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
+            Notifications.notify(
+              :subscription_id => subscription.id,
+              :post_id => post_id,
+              :view => subscription.type_view
+            )
           end
         elsif !post.original
-          post.user.notification_subscriptions.all(:type_base => [TentType.new(type).base, 'all'],
-                                                   :fields => [:id, :app_authorization_id, :follower_id], :app_authorization_id.not => nil).each do |subscription|
+          q = NotificationSubscription.select(
+            :id, :app_authorization_id
+          ).where(
+            :user_id => post.user_id,
+            :type_base => [TentType.new(type).base, 'all']
+          ).where(
+            Sequel.~(:app_authorization_id => nil)
+          ).all.each do |subscription|
             next unless post.can_notify?(subscription.subject)
-            Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
+            Notifications.notify(
+              :subscription_id => subscription.id,
+              :post_id => post_id,
+              :view => subscription.type_view
+            )
           end
         else
-          post.permissions.all(:follower_access_id.not => nil).follower_access.notification_subscriptions.all(:type_base => [TentType.new(type).base, 'all'],
-                                                   :fields => [:id, :app_authorization_id, :follower_id]).each do |subscription|
+          NotificationSubscription.join(
+            :followers,
+            :notification_subscriptions__follower_id => :followers__id
+          ).join(
+            Permission,
+            :permissions__follower_access_id => :followers__id
+          ).join(
+            :posts,
+            :permissions__post_id => :posts__id
+          ).where(
+            :notification_subscriptions__type_base => [TentType.new(type).base, 'all'],
+            :permissions__post_id => post.id,
+            :followers__deleted_at => nil,
+            :posts__deleted_at => nil
+          ).select(
+            :notification_subscriptions__id,
+            :notification_subscriptions__app_authorization_id,
+            :notification_subscriptions__follower_id
+          ).all.each do |subscription|
             next unless post.can_notify?(subscription.subject)
             Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
           end
@@ -49,7 +88,9 @@ module TentD
         return unless post
         return if post.entity == entity
         entity = 'https://' + entity if !entity.match(%r{\Ahttp})
-        if follow = post.user.followers.first(:entity => entity) || post.user.followings.first(:entity => entity)
+        follow = Follower.first(:user_id => post.user_id, :entity => entity) ||
+                 Following.first(:user_id => post.user_id, :entity => entity)
+        if follow
           return unless post.can_notify?(follow)
           client = TentClient.new(follow.notification_servers, follow.auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
           path = follow.notification_path
@@ -65,16 +106,11 @@ module TentD
         res
       end
 
-      def self.notify(subscription_id, post_id)
-        subscription = first(:id => subscription_id)
-        subscription.notify_about(post_id) if subscription
-      end
-
       def notify_about(post_id, view='full')
         post = Post.first(:id => post_id)
         return unless post
         client = TentClient.new(subject.notification_servers, subject.auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
-        permissions = subject.respond_to?(:scopes) && subject.scopes.include?(:read_permissions)
+        permissions = subject.respond_to?(:scopes) && subject.scopes.to_a.include?(:read_permissions)
         res = client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions, :view => view), :url => subject.notification_path)
         raise NotificationError.new("[#{res.to_hash[:url].to_s}] #{res.status}: #{res.body}") unless (200...300).include?(res.status)
         res
@@ -82,6 +118,10 @@ module TentD
         url = res ? res.to_hash[:url].to_s : ""
         raise NotificationError.new(:message => "[#{url}] #{e.message}", :backtrace => e.backtrace)
       end
-    end
+
+      def subject
+        app_authorization || follower
+      end
+    end                              
   end
 end

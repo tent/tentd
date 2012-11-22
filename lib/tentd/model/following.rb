@@ -1,44 +1,30 @@
 require 'tentd/core_ext/hash/slice'
+require 'tentd/model'
 
 module TentD
   module Model
-    class Following
-      include DataMapper::Resource
-      include Permissible
+    class Following < Sequel::Model(:followings)
       include RandomPublicId
       include Serializable
-      include UserScoped
+      include Permissible
 
-      storage_names[:default] = 'followings'
+      plugin :paranoia
+      plugin :serialization
+      serialize_attributes :pg_array, :groups, :licenses
+      serialize_attributes :json, :profile
 
-      property :id, Serial
-      property :remote_id, String
-      property :groups, Array, :lazy => false, :default => []
-      property :entity, Text, :required => true, :lazy => false
-      property :public, Boolean, :default => true
-      property :profile, Json, :default => {}
-      property :licenses, Array, :lazy => false, :default => []
-      property :mac_key_id, String
-      property :mac_key, String
-      property :mac_algorithm, String
-      property :mac_timestamp_delta, Integer
-      property :created_at, DateTime
-      property :updated_at, DateTime
-      property :deleted_at, ParanoidDateTime
-      property :confirmed, Boolean, :default => true
+      one_to_many :permissions
 
-      has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy
+      def before_create
+        self.public_id ||= random_id
+        self.user_id ||= User.current.id
+        self.created_at = Time.now
+        super
+      end
 
-      def confirm_from_params(params)
-        update(
-          :remote_id => params.id,
-          :profile => params.profile || {},
-          :mac_key_id => params.mac_key_id,
-          :mac_key => params.mac_key,
-          :mac_algorithm => params.mac_algorithm,
-          :entity => API::CoreProfileData.new(params.profile || {}).entity,
-          :confirmed => true
-        )
+      def before_save
+        self.updated_at = Time.now
+        super
       end
 
       def self.public_attributes
@@ -59,31 +45,15 @@ module TentD
           self.profile = res.body
           self.licenses = core_profile.licenses
           self.entity = core_profile.entity
+          save
         end
         propagate_entity(self.entity, old_entity) if old_entity != self.entity
-        save
         profile
       end
 
       def propagate_entity(entity, old_entity)
-        Post.all(:entity => old_entity, :original => false).update(:entity => entity)
-        Mention.all(:entity => old_entity, :original_post => false).update(:entity => entity)
-      end
-
-      def core_profile
-        API::CoreProfileData.new(profile)
-      end
-
-      def notification_path
-        'posts'
-      end
-
-      def notification_servers
-        core_profile.servers
-      end
-
-      def auth_details
-        attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
+        Post.where(:user_id => User.current.id, :entity => old_entity, :original => false).update(:entity => entity)
+        Mention.from(:mentions, :posts).where(:posts__user_id => User.current.id, :mentions__entity => old_entity, :mentions__original_post => false).update(:entity => entity)
       end
 
       def update_from_params(params, authorized_scopes = [])
@@ -93,6 +63,34 @@ module TentD
         end
         attributes = params.slice(*whitelist)
         update(attributes)
+      end
+
+      def confirm_from_params(params)
+        update(
+          :remote_id => params.id,
+          :profile => params.profile || {},
+          :mac_key_id => params.mac_key_id,
+          :mac_key => params.mac_key,
+          :mac_algorithm => params.mac_algorithm,
+          :entity => API::CoreProfileData.new(params.profile || {}).entity,
+          :confirmed => true
+        )
+      end
+
+      def auth_details
+        attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
+      end
+
+      def core_profile
+        API::CoreProfileData.new(profile)
+      end
+
+      def notification_servers
+        core_profile.servers
+      end
+
+      def notification_path
+        'posts'
       end
 
       def as_json(options = {})

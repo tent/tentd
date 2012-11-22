@@ -25,18 +25,50 @@ describe TentD::API::Posts do
 
   let(:env) { Hash.new }
   let(:params) { Hash.new }
+  let(:current_user) { TentD::Model::User.current }
+  let(:other_user) { TentD::Model::User.create }
+
+  describe 'GET /notifications/:following_id' do
+    context 'when following' do
+      it 'should echo challange' do
+        following = Fabricate(:following)
+        params[:challenge] = '123'
+        json_get "/notifications/#{following.public_id}", params, env
+        expect(last_response.status).to eq(200)
+        expect(last_response.body).to eq(params[:challenge])
+      end
+    end
+
+    context 'when not following' do
+      it 'should return 404' do
+        params[:challenge] = '123'
+        json_get '/notifications/not-following-id', params, env
+        expect(last_response.status).to eq(404)
+        expect(last_response.body).to_not eq(params[:challenge])
+      end
+    end
+
+    context 'when another user following' do
+      it 'should return 404' do
+        following = Fabricate(:following, :user_id => other_user.id)
+        params[:challenge] = '123'
+        json_get "/notifications/#{following.public_id}", params, env
+        expect(last_response.status).to eq(404)
+        expect(last_response.body).to_not eq(params[:challenge])
+      end
+    end
+  end
 
   describe 'GET /posts/count' do
     it_should_get_count = proc do
       it 'should return count of posts' do
-        TentD::Model::Post.all.destroy
+        post = Fabricate(:post, :public => true, :user_id => other_user.id)
         post = Fabricate(:post, :public => true)
         json_get '/posts/count', params, env
         expect(last_response.body).to eq(1.to_json)
       end
 
       it 'should return count of posts with type' do
-        TentD::Model::Post.all.destroy
         type = TentD::TentType.new("https://tent.io/types/post/example/v0.1.0")
         type2 = TentD::TentType.new("https://tent.io/types/post/blog/v0.1.0")
         post = Fabricate(:post, :public => true, :type_base => type.base, :type_version => type.version)
@@ -46,7 +78,6 @@ describe TentD::API::Posts do
         params[:post_types] = type.uri
         json_get '/posts/count', params, env
         expect(last_response.body).to eq(1.to_json)
-
       end
     end
 
@@ -179,8 +210,13 @@ describe TentD::API::Posts do
           expect(last_response.status).to eq(404)
         end
 
+        it "should not find post belonging to another user" do
+          post = Fabricate(:post, :public => true, :user_id => other_user.id)
+          json_get "/posts/#{post.public_id}"
+          expect(last_response.status).to eq(404)
+        end
+
         it "should be 404 if post_id doesn't exist" do
-          TentD::Model::Post.all.destroy!
           json_get "/posts/1"
           expect(last_response.status).to eq(404)
         end
@@ -209,9 +245,15 @@ describe TentD::API::Posts do
             before do
               case current_auth
               when TentD::Model::Follower
-                current_auth.access_permissions.create(:post_id => post.id)
+                TentD::Model::Permission.create(
+                  :post_id => post.id,
+                  :follower_access_id => current_auth.id
+                )
               else
-                current_auth.permissions.create(:post_id => post.id)
+                TentD::Model::Permission.create(
+                  :post_id => post.id,
+                  current_auth.permissions_relationship_foreign_key => current_auth.id
+                )
               end
               env.current_auth = current_auth
             end
@@ -221,7 +263,10 @@ describe TentD::API::Posts do
 
           context 'when has permission via groups' do
             before do
-              post.permissions.create(:group_public_id => group.public_id)
+              TentD::Model::Permission.create(
+                :post_id => post.id,
+                :group_public_id => group.public_id
+              )
               current_auth.groups = [group.public_id]
               current_auth.save
               env.current_auth = current_auth
@@ -364,6 +409,15 @@ describe TentD::API::Posts do
         end
       end
 
+      it "should only return posts for current user" do
+        post = Fabricate(:post, :public => post_public?)
+        other_post = Fabricate(:post, :public => post_public?, :user_id => other_user.id)
+        json_get "/posts", params, env
+        body = JSON.parse(last_response.body)
+        expect(body.size).to eq(1)
+        expect(body.first['id']).to eq(post.public_id)
+      end
+
       it "should filter by params[:post_types]" do
         picture_type = TentD::TentType.new("https://tent.io/types/post/picture/v0.1.0")
         blog_type = TentD::TentType.new("https://tent.io/types/post/blog/v0.1.0")
@@ -372,7 +426,7 @@ describe TentD::API::Posts do
         non_picture_post = Fabricate(:post, :public => post_public?)
         blog_post = Fabricate(:post, :public => post_public?, :type_base => blog_type.base)
 
-        posts = TentD::Model::Post.all(:type_base => [picture_type.base, blog_type.base])
+        posts = TentD::Model::Post.where(:type_base => [picture_type.base, blog_type.base]).all
         post_types = [picture_post, blog_post].map { |p| URI.encode_www_form_component(p.type.uri) }
 
         json_get "/posts?post_types=#{post_types.join(',')}", params, env
@@ -387,9 +441,11 @@ describe TentD::API::Posts do
       context 'with params[:mentioned_post] and/or params[:mentioned_entity]' do
         it "should return post matching both mentioned post and entity" do
           mentioned_post = Fabricate(:post, :public => post_public?)
-          post = Fabricate(:post, :public => post_public?, :mentions => [
-            Fabricate(:mention, :mentioned_post_id => mentioned_post.public_id, :entity => mentioned_post.entity)
-          ])
+          post = Fabricate(:post, :public => post_public?)
+          Fabricate(:mention,
+                    :post_id => post.id,
+                    :mentioned_post_id => mentioned_post.public_id,
+                    :entity => mentioned_post.entity)
 
           json_get "/posts?mentioned_post=#{mentioned_post.public_id}&mentioned_entity=#{URI.encode_www_form_component(mentioned_post.entity)}", params, env
           body = JSON.parse(last_response.body)
@@ -420,7 +476,6 @@ describe TentD::API::Posts do
       end
 
       it "should order by received_at desc" do
-        TentD::Model::Post.all.destroy
         first_post = Fabricate(:post, :public => post_public?, :received_at => Time.at(Time.now.to_i-86400)) # 1.day.ago
         latest_post = Fabricate(:post, :public => post_public?, :received_at => Time.at(Time.now.to_i+86400)) # 1.day.from_now
 
@@ -451,7 +506,6 @@ describe TentD::API::Posts do
       end
 
       it "should filter by params[:before_id]" do
-        TentD::Model::Post.all.destroy
         post = Fabricate(:post, :public => post_public?)
         before_post = Fabricate(:post, :public => post_public?)
 
@@ -524,11 +578,10 @@ describe TentD::API::Posts do
 
       context "when params[:sort_by] = 'updated_at'" do
         it "should order by updated_at desc" do
-          TentD::Model::Post.all.destroy
           post = Fabricate(:post, :public => post_public?)
 
           a_day_ago = Time.at(Time.now.to_i - 86400)
-          DateTime.stubs(:now).returns(DateTime.parse(a_day_ago.to_s))
+          Time.stubs(:now).returns(a_day_ago)
           earlier_post = Fabricate(:post, :public => post_public?)
 
           expect(earlier_post.updated_at < post.updated_at).to be_true
@@ -542,11 +595,10 @@ describe TentD::API::Posts do
 
         context "when params[:order] = 'asc'" do
           it "should order by updated_at asc" do
-            TentD::Model::Post.all.destroy
             post = Fabricate(:post, :public => post_public?)
 
             a_day_ago = Time.at(Time.now.to_i - 86400)
-            DateTime.stubs(:now).returns(DateTime.parse(a_day_ago.to_s))
+            Time.stubs(:now).returns(a_day_ago.to_s)
             earlier_post = Fabricate(:post, :public => post_public?)
 
             expect(earlier_post.updated_at < post.updated_at).to be_true
@@ -596,7 +648,6 @@ describe TentD::API::Posts do
       context 'when post type not authorized' do
         let(:authorized_post_types) { %w(https://tent.io/types/post/status/v0.1.0) }
         it 'should return empty array' do
-          TentD::Model::Post.all.destroy
           post = Fabricate(:post, :public => false, :type_base => 'https://tent.io/types/post/repost', :type_version => '0.1.0')
           json_get "/posts", params, env
           expect(last_response.body).to eq([].to_json)
@@ -607,6 +658,31 @@ describe TentD::API::Posts do
 
   describe 'POST /posts' do
     let(:p) { Fabricate.build(:post) }
+
+    context 'as app with import_posts scope authorized' do
+      let(:application) { Fabricate.build(:app) }
+      let(:following) { Fabricate(:following) }
+      before { authorize!(:import_posts, :app => application) }
+
+      it "should create post" do
+        post_attributes = p.attributes
+        post_attributes[:type] = p.type.uri
+        post_attributes[:following_id] = following.public_id
+        expect(lambda {
+          expect(lambda {
+            json_post "/posts", post_attributes, env
+            expect(last_response.status).to eq(200)
+          }).to change(TentD::Model::Post, :count).by(1)
+        }).to change(TentD::Model::PostVersion, :count).by(1)
+        post = TentD::Model::Post.order(:id.asc).last
+        expect(post.app_name).to eq(application.name)
+        expect(post.app_url).to eq(application.url)
+        expect(post.user_id).to eq(current_user.id)
+        body = JSON.parse(last_response.body)
+        expect(body['id']).to eq(post.public_id)
+        expect(body['app']).to eq('url' => application.url, 'name' => application.name)
+      end
+    end
 
     context 'as app with write_posts scope authorized' do
       let(:application) { Fabricate.build(:app) }
@@ -621,7 +697,7 @@ describe TentD::API::Posts do
             expect(last_response.status).to eq(200)
           }).to change(TentD::Model::Post, :count).by(1)
         }).to change(TentD::Model::PostVersion, :count).by(1)
-        post = TentD::Model::Post.last
+        post = TentD::Model::Post.order(:id.asc).last
         expect(post.app_name).to eq(application.name)
         expect(post.app_url).to eq(application.url)
         body = JSON.parse(last_response.body)
@@ -645,7 +721,7 @@ describe TentD::API::Posts do
             expect(last_response.status).to eq(200)
           }).to change(TentD::Model::Post, :count).by(1)
         }).to change(TentD::Model::PostVersion, :count).by(1)
-        post = TentD::Model::Post.last
+        post = TentD::Model::Post.order(:id.asc).last
 
         expect(post.views).to eq(post_attributes[:views])
       end
@@ -667,15 +743,12 @@ describe TentD::API::Posts do
           expect(last_response.status).to eq(200)
         }).to change(TentD::Model::Post, :count).by(1)
 
-        post = TentD::Model::Post.last
-        expect(post.as_json[:mentions]).to eq(mentions)
-        expect(post.mentions.map(&:id)).to eq(post.latest_version.mentions.map(&:id))
+        post = TentD::Model::Post.order(:id.asc).last
+        expect(post.as_json[:mentions].sort_by { |m| m[:entity] }).to eq(mentions.sort_by { |m| m[:entity] })
+        expect(post.mentions.map(&:id).sort).to eq(post.latest_version.mentions.map(&:id).sort)
       end
 
       it 'should create post with permissions' do
-        TentD::Model::Group.all.destroy
-        TentD::Model::Follower.all.destroy
-        TentD::Model::Following.all.destroy
         group = Fabricate(:group)
         follower = Fabricate(:follower, :entity => 'https://john321.example.org')
         following = Fabricate(:following, :entity => 'https://smith123.example.com')
@@ -701,7 +774,7 @@ describe TentD::API::Posts do
           }).to change(TentD::Model::Post, :count).by(1)
         }).to change(TentD::Model::Permission, :count).by(3)
 
-        post = TentD::Model::Post.last
+        post = TentD::Model::Post.order(:id.asc).last
         expect(post.public).to be_false
       end
 
@@ -721,9 +794,9 @@ describe TentD::API::Posts do
           }).to change(TentD::Model::PostVersion, :count).by(1)
         }).to change(TentD::Model::PostAttachment, :count).by(4)
         body = JSON.parse(last_response.body)
-        expect(body['id']).to eq(TentD::Model::Post.last.public_id)
+        expect(body['id']).to eq(TentD::Model::Post.order(:id.asc).last.public_id)
 
-        post = TentD::Model::Post.last
+        post = TentD::Model::Post.order(:id.asc).last
         expect(post.attachments.map(&:id)).to eq(post.latest_version.attachments.map(&:id))
       end
     end
@@ -744,7 +817,7 @@ describe TentD::API::Posts do
       it 'should allow a post from the follower' do
         json_post "/posts", post_attributes, env
         body = JSON.parse(last_response.body)
-        post = TentD::Model::Post.last
+        post = TentD::Model::Post.order(:id.asc).last
         expect(body['id']).to eq(post.public_id)
         expect(post.public_id).to eq(post_attributes[:id])
       end
@@ -826,6 +899,14 @@ describe TentD::API::Posts do
           expect(last_response.status).to eq(200)
           expect(TentD::Model::Post.first(:id => p.id)).to be_nil
         end
+
+        it "should not trigger a post deletion for another user" do
+          env['current_auth'] = following
+          p.update(:user_id => other_user.id)
+          json_post "/notifications/#{following.public_id}", post_attributes, env
+          expect(TentD::Model::Post.first(:id => p.id)).to_not be_nil
+          expect(last_response.status).to eq(200)
+        end
       end
     end
 
@@ -846,9 +927,10 @@ describe TentD::API::Posts do
         post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes.merge(:entity => 'example.org'), env
         body = JSON.parse(last_response.body)
-        post = TentD::Model::Post.last
+        post = TentD::Model::Post.order(:id.asc).last
         expect(body['id']).to eq(post.public_id)
         expect(post.public_id).to eq(post_attributes[:id])
+        expect(post.user_id).to eq(current_user.id)
       end
 
       it 'should not allow posting as the entity' do
@@ -857,6 +939,24 @@ describe TentD::API::Posts do
         post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes.merge(:entity => 'https://example.org'), env.merge('tent.entity' => 'https://example.org')
         expect(last_response.status).to eq(403)
+      end
+
+      context 'when following belongs to another user' do
+        it 'should allow post by entity' do
+          entity = 'https://other.example.com'
+          following = Fabricate(:following, :entity => entity, :user_id => other_user.id)
+
+          post_attributes = p.attributes
+          post_attributes[:id] = rand(36 ** 6).to_s(36)
+          post_attributes[:type] = p.type.uri
+          json_post "/posts", post_attributes.merge(:entity => entity), env
+          expect(last_response.status).to eq(200)
+          body = JSON.parse(last_response.body)
+          post = TentD::Model::Post.order(:id.asc).last
+          expect(body['id']).to eq(post.public_id)
+          expect(post.public_id).to eq(post_attributes[:id])
+          expect(post.user_id).to eq(current_user.id)
+        end
       end
     end
   end
@@ -873,11 +973,26 @@ describe TentD::API::Posts do
           expect(last_response.status).to eq(200)
           expect(TentD::Model::Post.first(:id => post.id)).to be_nil
 
+          deleted_post = TentD::Model::Post.unfiltered.first(:id => post.id)
+          expect(deleted_post).to_not be_nil
+          expect(deleted_post.deleted_at).to_not be_nil
+
           deleted_post = post
-          post = TentD::Model::Post.last
+          post = TentD::Model::Post.order(:id.asc).last
           expect(post.content['id']).to eq(deleted_post.public_id)
           expect(post.type.base).to eq('https://tent.io/types/post/delete')
           expect(post.type_version).to eq('0.1.0')
+        end
+      end
+
+      context 'when post belongs to another user' do
+        let!(:post) { Fabricate(:post, :original => true, :user_id => other_user.id) }
+
+        it 'should return 404' do
+          expect(lambda {
+            delete "/posts/#{post.public_id}", params, env
+            expect(last_response.status).to eq(404)
+          }).to_not change(TentD::Model::Post, :count)
         end
       end
 
@@ -920,7 +1035,8 @@ describe TentD::API::Posts do
     context 'with params[:version]' do
       it 'should get specified version of attachment' do
         post_version = Fabricate(:post_version, :post => post, :public_id => post.public_id, :version => 12)
-        new_attachment = Fabricate(:post_attachment, :post => nil, :post_version => post_version, :data => Base64.encode64('ChunkyBacon'))
+        new_attachment = Fabricate(:post_attachment, :post => nil, :data => Base64.encode64('ChunkyBacon'))
+        new_attachment.db[:post_versions_attachments].insert(:post_version_id => post_version.id, :post_attachment_id => new_attachment.id)
 
         expect(post.latest_version(:fields => [:id]).id).to eq(post_version.id)
         expect(new_attachment.name).to eq(attachment.name)
@@ -947,6 +1063,15 @@ describe TentD::API::Posts do
       get "/posts/asdf/attachments/asdf"
       expect(last_response.status).to eq(404)
     end
+
+    context 'when post belongs to another user' do
+      let(:post) { Fabricate(:post, :user_id => other_user.id) }
+
+      it 'should return 404' do
+        get "/posts/#{post.public_id}/attachments/#{attachment.name}", {}, 'HTTP_ACCEPT' => attachment.type
+        expect(last_response.status).to eq(404)
+      end
+    end
   end
 
   describe 'PUT /posts/:post_id' do
@@ -954,6 +1079,20 @@ describe TentD::API::Posts do
 
     context 'when authorized' do
       before { authorize!(:write_posts) }
+
+      context 'when post belongs to another user' do
+        let(:post) { Fabricate(:post, :user_id => other_user.id) }
+
+        it 'should return 404' do
+          post_attributes = {
+            :content => {
+              "text" => "Foo Bar Baz"
+            }
+          }
+          json_put "/posts/#{post.public_id}", post_attributes, env
+          expect(last_response.status).to eq(404)
+        end
+      end
 
       it 'should update post' do
         Fabricate(:post_attachment, :post => post)
@@ -983,9 +1122,9 @@ describe TentD::API::Posts do
               expect(post.views).to eq(post_attributes[:views])
               expect(post.public).to_not eq(post_attributes[:public])
               expect(post.entity).to_not eq(post_attributes[:entity])
-            }).to change(post.versions, :count).by(1)
-          }).to_not change(post.mentions, :count)
-        }).to_not change(post.attachments, :count)
+            }).to change(post.versions_dataset, :count).by(1)
+          }).to change(post.mentions_dataset, :count).by(-1)
+        }).to_not change(post.attachments_dataset, :count)
       end
 
       it 'should update mentions' do
@@ -1004,11 +1143,11 @@ describe TentD::API::Posts do
 
             existing_mentions.each do |m|
               m.reload
-              expect(m.post_version_id).to_not be_nil
+              expect(m.post_versions_dataset.count).to eql(1)
               expect(m.post_id).to be_nil
             end
           }).to change(TentD::Model::Mention, :count).by(2)
-        }).to change(post.versions, :count).by(1)
+        }).to change(post.versions_dataset, :count).by(1)
       end
 
       it 'should update attachments' do
@@ -1017,6 +1156,9 @@ describe TentD::API::Posts do
                                  { :filename => 'a', :content_type => 'application/json', :content => 'asdf123' },
                                  { :filename => 'b', :content_type => 'text/plain', :content => '1234' }],
                         :bar => { :filename => 'bar.html', :content_type => 'text/html', :content => '54321' } }
+
+        last_version = post.latest_version
+
         expect(lambda {
           expect(lambda {
             expect(lambda {
@@ -1025,7 +1167,7 @@ describe TentD::API::Posts do
 
               existing_attachments.each do |a|
                 a.reload
-                expect(a.post_version_id).to_not be_nil
+                expect(a.post_versions_dataset.count).to eql(1)
                 expect(a.post_id).to be_nil
               end
             }).to change(TentD::Model::Post, :count).by(0)
@@ -1034,6 +1176,52 @@ describe TentD::API::Posts do
 
         post.reload
         expect(post.attachments.map(&:id)).to eq(post.latest_version.attachments.map(&:id))
+
+        expect(last_version.attachments.map(&:id)).to eql(existing_attachments.map(&:id))
+      end
+
+      it 'should update post version' do
+        existing_version = post.create_version!
+        existing_version_attachments = 2.times.map { Fabricate(:post_attachment) }.each do |a|
+          existing_version.db[:post_versions_attachments].insert(
+            :post_attachment_id => a.id,
+            :post_version_id => existing_version.id
+          )
+        end
+        existing_version_mentions = 2.times.map { Fabricate(:mention) }.each do |m|
+          existing_version.db[:post_versions_mentions].insert(
+            :mention_id => m.id,
+            :post_version_id => existing_version.id
+          )
+        end
+        expect(existing_version.attachments_dataset.count).to eql(2)
+        expect(existing_version.mentions_dataset.count).to eql(2)
+
+        latest_version = post.create_version!
+
+        post_attrs = {
+          :version => existing_version.version
+        }
+
+        expect(lambda {
+          expect(lambda {
+            expect(lambda {
+              json_put "/posts/#{post.public_id}", post_attrs, env
+              expect(last_response.status).to eq(200)
+            }).to change(TentD::Model::PostVersion, :count).by(1)
+          }).to_not change(TentD::Model::PostAttachment, :count)
+        }).to_not change(TentD::Model::Mention, :count)
+
+        version = post.reload.latest_version
+
+        expect(existing_version.attachments_dataset.count).to eql(2)
+        expect(existing_version.mentions_dataset.count).to eql(2)
+
+        expect(version.attachments_dataset.count).to eql(2)
+        expect(version.attachments.map(&:id)).to eql(existing_version_attachments.map(&:id))
+
+        expect(version.mentions_dataset.count).to eql(2)
+        expect(version.mentions.map(&:id)).to eql(existing_version_mentions.map(&:id))
       end
     end
 

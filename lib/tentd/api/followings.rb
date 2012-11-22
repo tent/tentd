@@ -10,7 +10,7 @@ module TentD
             env.params[key] = nil
             memo
           }
-          followings = Model::Following.all(:public_id => id_mapping.keys, :fields => [:id, :public_id])
+          followings = Model::Following.select(:id, :public_id).where(:user_id => Model::User.current.id, :public_id => id_mapping.keys).all
           followings.each do |following|
             key = id_mapping[following.public_id]
             env.params[key] = following.id
@@ -157,6 +157,7 @@ module TentD
 
       class ProxyRequest < Middleware
         def action(env)
+          return env unless env.following
           following = env.following
           client = TentClient.new(following.core_profile.servers.first,
                                   following.auth_details.merge(:skip_serialization => true,

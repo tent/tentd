@@ -10,7 +10,7 @@ Fabricator(:following, :class_name => "TentD::Model::Following") do
   profile { |f|
     { TentD::Model::ProfileInfo::TENT_PROFILE_TYPE_URI =>
       { :entity => f[:entity], :licenses => f[:licenses], :servers => Array(f[:server_urls] || ["https://example.com"]) }
-    }.to_json
+    }
   }
   updated_at { Time.now }
   confirmed true

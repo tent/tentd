@@ -1,5 +1,6 @@
 before_script:
   - psql -c 'create database tentd_test;' -U postgres
+  - bundle exec rake db:migrate DATABASE_URL=postgres://postgres@localhost/tentd_test
 env:
   - TEST_DATABASE_URL=postgres://postgres@localhost/tentd_test
 rvm:
