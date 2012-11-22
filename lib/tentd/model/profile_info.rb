@@ -36,7 +36,8 @@ module TentD
       def self.tent_info
         where(
           :type_base => TENT_PROFILE_TYPE.base,
-          :type_version => TENT_PROFILE_TYPE.version.to_s
+          :type_version => TENT_PROFILE_TYPE.version.to_s,
+          :user_id => User.current.id
         ).order(:type_version.desc).first || Hashie::Mash.new
       end
 

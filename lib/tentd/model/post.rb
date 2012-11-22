@@ -50,7 +50,7 @@ module TentD
 
       def self.propagate_entity(user_id, entity, old_entity = nil)
         where(:original => true, :user_id => user_id).update(:entity => entity)
-        Mention.where(:entity => old_entity).update(:entity => entity) if old_entity
+        Mention.from(:mentions, :posts).where(:posts__user_id => user_id, :mentions__entity => old_entity).update(:entity => entity) if old_entity
       end
 
       def self.create(data, options={})
@@ -122,8 +122,8 @@ SQL
 
       def notify_mentions
         mentions.each do |mention|
-          follower = Follower.first(:entity => mention.entity)
-          next if follower && NotificationSubscription.first(:follower => follower, :type_base => self.type.base)
+          follower = Follower.first(:user_id => User.current.id, :entity => mention.entity)
+          next if follower && NotificationSubscription.first(:user_id => User.current.id, :follower => follower, :type_base => self.type.base)
 
           Notifications.notify_entity(:entity => mention.entity, :post_id => self.id)
         end

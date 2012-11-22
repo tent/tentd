@@ -110,8 +110,8 @@ module TentD
       end
 
       def propagate_entity(new_entity, old_entity)
-        Post.where(:entity => old_entity, :original => false).update(:entity => entity)
-        Mention.where(:entity => old_entity, :original_post => false).update(:entity => entity)
+        Post.where(:user_id => User.current.id, :entity => old_entity, :original => false).update(:entity => entity)
+        Mention.from(:mentions, :posts).where(:posts__user_id => User.current.id, :mentions__entity => old_entity, :mentions__original_post => false).update(:entity => entity)
       end
 
       def public?
