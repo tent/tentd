@@ -7,6 +7,8 @@ describe TentD::API::Profile do
 
   let(:env) { {} }
   let(:params) { Hash.new }
+  let(:current_user) { TentD::Model::User.current }
+  let(:other_user) { TentD::Model::User.create }
 
   let(:authorized_info_types) { [] }
   let(:authorized_scopes) { [] }
@@ -39,7 +41,11 @@ describe TentD::API::Profile do
   end
 
   def create_info(type, content, options = {})
-    Fabricate(:profile_info, :public => options[:public], :type => type, :content => content)
+    attrs = {
+      :public => options[:public], :type => type, :content => content
+    }
+    attrs[:user_id] = options[:user_id] if options[:user_id]
+    Fabricate(:profile_info, attrs)
   end
 
   describe 'GET /profile' do
@@ -51,11 +57,10 @@ describe TentD::API::Profile do
         let(:authorized_info_types) { ['all'] }
 
         it 'should return all info types' do
-          TentD::Model::ProfileInfo.destroy
-
           profile_infos = []
           profile_infos << Fabricate(:profile_info, :public => false)
           profile_infos << Fabricate(:basic_profile_info, :public => false)
+          profile_infos << Fabricate(:basic_profile_info, :public => false, :user_id => other_user.id)
 
           json_get '/profile', params, env
           expect(last_response.body).to eql({
@@ -63,14 +68,20 @@ describe TentD::API::Profile do
             "#{ profile_infos.last.type.uri }" => profile_infos.last.content.merge(:permissions => profile_infos.first.permissions_json)
           }.to_json)
         end
+
+        it 'should not return profile info for another user' do
+          profile_infos = []
+          profile_infos << Fabricate(:profile_info, :public => false, :user_id => other_user.id)
+          json_get '/profile', params, env
+          body = Yajl::Parser.parse(last_response.body)
+          expect(body).to eql({})
+        end
       end
 
       context 'when authorized for specific info types' do
         let(:authorized_info_types) { ['https://tent.io/types/info/basic'] }
 
         it 'should only return authorized info types' do
-          TentD::Model::ProfileInfo.destroy
-
           profile_infos = []
           profile_infos << Fabricate(:profile_info, :public => false, :type => "https://tent.io/types/info/basic/v0.1.0")
           profile_infos << Fabricate(:profile_info, :public => false)
@@ -80,13 +91,19 @@ describe TentD::API::Profile do
             "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge('permissions' => profile_infos.first.permissions_json.inject({}) { |m, (k,v)| m[k.to_s] = v; m })
           })
         end
+
+        it 'should not return profile info for another user' do
+          profile_infos = []
+          profile_infos << Fabricate(:profile_info, :public => false, :type => "https://tent.io/types/info/basic/v0.1.0", :user_id => other_user.id)
+          json_get '/profile', params, env
+          body = Yajl::Parser.parse(last_response.body)
+          expect(body).to eql({})
+        end
       end
     end
 
     context 'when read_profile scope unauthorized' do
       it 'should only return public profile into types' do
-        TentD::Model::ProfileInfo.destroy
-
         profile_infos = []
         profile_infos << Fabricate(:profile_info, :public => true)
         profile_infos << Fabricate(:basic_profile_info, :public => false)
@@ -95,6 +112,14 @@ describe TentD::API::Profile do
         expect(last_response.body).to eql({
           "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json)
         }.to_json)
+      end
+
+      it 'should not return profile info for another user' do
+        profile_infos = []
+        profile_infos << Fabricate(:profile_info, :public => true, :user_id => other_user.id)
+        json_get '/profile', params, env
+        body = Yajl::Parser.parse(last_response.body)
+        expect(body).to eql({})
       end
     end
   end
@@ -125,7 +150,22 @@ describe TentD::API::Profile do
         end
 
         it 'should create unless exists' do
-          TentD::Model::ProfileInfo.destroy
+          data = {
+            "name" => "John Doe"
+          }
+
+          expect(lambda {
+            json_put "/profile/#{url_encode_type(basic_info_type)}", data, env
+          }).to change(TentD::Model::ProfileInfo.where(:user_id => current_user.id), :count).by(1)
+
+          info = TentD::Model::ProfileInfo.order(:id.asc).last
+          expect(last_response.status).to eql(200)
+          expect(info.content).to eql(data)
+          expect(info.type.version).to eql('0.1.0')
+        end
+
+        it 'should not update info for another user' do
+          info = create_info(basic_info_type, basic_info_content, :public => false, :user_id => other_user.id)
 
           data = {
             "name" => "John Doe"
@@ -133,12 +173,7 @@ describe TentD::API::Profile do
 
           expect(lambda {
             json_put "/profile/#{url_encode_type(basic_info_type)}", data, env
-          }).to change(TentD::Model::ProfileInfo, :count).by(1)
-
-          info = TentD::Model::ProfileInfo.order(:id.asc).last
-          expect(last_response.status).to eql(200)
-          expect(info.content).to eql(data)
-          expect(info.type.version).to eql('0.1.0')
+          }).to change(TentD::Model::ProfileInfo.where(:user_id => current_user.id), :count).by(1)
         end
       end
 

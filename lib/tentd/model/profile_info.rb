@@ -42,7 +42,8 @@ module TentD
 
       def self.get_profile(authorized_scopes = [], current_auth = nil)
         h = if (authorized_scopes.include?(:read_profile) || authorized_scopes.include?(:write_profile)) && current_auth.respond_to?(:profile_info_types)
-          current_auth.profile_info_types.include?('all') ? all : where({ :type_base => current_auth.profile_info_types.map { |t| TentType.new(t).base }, :public => true }.sql_or).all
+          query = where(:user_id => User.current.id)
+          current_auth.profile_info_types.include?('all') ? query.all : query.where({ :type_base => current_auth.profile_info_types.map { |t| TentType.new(t).base }, :public => true }.sql_or).all
         else
           fetch_with_permissions({}, current_auth)
         end.inject({}) do |memo, info|
@@ -56,7 +57,7 @@ module TentD
         data = Hashie::Mash.new(data) unless data.kind_of?(Hashie::Mash)
         type = TentType.new(type)
         perms = data.delete(:permissions)
-        existing_infos = where(:type_base => type.base)
+        existing_infos = where(:user_id => User.current.id, :type_base => type.base)
         if existing_infos.any? && (info = existing_infos.order(:id.asc).last)
           existing_infos.where(Sequel.~(:id => info.id)).destroy
           info.old_entity = (info.content || {})['entity']
