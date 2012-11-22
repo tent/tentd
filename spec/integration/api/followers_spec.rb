@@ -23,6 +23,8 @@ describe TentD::API::Followers do
 
   let(:env) { Hash.new }
   let(:params) { Hash.new }
+  let(:current_user) { TentD::Model::User.current }
+  let(:other_user) { TentD::Model::User.create }
 
   let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
   let(:follower) { Fabricate(:follower) }
@@ -136,7 +138,7 @@ describe TentD::API::Followers do
 
       it 'should create follower db record and respond with hmac secret' do
         expect(lambda { json_post '/followers', follower_data, env }).
-          to change(TentD::Model::Follower, :count).by(1)
+          to change(TentD::Model::Follower.where(:user_id => current_user.id), :count).by(1)
         expect(last_response.status).to eql(200)
         follow = TentD::Model::Follower.order(:id.asc).last
         body = JSON.parse(last_response.body)
@@ -150,7 +152,7 @@ describe TentD::API::Followers do
         expect(lambda {
           json_post '/followers', follower_data, env
           expect(last_response.status).to eql(200)
-        }).to change(TentD::Model::Post, :count).by(1)
+        }).to change(TentD::Model::Post.where(:user_id => current_user.id), :count).by(1)
 
         post = TentD::Model::Post.order(:id.asc).last
         expect(post.type.base).to eql('https://tent.io/types/post/follower')
@@ -164,7 +166,7 @@ describe TentD::API::Followers do
           expect(lambda {
             json_post '/followers', follower_data, env
             expect(last_response.status).to eql(200)
-          }).to change(TentD::Model::Post, :count).by(1)
+          }).to change(TentD::Model::Post.where(:user_id => current_user.id), :count).by(1)
           post = TentD::Model::Post.order(:id.asc).last
           expect(post.public).to be_true
         end
@@ -172,7 +174,7 @@ describe TentD::API::Followers do
 
       it 'should create notification subscription for each type given' do
         expect(lambda { json_post '/followers', follower_data, env }).
-          to change(TentD::Model::NotificationSubscription, :count).by(2)
+          to change(TentD::Model::NotificationSubscription.where(:user_id => current_user.id), :count).by(2)
         expect(last_response.status).to eql(200)
         expect(TentD::Model::NotificationSubscription.order(:id.asc).last.type_view).to eql('meta')
       end
@@ -183,7 +185,7 @@ describe TentD::API::Followers do
           dup_follower_2 = Fabricate(:follower, :entity => follower_entity_url)
 
           expect(lambda { json_post '/followers', follower_data, env }).
-            to change(TentD::Model::Follower, :count).by(-1)
+            to change(TentD::Model::Follower.where(:user_id => current_user.id), :count).by(-1)
         end
       end
     end
@@ -222,7 +224,7 @@ describe TentD::API::Followers do
         expect(lambda {
           json_post '/followers', data, env
           expect(last_response.status).to eql(200)
-        }).to change(TentD::Model::Follower, :count).by(1)
+        }).to change(TentD::Model::Follower.where(:user_id => current_user.id), :count).by(1)
 
         follower = TentD::Model::Follower.order(:id.asc).last
         expect(follower.public_id).to eql(data['id'])
@@ -235,7 +237,7 @@ describe TentD::API::Followers do
         expect(lambda {
           json_post '/followers', follower_data, env
           expect(last_response.status).to eql(200)
-        }).to change(TentD::Model::NotificationSubscription, :count).by(2)
+        }).to change(TentD::Model::NotificationSubscription.where(:user_id => current_user.id), :count).by(2)
         expect(TentD::Model::NotificationSubscription.order(:id.asc).last.type_view).to eql('meta')
       end
     end
@@ -243,10 +245,10 @@ describe TentD::API::Followers do
     context 'when write_secrets scope not authorized' do
       it 'should respond 403' do
         expect(lambda { json_post '/followers', follower_data, env }).
-          to_not change(TentD::Model::Follower, :count)
+          to_not change(TentD::Model::Follower.where(:user_id => current_user.id), :count)
 
         expect(lambda { json_post '/followers', follower_data, env }).
-          to_not change(TentD::Model::NotificationSubscription, :count)
+          to_not change(TentD::Model::NotificationSubscription.where(:user_id => current_user.id), :count)
 
         expect(last_response.status).to eql(403)
       end
@@ -256,10 +258,11 @@ describe TentD::API::Followers do
   describe 'GET /followers/count' do
     it 'should return count of followers' do
       follower = Fabricate(:follower, :public => true)
+      other_follower = Fabricate(:follower, :public => true, :user_id => other_user.id)
       json_get '/followers/count', params, env
       expect(last_response.body).to eql(1.to_json)
 
-      TentD::Model::Follower.destroy
+      TentD::Model::Follower.delete
       json_get '/followers/count', params, env
       expect(last_response.body).to eql(0.to_json)
     end
@@ -287,6 +290,17 @@ describe TentD::API::Followers do
           expect(body_ids).to include(follower.public_id)
         end
       end
+
+      it 'should only return followers for current user' do
+        follower = Fabricate(:follower, :public => true)
+        other_follower = Fabricate(:follower, :public => true, :user_id => other_user.id)
+
+        json_get "/followers", params, env
+        body = JSON.parse(last_response.body)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids.size).to eq(1)
+        expect(body_ids).to eql([follower.public_id])
+      end
     end
 
     authorized_full = proc do
@@ -301,6 +315,17 @@ describe TentD::API::Followers do
           }
         end
         expect(last_response.status).to eql(200)
+      end
+
+      it 'should only return followers for current user' do
+        follower = Fabricate(:follower, :public => false)
+        other_follower = Fabricate(:follower, :public => false, :user_id => other_user.id)
+
+        json_get "/followers", params, env
+        body = JSON.parse(last_response.body)
+        body_ids = body.map { |i| i['id'] }
+        expect(body_ids.size).to eq(1)
+        expect(body_ids).to eql([follower.public_id])
       end
     end
 
@@ -340,6 +365,15 @@ describe TentD::API::Followers do
         expect(last_response.status).to eql(200)
         body = JSON.parse(last_response.body)
         expect(body['id']).to eql(follower.public_id)
+      end
+
+      context 'when follower belongs to another user' do
+        let(:follower) { Fabricate(:follower, :user_id => other_user.id) }
+
+        it 'should return 404' do
+          json_get "/followers/#{follower.public_id}", params, env
+          expect([404, 403]).to include(last_response.status)
+        end
       end
     end
 
@@ -409,6 +443,15 @@ describe TentD::API::Followers do
           expect(last_response.status).to eql(200)
           expect(last_response.body).to eql(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type]).to_json)
         end
+
+        context 'when follower belongs to another user' do
+          let(:follower) { Fabricate(:follower, :user_id => other_user.id, :public => true) }
+
+          it 'should return 404' do
+            json_get "/followers/#{follower.public_id}", params, env
+            expect([404, 403]).to include(last_response.status)
+          end
+        end
       end
 
       context 'when follower private' do
@@ -438,6 +481,17 @@ describe TentD::API::Followers do
         json_put "/followers/#{follower.public_id}", data, env
         follower.reload
         expect(follower.licenses).to eql(data[:licenses])
+      end
+
+      context 'when follower belongs to another user' do
+        it 'should return 404' do
+          data = {
+            :licenses => ["http://creativecommons.org/licenses/by/3.0/"]
+          }
+          follower.update(:user_id => other_user.id)
+          json_put "/followers/#{follower.public_id}", data, env
+          expect([404, 403]).to include(last_response.status)
+        end
       end
 
       context '' do
@@ -535,7 +589,7 @@ describe TentD::API::Followers do
         expect(lambda {
           delete "/followers/#{follower.public_id}", params, env
           expect(last_response.status).to eql(200)
-        }).to change(TentD::Model::Follower, :count).by(-1)
+        }).to change(TentD::Model::Follower.where(:user_id => current_user.id), :count).by(-1)
 
         deleted_follower = TentD::Model::Follower.unfiltered.first(:id => follower.id)
         expect(deleted_follower).to_not be_nil
@@ -548,12 +602,22 @@ describe TentD::API::Followers do
         expect(lambda {
           delete "/followers/#{follower.public_id}", params, env
           expect(last_response.status).to eql(200)
-        }).to change(TentD::Model::Post, :count).by(1)
+        }).to change(TentD::Model::Post.where(:user_id => current_user.id), :count).by(1)
 
         post = TentD::Model::Post.order(:id.asc).last
         expect(post.type.base).to eql('https://tent.io/types/post/follower')
         expect(post.type.version).to eql('0.1.0')
         expect(post.content['action']).to eql('delete')
+      end
+
+      context 'when follower belongs to another user' do
+        it 'should return 404' do
+          follower.update(:user_id => other_user.id)
+          expect(lambda {
+            delete "/followers/#{follower.public_id}", params, env
+            expect([404, 403]).to include(last_response.status)
+          }).to_not change(TentD::Model::Follower, :count)
+        end
       end
     end
 
