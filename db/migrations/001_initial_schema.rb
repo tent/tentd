@@ -2,14 +2,14 @@ Sequel.migration do
   change do
     create_table(:app_authorizations) do
       primary_key :id
-      column :public_id, "character varying(50)", :null=>false
+      column :public_id, "text", :null=>false
       column :post_types, "text[]", :default=>"{}"
       column :profile_info_types, "text[]", :default=>"{}"
       column :scopes, "text[]", :default=>"{}"
-      column :token_code, "character varying(50)"
-      column :mac_key_id, "character varying(50)"
-      column :mac_key, "character varying(50)"
-      column :mac_algorithm, "character varying(50)", :default=>"hmac-sha-256"
+      column :token_code, "text"
+      column :mac_key_id, "text"
+      column :mac_key, "text"
+      column :mac_algorithm, "text", :default=>"hmac-sha-256"
       column :mac_timestamp_delta, "integer"
       column :notification_url, "text"
       column :follow_url, "text"
@@ -25,16 +25,16 @@ Sequel.migration do
     
     create_table(:apps) do
       primary_key :id
-      column :public_id, "character varying(50)", :null=>false
+      column :public_id, "text", :null=>false
       column :name, "text", :null=>false
       column :description, "text"
       column :url, "text", :null=>false
       column :icon, "text"
       column :redirect_uris, "text[]", :default=>"{}"
       column :scopes, "text", :default=>"{}"
-      column :mac_key_id, "character varying(50)"
-      column :mac_key, "character varying(50)"
-      column :mac_algorithm, "character varying(50)", :default=>"hmac-sha-256"
+      column :mac_key_id, "text"
+      column :mac_key, "text"
+      column :mac_algorithm, "text", :default=>"hmac-sha-256"
       column :mac_timestamp_delta, "integer"
       column :created_at, "timestamp without time zone"
       column :updated_at, "timestamp without time zone"
@@ -48,16 +48,16 @@ Sequel.migration do
     
     create_table(:followers) do
       primary_key :id
-      column :public_id, "character varying(50)", :null=>false
+      column :public_id, "text", :null=>false
       column :groups, "text[]", :default=>"{}"
       column :entity, "text", :null=>false
       column :public, "boolean", :default=>true
       column :profile, "text", :default=>"{}"
       column :licenses, "text[]", :default=>"{}"
       column :notification_path, "text", :null=>false
-      column :mac_key_id, "character varying(50)"
-      column :mac_key, "character varying(50)"
-      column :mac_algorithm, "character varying(50)", :default=>"hmac-sha-256"
+      column :mac_key_id, "text"
+      column :mac_key, "text"
+      column :mac_algorithm, "text", :default=>"hmac-sha-256"
       column :mac_timestamp_delta, "integer"
       column :created_at, "timestamp without time zone"
       column :updated_at, "timestamp without time zone"
@@ -71,16 +71,16 @@ Sequel.migration do
     
     create_table(:followings) do
       primary_key :id
-      column :public_id, "character varying(50)", :null=>false
-      column :remote_id, "character varying(50)"
+      column :public_id, "text", :null=>false
+      column :remote_id, "text"
       column :groups, "text[]", :default=>"{}"
       column :entity, "text", :null=>false
       column :public, "boolean", :default=>true
       column :profile, "text", :default=>"{}"
       column :licenses, "text[]", :default=>"{}"
-      column :mac_key_id, "character varying(50)"
-      column :mac_key, "character varying(50)"
-      column :mac_algorithm, "character varying(50)"
+      column :mac_key_id, "text"
+      column :mac_key, "text"
+      column :mac_algorithm, "text"
       column :mac_timestamp_delta, "integer"
       column :created_at, "timestamp without time zone"
       column :updated_at, "timestamp without time zone"
@@ -94,7 +94,7 @@ Sequel.migration do
     
     create_table(:groups) do
       primary_key :id
-      column :public_id, "character varying(50)", :null=>false
+      column :public_id, "text", :null=>false
       column :name, "text", :null=>false
       column :created_at, "timestamp without time zone"
       column :updated_at, "timestamp without time zone"
@@ -108,8 +108,8 @@ Sequel.migration do
     create_table(:notification_subscriptions) do
       primary_key :id
       column :type_base, "text", :null=>false
-      column :type_view, "character varying(50)"
-      column :type_version, "character varying(50)"
+      column :type_view, "text"
+      column :type_version, "text"
       column :created_at, "timestamp without time zone"
       column :updated_at, "timestamp without time zone"
       column :user_id, "integer", :null=>false
@@ -125,7 +125,7 @@ Sequel.migration do
       primary_key :id
       column :visible, "boolean", :default=>true
       column :post_id, "integer"
-      column :group_public_id, "character varying(50)"
+      column :group_public_id, "text"
       column :following_id, "integer"
       column :follower_visibility_id, "integer"
       column :follower_access_id, "integer"
@@ -158,11 +158,11 @@ Sequel.migration do
     create_table(:post_versions) do
       primary_key :id
       column :type_base, "text", :null=>false
-      column :type_view, "character varying(50)"
-      column :type_version, "character varying(50)"
+      column :type_view, "text"
+      column :type_version, "text"
       column :version, "integer", :null=>false
       column :entity, "text"
-      column :public_id, "character varying(50)", :null=>false
+      column :public_id, "text", :null=>false
       column :public, "boolean", :default=>false
       column :licenses, "text[]", :default=>"{}"
       column :content, "text", :default=>"{}"
@@ -187,10 +187,10 @@ Sequel.migration do
     
     create_table(:posts) do
       primary_key :id
-      column :public_id, "character varying(50)", :null=>false
+      column :public_id, "text", :null=>false
       column :type_base, "text", :null=>false
-      column :type_view, "character varying(50)"
-      column :type_version, "character varying(50)"
+      column :type_view, "text"
+      column :type_version, "text"
       column :entity, "text"
       column :public, "boolean", :default=>false
       column :licenses, "text[]", :default=>"{}"
@@ -216,8 +216,8 @@ Sequel.migration do
     create_table(:profile_info) do
       primary_key :id
       column :type_base, "text", :null=>false
-      column :type_view, "character varying(50)"
-      column :type_version, "character varying(50)"
+      column :type_view, "text"
+      column :type_version, "text"
       column :public, "boolean", :default=>false
       column :content, "text", :default=>"{}"
       column :created_at, "timestamp without time zone"
@@ -239,7 +239,7 @@ Sequel.migration do
       primary_key :id
       column :entity, "text", :null=>false
       column :original_post, "boolean", :default=>false
-      column :mentioned_post_id, "character varying(50)"
+      column :mentioned_post_id, "text"
       foreign_key :post_id, :posts, :key=>[:id], :on_delete=>:cascade, :on_update=>:cascade
       foreign_key :post_version_id, :post_versions, :key=>[:id], :on_delete=>:cascade, :on_update=>:cascade
       
