@@ -17,6 +17,8 @@ describe TentD::API::Apps do
 
   let(:env) { Hash.new }
   let(:params) { Hash.new }
+  let(:current_user) { TentD::Model::User.current }
+  let(:other_user) { TentD::Model::User.create }
 
   describe 'GET /apps' do
     context 'when authorized' do
@@ -36,6 +38,18 @@ describe TentD::API::Apps do
               expect(actual).to have_key(key)
             }
           }
+        end
+
+        it 'should only return apps belonging to current user' do
+          app = Fabricate(:app)
+          other_app = Fabricate(:app, :user_id => other_user.id)
+
+          json_get '/apps', params, env
+          expect(last_response.status).to eq(200)
+
+          body = JSON.parse(last_response.body)
+          expect(body.size).to eql(1)
+          expect(body.first['id']).to eq(app.public_id)
         end
       end
 
@@ -101,6 +115,14 @@ describe TentD::API::Apps do
           expect(body).to_not have_key(key)
         }
         expect(body['id']).to eq(app.public_id)
+      end
+
+      context 'when app belongs to another user' do
+        it 'should return 404' do
+          app = Fabricate(:app, :user_id => other_user.id)
+          json_get "/apps/#{app.public_id}", params, env
+          expect([404, 403]).to include(last_response.status)
+        end
       end
     end
 
@@ -182,7 +204,7 @@ describe TentD::API::Apps do
     before { TentD::Model::App.destroy }
 
     it 'should create app' do
-      expect(lambda { json_post '/apps', data, env }).to change(TentD::Model::App, :count).by(1)
+      expect(lambda { json_post '/apps', data, env }).to change(TentD::Model::App.where(:user_id => current_user.id), :count).by(1)
 
       app = TentD::Model::App.order(:id.asc).last
       expect(last_response.status).to eq(200)
@@ -206,7 +228,7 @@ describe TentD::API::Apps do
         expect(lambda {
           json_post '/apps', app_data, env
           expect(last_response.status).to eq(200)
-        }).to change(TentD::Model::App, :count).by(1)
+        }).to change(TentD::Model::App.where(:user_id => current_user.id), :count).by(1)
 
         app = TentD::Model::App.order(:id.asc).last
         expect(app.mac_key_id).to eq(app_data[:mac_key_id])
@@ -221,7 +243,6 @@ describe TentD::API::Apps do
       before { authorize!(:write_apps, :write_secrets) }
 
       it 'should create app authorization' do
-        TentD::Model::AppAuthorization.destroy
         app = Fabricate(:app)
         scopes = %w{ read_posts write_posts }
         post_types = %w{ https://tent.io/types/post/status/v0.1.0 https://tent.io/types/post/photo/v0.1.0 }
@@ -237,7 +258,7 @@ describe TentD::API::Apps do
           expect(lambda {
             json_post "/apps/#{app.public_id}/authorizations", data, env
             expect(last_response.status).to eq(200)
-          }).to change(TentD::Model::NotificationSubscription, :count).by(2)
+          }).to change(TentD::Model::NotificationSubscription.where(:user_id => current_user.id), :count).by(2)
         }).to change(TentD::Model::AppAuthorization, :count)
 
         app_auth = app.authorizations.last
@@ -245,6 +266,17 @@ describe TentD::API::Apps do
         expect(app_auth.post_types).to eq(post_types)
         expect(app_auth.profile_info_types).to eq(profile_info_types)
         expect(app_auth.public_id).to eq(data[:id])
+      end
+
+      context 'when app belongs to another user' do
+        it 'should return 404' do
+          app = Fabricate(:app, :user_id => other_user.id)
+          data = {
+            :notification_url => "http://example.com/webhooks/notifications",
+          }
+          json_post "/apps/#{app.public_id}/authorizations", data, env
+          expect(last_response.status).to eq(404)
+        end
       end
     end
 
@@ -319,6 +351,16 @@ describe TentD::API::Apps do
             expect(app.send(key).to_json).to eq(val.to_json)
           end
         end
+
+        context 'when app belongs to another user' do
+          it 'should return 404' do
+            app = Fabricate(:app, :user_id => other_user.id)
+            data = app.attributes.slice(:name, :url, :icon, :redirect_uris, :scopes)
+            data[:name] = "Yet Another MicroBlog App"
+            json_put "/apps/#{app.public_id}", data, env
+            expect([404, 403]).to include(last_response.status)
+          end
+        end
       end
     end
 
@@ -377,6 +419,17 @@ describe TentD::API::Apps do
           expect(deleted_app).to_not be_nil
           expect(deleted_app.deleted_at).to_not be_nil
         end
+
+        context 'when app belongs to another user' do
+          it 'should return 404' do
+            app = Fabricate(:app, :user_id => other_user.id)
+
+            expect(lambda {
+              delete "/apps/#{app.public_id}", params, env
+              expect([404, 403]).to include(last_response.status)
+            }).to_not change(TentD::Model::App, :count)
+          end
+        end
       end
     end
 
@@ -423,6 +476,17 @@ describe TentD::API::Apps do
 
     context 'when authorized via scope' do
       before { authorize!(:write_apps) }
+
+      context 'when app belongs to another user' do
+        it 'should return 404' do
+          _app.update(:user_id => other_user.id)
+          data = {
+            :notification_url => "http://example.com/webhooks/notifications",
+          }
+          json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", data, env
+          expect(last_response.status).to eq(404)
+        end
+      end
 
       context 'update params unrelated to notification subscription' do
         it 'should update app authorization' do
@@ -479,6 +543,14 @@ describe TentD::API::Apps do
     let!(:app_auth) { Fabricate(:app_authorization, :app => _app) }
     context 'when authorized via scope' do
       before { authorize!(:write_apps) }
+
+      context 'when app belongs to another user' do
+        it 'should return 404' do
+          _app.update(:user_id => other_user.id)
+          delete "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", params, env
+          expect(last_response.status).to eq(404)
+        end
+      end
 
       it 'should delete app authorization' do
         expect(lambda {

@@ -6,7 +6,7 @@ module TentD
       class GetActualId < Middleware
         def action(env)
           if env.params.app_id
-            if app = Model::App.first(:public_id => env.params.app_id)
+            if app = Model::App.first(:user_id => Model::User.current.id, :public_id => env.params.app_id)
               env.params.app_id = app.id
             else
               env.params.app_id = nil
@@ -61,7 +61,7 @@ module TentD
 
       class GetAll < Middleware
         def action(env)
-          env.response = Model::App.all
+          env.response = Model::App.where(:user_id => Model::User.current.id).all
           env
         end
       end
