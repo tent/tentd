@@ -50,14 +50,12 @@ describe TentD::API::Posts do
   describe 'GET /posts/count' do
     it_should_get_count = proc do
       it 'should return count of posts' do
-        TentD::Model::Post.destroy
         post = Fabricate(:post, :public => true)
         json_get '/posts/count', params, env
         expect(last_response.body).to eq(1.to_json)
       end
 
       it 'should return count of posts with type' do
-        TentD::Model::Post.destroy
         type = TentD::TentType.new("https://tent.io/types/post/example/v0.1.0")
         type2 = TentD::TentType.new("https://tent.io/types/post/blog/v0.1.0")
         post = Fabricate(:post, :public => true, :type_base => type.base, :type_version => type.version)
@@ -201,7 +199,6 @@ describe TentD::API::Posts do
         end
 
         it "should be 404 if post_id doesn't exist" do
-          TentD::Model::Post.destroy
           json_get "/posts/1"
           expect(last_response.status).to eq(404)
         end
@@ -452,7 +449,6 @@ describe TentD::API::Posts do
       end
 
       it "should order by received_at desc" do
-        TentD::Model::Post.destroy
         first_post = Fabricate(:post, :public => post_public?, :received_at => Time.at(Time.now.to_i-86400)) # 1.day.ago
         latest_post = Fabricate(:post, :public => post_public?, :received_at => Time.at(Time.now.to_i+86400)) # 1.day.from_now
 
@@ -483,7 +479,6 @@ describe TentD::API::Posts do
       end
 
       it "should filter by params[:before_id]" do
-        TentD::Model::Post.destroy
         post = Fabricate(:post, :public => post_public?)
         before_post = Fabricate(:post, :public => post_public?)
 
@@ -556,7 +551,6 @@ describe TentD::API::Posts do
 
       context "when params[:sort_by] = 'updated_at'" do
         it "should order by updated_at desc" do
-          TentD::Model::Post.destroy
           post = Fabricate(:post, :public => post_public?)
 
           a_day_ago = Time.at(Time.now.to_i - 86400)
@@ -574,7 +568,6 @@ describe TentD::API::Posts do
 
         context "when params[:order] = 'asc'" do
           it "should order by updated_at asc" do
-            TentD::Model::Post.destroy
             post = Fabricate(:post, :public => post_public?)
 
             a_day_ago = Time.at(Time.now.to_i - 86400)
@@ -628,7 +621,6 @@ describe TentD::API::Posts do
       context 'when post type not authorized' do
         let(:authorized_post_types) { %w(https://tent.io/types/post/status/v0.1.0) }
         it 'should return empty array' do
-          TentD::Model::Post.destroy
           post = Fabricate(:post, :public => false, :type_base => 'https://tent.io/types/post/repost', :type_version => '0.1.0')
           json_get "/posts", params, env
           expect(last_response.body).to eq([].to_json)
@@ -729,9 +721,6 @@ describe TentD::API::Posts do
       end
 
       it 'should create post with permissions' do
-        TentD::Model::Group.destroy
-        TentD::Model::Follower.destroy
-        TentD::Model::Following.destroy
         group = Fabricate(:group)
         follower = Fabricate(:follower, :entity => 'https://john321.example.org')
         following = Fabricate(:following, :entity => 'https://smith123.example.com')
