@@ -1,12 +1,12 @@
 require 'spec_helper'
 
 describe TentD::Model::ProfileInfo do
-  context '.update_profile' do
-    let(:core_profile_type_base) { 'https://tent.io/types/info/core' }
-    let(:core_profile_type) { "#{core_profile_type_base}/v0.1.0" }
-    let(:entity) { 'http://other.example.com' }
-    let(:other_entity) { 'http://someone.example.com' }
+  let(:core_profile_type_base) { 'https://tent.io/types/info/core' }
+  let(:core_profile_type) { "#{core_profile_type_base}/v0.1.0" }
+  let(:entity) { 'http://other.example.com' }
+  let(:other_entity) { 'http://someone.example.com' }
 
+  context '.update_profile' do
     context 'when entity updated' do
       it 'should update original posts with new entity' do
         profile_info = Fabricate(:profile_info, :public => true, :type => core_profile_type, :content => { :entity => 'http://example.com' })
@@ -47,6 +47,23 @@ describe TentD::Model::ProfileInfo do
 
         profile_info = profile_info.class.first(:type_base => core_profile_type_base)
         expect(profile_info.content['previous_entities']).to eq([entity, 'http://example.com'])
+      end
+    end
+  end
+
+  describe '#create_update_post' do
+    context 'entity_changed' do
+      it 'should notify mentioned entities' do
+        profile_info = Fabricate(:profile_info, :public => true, :type => core_profile_type, :content => { :entity => entity })
+        post = Fabricate(:post, :entity => entity, :original => true)
+        self_mention = TentD::Model::Mention.create(:post_id => post.id, :entity => entity)
+        mention = TentD::Model::Mention.create(:post_id => post.id, :entity => other_entity)
+
+        TentD::Model::Permission.expects(:copy).at_least(1)
+        TentD::Notifications.expects(:trigger).once
+        TentD::Notifications.expects(:notify_entity).with(has_entry(:entity => other_entity))
+
+        profile_info.create_update_post(:entity_changed => true, :old_entity => entity)
       end
     end
   end

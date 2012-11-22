@@ -97,9 +97,9 @@ module TentD
 
         if options[:entity_changed]
           Mention.select(:id, :entity).qualify.join(
-            Post,
+            :posts,
             :mentions__post_id => :posts__id
-          ).where(:posts__original => true).each do |mention|
+          ).where(:posts__original => true, :posts__deleted_at => nil).where(Sequel.~(:mentions__entity => user.profile_entity)).each do |mention|
             Notifications.notify_entity(:entity => mention.entity, :post_id => post.id)
           end
         end
