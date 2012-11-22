@@ -1,6 +1,8 @@
 module TentD
   module Model
     class Permission < Sequel::Model(:permissions)
+      include Serializable # attributes method
+
       many_to_one :post
       many_to_one :group, :key => :group_public_id, :primary_key => :public_id
       many_to_one :following
@@ -13,7 +15,7 @@ module TentD
           attrs = permission.attributes
           attrs.delete(:id)
           create(attrs.merge(
-            to.visibility_permissions_relationship_foreign_key => to.id
+            to.class.send(:visibility_permissions_relationship_foreign_key) => to.id
           ))
         end
         to.update(:public => from.public)
