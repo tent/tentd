@@ -619,6 +619,30 @@ describe TentD::API::Posts do
   describe 'POST /posts' do
     let(:p) { Fabricate.build(:post) }
 
+    context 'as app with import_posts scope authorized' do
+      let(:application) { Fabricate.build(:app) }
+      let(:following) { Fabricate(:following) }
+      before { authorize!(:import_posts, :app => application) }
+
+      it "should create post" do
+        post_attributes = p.attributes
+        post_attributes[:type] = p.type.uri
+        post_attributes[:following_id] = following.public_id
+        expect(lambda {
+          expect(lambda {
+            json_post "/posts", post_attributes, env
+            expect(last_response.status).to eq(200)
+          }).to change(TentD::Model::Post, :count).by(1)
+        }).to change(TentD::Model::PostVersion, :count).by(1)
+        post = TentD::Model::Post.order(:id.asc).last
+        expect(post.app_name).to eq(application.name)
+        expect(post.app_url).to eq(application.url)
+        body = JSON.parse(last_response.body)
+        expect(body['id']).to eq(post.public_id)
+        expect(body['app']).to eq('url' => application.url, 'name' => application.name)
+      end
+    end
+
     context 'as app with write_posts scope authorized' do
       let(:application) { Fabricate.build(:app) }
       before { authorize!(:write_posts, :app => application) }
