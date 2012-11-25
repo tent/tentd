@@ -239,7 +239,7 @@ module TentD
               :post => post,
               :type => attachment.type,
               :category => attachment.name, :name => attachment.filename,
-              :data => Base64.encode64(attachment.tempfile.read),
+              :data => Base64.strict_encode64(attachment.tempfile.read),
               :size => attachment.tempfile.size
             )
 
