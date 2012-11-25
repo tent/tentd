@@ -241,6 +241,7 @@ module TentD
           post = env.response
           version = post.latest_version(:fields => [:id])
           env.params.attachments.each do |attachment|
+            attachment.tempfile.binmode
             Model::PostAttachment.create(:post => post,
                                          :post_version => version,
                                          :type => attachment.type,
