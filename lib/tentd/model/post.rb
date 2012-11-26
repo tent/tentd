@@ -63,7 +63,7 @@ module TentD
         mentions = data.delete(:mentions)
         post = super(data)
 
-        mentions.to_a.each do |mention|
+        mentions.to_a.uniq.each do |mention|
           next unless mention[:entity]
           mention = Mention.create(
             :post_id => post.id,

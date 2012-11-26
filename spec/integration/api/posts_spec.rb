@@ -732,6 +732,7 @@ describe TentD::API::Posts do
         post_attributes[:type] = p.type.uri
         mentions = [
           { :entity => "https://johndoe.example.com" },
+          { :entity => "https://johndoe.example.com" },
           { :entity => "https://alexsmith.example.org", :post => "post-uid" }
         ]
         post_attributes.merge!(
@@ -739,11 +740,14 @@ describe TentD::API::Posts do
         )
 
         expect(lambda {
-          json_post "/posts", post_attributes, env
-          expect(last_response.status).to eq(200)
-        }).to change(TentD::Model::Post, :count).by(1)
+          expect(lambda {
+            json_post "/posts", post_attributes, env
+            expect(last_response.status).to eq(200)
+          }).to change(TentD::Model::Post, :count).by(1)
+        }).to change(TentD::Model::Mention, :count).by(2)
 
         post = TentD::Model::Post.order(:id.asc).last
+        mentions.uniq!
         expect(post.as_json[:mentions].sort_by { |m| m[:entity] }).to eq(mentions.sort_by { |m| m[:entity] })
         expect(post.mentions.map(&:id).sort).to eq(post.latest_version.mentions.map(&:id).sort)
       end
