@@ -173,6 +173,7 @@ describe TentD::API::Followers do
           }).to change(TentD::Model::Post, :count).by(1)
           post = TentD::Model::Post.last
           expect(post.public).to be_true
+          expect(post.original).to be_true
         end
       end
 
