@@ -171,6 +171,7 @@ module TentD
           post = Model::Post.create(
             :type => 'https://tent.io/types/post/follower/v0.1.0',
             :entity => env['tent.entity'],
+            :original => true,
             :content => {
               :id => follower.public_id,
               :entity => follower.entity,

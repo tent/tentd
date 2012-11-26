@@ -122,6 +122,7 @@ module TentD
           post = Model::Post.create(
             :type => 'https://tent.io/types/post/group/v0.1.0',
             :entity => env['tent.entity'],
+            :original => true,
             :content => {
               :id => group.public_id,
               :name => group.name,
