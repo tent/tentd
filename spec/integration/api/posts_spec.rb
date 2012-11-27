@@ -27,6 +27,7 @@ describe TentD::API::Posts do
   let(:params) { Hash.new }
   let(:current_user) { TentD::Model::User.current }
   let(:other_user) { TentD::Model::User.create }
+  let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
 
   describe 'GET /notifications/:following_id' do
     context 'when following' do
@@ -1055,6 +1056,63 @@ describe TentD::API::Posts do
       it "should return 404 if specified version doesn't exist" do
         get "/posts/#{post.public_id}/attachments/#{attachment.name}", { :version => 20}, 'HTTP_ACCEPT' => attachment.type
         expect(last_response.status).to eq(404)
+      end
+
+      context 'when :post_id is not original' do
+        let(:authorized_post_types) { ['all'] }
+        before {
+          TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+          authorize!(:read_posts)
+        }
+
+        context 'when following post author' do
+          let!(:following) { Fabricate(:following) }
+          let!(:attachment) { Fabricate(:post_attachment) }
+
+          context 'when :post_id exists' do
+            let!(:post) { Fabricate(:post, :following_id => following.id, :original => false) }
+
+            context 'when attachment exists' do
+              it 'should get attachment via proxy' do
+                http_stubs.get("/posts/#{post.public_id}/attachments/foo") { |env|
+                  expect(env[:request_headers]['Authorization']).to match(/#{following.mac_key_id}/)
+                  [200, {  'Content-Type' => attachment.type }, [Base64.decode64(attachment.data)]]
+                }
+                json_get("/posts/#{post.public_id}/attachments/foo", {}, env)
+                expect(last_response.status).to eql(200)
+                expect(last_response.body).to eql(Base64.decode64(attachment.data))
+                expect(last_response.headers['Content-Type']).to eq(attachment.type)
+                http_stubs.verify_stubbed_calls
+              end
+            end
+
+            context 'when attachment does not exist' do
+              it 'should proxy response' do
+                http_stubs.get("/posts/#{post.public_id}/attachments/foo") { |env|
+                  expect(env[:request_headers]['Authorization']).to match(/#{following.mac_key_id}/)
+                  [404, {}, []]
+                }
+                json_get("/posts/#{post.public_id}/attachments/foo", {}, env)
+                expect(last_response.status).to eql(404)
+                http_stubs.verify_stubbed_calls
+              end
+            end
+          end
+
+          it 'should return 404 if post_id does not exist' do
+            json_get("/posts/post-id/attachments/foo", {}, env)
+            expect(last_response.status).to eql(404)
+          end
+        end
+
+        context 'when not following post author' do
+          let!(:post) { Fabricate(:post, :original => false) }
+
+          it 'should return 404' do
+            json_get("/posts/#{post.public_id}/attachments/foo", {}, env)
+            expect(last_response.status).to eql(404)
+          end
+        end
       end
     end
 

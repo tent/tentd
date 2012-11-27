@@ -277,14 +277,28 @@ module TentD
       class GetAttachment < Middleware
         def action(env)
           return env unless env.response
+
+          post = env.response
           type = env['HTTP_ACCEPT'].split(/;|,/).first if env['HTTP_ACCEPT']
-          attachment = env.response.attachments_dataset.select(:data).first(:type => type, :name => env.params.attachment_name)
-          if attachment
-            env.response = Base64.decode64(attachment.data)
-            env['response.type'] = type
+
+          if !post.original && post.following_id
+            if following = Model::Following.first(:id => post.following_id)
+              client = TentClient.new(following.core_profile.servers.first, following.auth_details.merge(:skip_serialization => true, :faraday_adapter => TentD.faraday_adapter))
+              res = client.post.attachment.get(post.public_id, env.params.attachment_name, type)
+              return [res.status, res.headers, res.body]
+            else
+              return [404, {}, []]
+            end
           else
-            env.response = nil
+            attachment = env.response.attachments_dataset.select(:data).first(:type => type, :name => env.params.attachment_name)
+            if attachment
+              env.response = Base64.decode64(attachment.data)
+              env['response.type'] = type
+            else
+              env.response = nil
+            end
           end
+
           env
         end
       end
