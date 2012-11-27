@@ -148,6 +148,31 @@ describe TentD::API::Followers do
         }
       end
 
+      context 'when follower already exists' do
+        let!(:follower) { Fabricate(:follower, :entity => follower_entity_url) }
+
+        it 'should use existing db record and respond with new hmac secret' do
+          expect(lambda {
+            json_post '/followers', follower_data, env
+          }).to_not change(TentD::Model::Follower, :count)
+          expect(last_response.status).to eq(200)
+
+          mac_key_id = follower.mac_key_id
+          old_mac_key = follower.mac_key
+
+          follow = follower.class.first(:id => follower.id)
+          expect(follow).to_not be_nil
+
+          body = Yajl::Parser.parse(last_response.body)
+          expect(body['id']).to eql(follow.public_id)
+          %w{ mac_key_id mac_key mac_algorithm }.each { |key|
+            expect(body[key]).to eql(follow.send(key))
+          }
+          expect(follow.mac_key_id).to eql(mac_key_id)
+          expect(follow.mac_key).to_not eql(old_mac_key)
+        end
+      end
+
       it 'should create post (notification)' do
         expect(lambda {
           json_post '/followers', follower_data, env
@@ -178,16 +203,6 @@ describe TentD::API::Followers do
           to change(TentD::Model::NotificationSubscription.where(:user_id => current_user.id), :count).by(2)
         expect(last_response.status).to eql(200)
         expect(TentD::Model::NotificationSubscription.order(:id.asc).last.type_view).to eql('meta')
-      end
-
-      context 'when follower already exists' do
-        it 'should delete old follower records before creating the new one' do
-          dup_follower_1 = Fabricate(:follower, :entity => follower_entity_url)
-          dup_follower_2 = Fabricate(:follower, :entity => follower_entity_url)
-
-          expect(lambda { json_post '/followers', follower_data, env }).
-            to change(TentD::Model::Follower.where(:user_id => current_user.id), :count).by(-1)
-        end
       end
     end
   end

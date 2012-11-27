@@ -45,25 +45,26 @@ module TentD
       end
 
       def self.create_follower(data, authorized_scopes = [])
-        existing_followers = where(:entity => data.entity)
-        if existing_followers.any?
-          existing_followers.destroy
+        if follower = where(:entity => data.entity).order(:id.desc).first
+          follower.update(:mac_key => SecureRandom.hex(16))
+        else
+          if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
+            follower = create(data.slice(:public_id, :entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
+            if data.permissions
+              follower.assign_permissions(data.permissions)
+            end
+          else
+            follower = create(data.slice('entity', 'licenses', 'profile', 'notification_path'))
+          end
+
+          (data.types || ['all']).each do |type_url|
+            NotificationSubscription.create(
+              :follower => follower,
+              :type => type_url
+            )
+          end
         end
 
-        if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
-          follower = create(data.slice(:public_id, :entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
-          if data.permissions
-            follower.assign_permissions(data.permissions)
-          end
-        else
-          follower = create(data.slice('entity', 'licenses', 'profile', 'notification_path'))
-        end
-        (data.types || ['all']).each do |type_url|
-          NotificationSubscription.create(
-            :follower => follower,
-            :type => type_url
-          )
-        end
         follower
       end
 
