@@ -3,8 +3,26 @@ module TentD
     class Followings
       include Router
 
+      class ParseLookupKey < Middleware
+        def action(env)
+          id_or_entity = env.params.delete(:captures).first
+
+          if id_or_entity =~ /^https?:\/\//
+            env.params.following_entity = id_or_entity
+            following = Model::Following.select(:id).first(:user_id => Model::User.current.id, :entity => id_or_entity)
+            env.params.following_id = following.id if following
+            env.skip_id_lookup = true
+          else
+            env.params.following_id = id_or_entity
+          end
+
+          env
+        end
+      end
+
       class GetActualId < Middleware
         def action(env)
+          return env if env.skip_id_lookup
           id_mapping = [:following_id, :since_id, :before_id].select { |key| env.params.has_key?(key) }.inject({}) { |memo, key|
             memo[env.params[key]] = key
             env.params[key] = nil
@@ -23,6 +41,27 @@ module TentD
         def action(env)
           authorize_env!(env, :write_followings)
           env
+        end
+      end
+
+      class EntityRedirect < Middleware
+        def action(env)
+          return env unless env.params.has_key?(:following_entity)
+
+          following = Model::Following.select(:id, :public).where(:entity => env.params.following_entity, :user_id => Model::User.first.id).first
+          if following && !following.public && !authorize_env?(env, :read_followings)
+            following = Model::Following.find_with_permissions(following.id, env.current_auth)
+            raise Unauthorized unless following
+          end
+
+          unless following
+            raise Unauthorized unless authorize_env?(env, :read_followings)
+            return env # 404
+          end
+
+          redirect_uri = self_uri(env)
+          redirect_uri.path = "/followings/#{following.id}"
+          [302, { 'Location' => redirect_uri.to_s }, []]
         end
       end
 
@@ -236,11 +275,6 @@ module TentD
         b.use GetMany
       end
 
-      get '/followings/:following_id' do |b|
-        b.use GetActualId
-        b.use GetOne
-      end
-
       head '/followings' do |b|
         b.use GetActualId
         b.use GetMany
@@ -257,6 +291,13 @@ module TentD
         b.use GetActualId
         b.use GetOne
         b.use ProxyRequest
+      end
+
+      get %r{/followings/([^/]+)} do |b|
+        b.use ParseLookupKey
+        b.use GetActualId
+        b.use EntityRedirect
+        b.use GetOne
       end
 
       post '/followings' do |b|

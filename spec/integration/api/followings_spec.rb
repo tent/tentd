@@ -298,6 +298,127 @@ describe TentD::API::Followings do
     end
   end
 
+  describe 'GET /followings/:entity' do
+    let(:current_auth) { env['current_auth'] }
+
+    unauthorized = proc do
+      it 'should return 403' do
+        json_get "/followings/#{URI.encode_www_form_component(following.entity)}", params, env
+        expect(last_response.status).to eql(403)
+      end
+    end
+
+    not_found = proc do
+      it 'should return 404' do
+        json_get "/followings/#{URI.encode_www_form_component(following.entity)}", params, env
+        expect(last_response.status).to eql(404)
+      end
+    end
+
+    authorized = proc do
+      it 'should redirect to /followings/:id' do
+        json_get "/followings/#{URI.encode_www_form_component(following.entity)}", params, env
+        expect(last_response.status).to eql(302)
+        expect(last_response.headers['Location']).to eql("http://example.org/followings/#{following.id}")
+      end
+    end
+
+    without_permissions = proc do
+      context 'following public' do
+        let(:following) { Fabricate(:following, :public => true) }
+
+        context &authorized
+      end
+
+      context 'following private' do
+        let(:following) { Fabricate(:following, :public => false) }
+
+        context &unauthorized
+      end
+
+      context 'following does not exist' do
+        let(:following) { Hashie::Mash.new(:entity => 'https://example.com/foo') }
+
+        context &unauthorized
+      end
+
+      context 'following belongs to another user' do
+        let(:following) { Fabricate(:following, :public => true, :user_id => other_user.id) }
+
+        context &unauthorized
+      end
+    end
+
+    with_permissions = proc do
+      context 'explicitly' do
+        let(:following) { Fabricate(:following, :public => false) }
+        before {
+          TentD::Model::Permission.create(
+            :following_id => following.id,
+            current_auth.permissible_foreign_key => current_auth.id
+          )
+        }
+
+        context &authorized
+      end
+
+      context 'via group' do
+        let(:group) { Fabricate(:group) }
+        let(:following) { Fabricate(:following, :public => false, :groups => [group.public_id]) }
+        before {
+          current_auth.update(:groups => [group.public_id])
+          TentD::Model::Permission.create(
+            :following_id => following.id,
+            :group_public_id => group.public_id
+          )
+        }
+
+        context &authorized
+      end
+    end
+
+    context 'when read_followings scope not authorized' do
+      context 'without current_auth', &without_permissions
+
+      context 'with current_auth' do
+        context 'when Follower' do
+          before { env['current_auth'] = Fabricate(:follower) }
+
+          context 'when permissible', &with_permissions
+          context 'when not permissible', &without_permissions
+        end
+
+        context 'when AppAuthorization' do
+          before { env['current_auth'] = Fabricate(:app_authorization, :app => Fabricate(:app)) }
+
+          context &without_permissions
+        end
+      end
+    end
+
+    context 'when read_followings scope authorized' do
+      before { authorize!(:read_followings) }
+
+      context 'following belongs to another user' do
+        let(:following) { Fabricate(:following, :public => false, :user_id => other_user.id) }
+
+        context &not_found
+      end
+
+      context 'when following does not exist' do
+        let(:following) { Hashie::Mash.new(:entity => 'http://example.com/foo') }
+
+        context &not_found
+      end
+
+      context 'when following exists' do
+        let(:following) { Fabricate(:following, :public => false) }
+
+        context &authorized
+      end
+    end
+  end
+
   describe 'GET /followings/:id' do
     let(:current_auth) { env['current_auth'] }
 
