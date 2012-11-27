@@ -381,6 +381,42 @@ describe TentD::API::Posts do
     end
   end
 
+  describe 'HEAD /posts/:post_id/versions' do
+    count_header = proc do
+      it 'should set COUNT header' do
+        head "/posts/#{post.public_id}/versions", nil, env
+        expect(last_response.headers['COUNT']).to eq(post.versions_dataset.count.to_s)
+      end
+    end
+
+    context 'when post exists' do
+      context 'when post is public' do
+        let(:post) { Fabricate(:post, :public => true) }
+        before { post.create_version! }
+
+        context &count_header
+      end
+
+      context 'when post is private' do
+        let(:post) { Fabricate(:post, :public => false) }
+
+        context 'when authorized' do
+          let!(:authorized_post_types) { ['all'] }
+          before { authorize!(:read_posts) }
+
+          context &count_header
+        end
+
+        context 'when not authorized' do
+          it 'should set COUNT header to 0' do
+            head "/posts/#{post.public_id}/versions", nil, env
+            expect(last_response.headers['COUNT']).to eql('0')
+          end
+        end
+      end
+    end
+  end
+
   describe 'GET /posts/:post_id/versions' do
     should_return_post_versions = proc do
       it 'should return post versions' do

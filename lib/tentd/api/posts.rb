@@ -103,6 +103,20 @@ module TentD
         end
       end
 
+      class VersionsCountHeader < Middleware
+        def action(env)
+          count_env = env.dup
+          count_env.params.return_count = true
+          count = GetVersions.new(@app).call(count_env)[2][0]
+
+          env['response.headers'] = {
+            'Count' => "#{count}"
+          }
+
+          env
+        end
+      end
+
       class CreatePost < Middleware
         def action(env)
           authorize_post!(env)
@@ -364,6 +378,12 @@ module TentD
       get '/posts/:post_id' do |b|
         b.use GetActualId
         b.use GetOne
+      end
+
+      head '/posts/:post_id/versions' do |b|
+        b.use GetActualId
+        b.use GetOne
+        b.use VersionsCountHeader
       end
 
       get '/posts/:post_id/versions' do |b|
