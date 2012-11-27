@@ -63,6 +63,20 @@ module TentD
         end
       end
 
+      class CountHeader < Middleware
+        def action(env)
+          count_env = env.dup
+          count_env.params.return_count = true
+          count = GetMany.new(@app).call(count_env)[2][0]
+
+          env['response.headers'] = {
+            'Count' => "#{count}"
+          }
+
+          env
+        end
+      end
+
       class Discover < Middleware
         def action(env)
           return [422, {}, ['Invalid Request Body']] unless env.params.data && env.params.data.entity
@@ -225,6 +239,12 @@ module TentD
       get '/followings/:following_id' do |b|
         b.use GetActualId
         b.use GetOne
+      end
+
+      head '/followings' do |b|
+        b.use GetActualId
+        b.use GetMany
+        b.use CountHeader
       end
 
       get '/followings' do |b|

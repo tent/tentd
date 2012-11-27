@@ -60,6 +60,38 @@ describe TentD::API::Posts do
     end
   end
 
+  describe 'HEAD /posts' do
+    it 'should return count of posts' do
+      Fabricate(:post, :public => true, :user_id => other_user.id)
+      Fabricate(:post, :public => true)
+      Fabricate(:post, :public => true)
+      Fabricate(:post, :public => false)
+
+      with_constants "TentD::API::PER_PAGE" => 1 do
+        head '/posts', params, env
+        expect(last_response.status).to eq(200)
+        expect(last_response.headers['Count']).to eql('2')
+      end
+    end
+
+    context 'when read_posts scope authorized' do
+      let(:authorized_post_types) { ['all'] }
+      before { authorize!(:read_posts) }
+
+      it 'should return count of posts' do
+        Fabricate(:post, :public => true, :user_id => other_user.id)
+        Fabricate(:post, :public => true)
+        Fabricate(:post, :public => true)
+        Fabricate(:post, :public => false)
+
+        params[:limit] = 2
+        head '/posts', params, env
+        expect(last_response.status).to eq(200)
+        expect(last_response.headers['Count']).to eql('3')
+      end
+    end
+  end
+
   describe 'GET /posts/count' do
     it_should_get_count = proc do
       it 'should return count of posts' do

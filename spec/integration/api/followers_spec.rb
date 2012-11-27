@@ -256,6 +256,21 @@ describe TentD::API::Followers do
     end
   end
 
+  describe 'HEAD /followers' do
+    it 'should return count of followers' do
+      follower = Fabricate(:follower, :public => true)
+      other_follower = Fabricate(:follower, :public => true, :user_id => other_user.id)
+      head '/followers', params, env
+      expect(last_response.status).to eq(200)
+      expect(last_response.headers['Count']).to eql('1')
+
+      TentD::Model::Follower.delete
+      head '/followers', params, env
+      expect(last_response.status).to eq(200)
+      expect(last_response.headers['Count']).to eql('0')
+    end
+  end
+
   describe 'GET /followers/count' do
     it 'should return count of followers' do
       follower = Fabricate(:follower, :public => true)

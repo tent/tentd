@@ -22,6 +22,16 @@ describe TentD::API::Followings do
     http_stubs.post('/notifications') { [200, {}, []] }
   end
 
+  describe 'HEAD /followings' do
+    it 'should return count of followings' do
+      following = Fabricate(:following, :public => true)
+      other_following = Fabricate(:following, :public => true, :user_id => other_user.id)
+      head '/followings', params, env
+      expect(last_response.status).to eql(200)
+      expect(last_response.headers['Count']).to eql('1')
+    end
+  end
+
   describe 'GET /followings/count' do
     it 'should return count of followings' do
       following = Fabricate(:following, :public => true)

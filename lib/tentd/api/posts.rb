@@ -77,6 +77,20 @@ module TentD
         end
       end
 
+      class CountHeader < Middleware
+        def action(env)
+          count_env = env.dup
+          count_env.params.return_count = true
+          count = GetFeed.new(@app).call(count_env)[2][0]
+
+          env['response.headers'] = {
+            'Count' => "#{count}"
+          }
+
+          env
+        end
+      end
+
       class GetVersions < Middleware
         def action(env)
           return env unless env.params.post_id
@@ -339,6 +353,12 @@ module TentD
         b.use GetActualId
         b.use GetCount
         b.use GetFeed
+      end
+
+      head '/posts' do |b|
+        b.use GetActualId
+        b.use GetFeed
+        b.use CountHeader
       end
 
       get '/posts/:post_id' do |b|

@@ -147,6 +147,20 @@ module TentD
         end
       end
 
+      class CountHeader < Middleware
+        def action(env)
+          count_env = env.dup
+          count_env.params.return_count = true
+          count = GetMany.new(@app).call(count_env)[2][0]
+
+          env['response.headers'] = {
+            'Count' => "#{count}"
+          }
+
+          env
+        end
+      end
+
       class Update < Middleware
         def action(env)
           env.response = Model::Follower.update_follower(env.params[:follower_id], env.params[:data], env.authorized_scopes)
@@ -203,6 +217,13 @@ module TentD
         b.use GetActualId
         b.use AuthorizeReadOne
         b.use GetOne
+      end
+
+      head '/followers' do |b|
+        b.use AuthorizeReadMany
+        b.use GetActualId
+        b.use GetMany
+        b.use CountHeader
       end
 
       get '/followers' do |b|

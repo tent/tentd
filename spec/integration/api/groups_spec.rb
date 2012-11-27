@@ -28,6 +28,18 @@ describe TentD::API::Groups do
     end
   end
 
+  describe 'HEAD /groups' do
+    before { authorize!(:read_groups) }
+    it 'should return number of groups' do
+      Fabricate(:group)
+      Fabricate(:group)
+      Fabricate(:group, :user_id => other_user.id)
+      head '/groups', params, env
+      expect(last_response.status).to eq(200)
+      expect(last_response.headers['Count']).to eql('2')
+    end
+  end
+
   describe 'GET /groups' do
     context 'when read_groups scope authorized' do
       before { authorize!(:read_groups) }

@@ -68,6 +68,20 @@ module TentD
         end
       end
 
+      class CountHeader < Middleware
+        def action(env)
+          count_env = env.dup
+          count_env.params.return_count = true
+          count = GetAll.new(@app).call(count_env)[2][0]
+
+          env['response.headers'] = {
+            'Count' => "#{count}"
+          }
+
+          env
+        end
+      end
+
       class GetOne < Middleware
         def action(env)
           if group = Model::Group.first(:id => env.params[:group_id])
@@ -132,6 +146,13 @@ module TentD
           Notifications.trigger(:type => post.type.uri, :post_id => post.id)
           env
         end
+      end
+
+      head '/groups' do |b|
+        b.use AuthorizeRead
+        b.use GetActualId
+        b.use GetAll
+        b.use CountHeader
       end
 
       get '/groups' do |b|

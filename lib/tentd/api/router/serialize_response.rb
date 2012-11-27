@@ -13,7 +13,7 @@ module TentD
                       { 'Content-Type' => env['response.type'] || MEDIA_TYPE } 
                     else
                       {}
-                    end
+                    end.merge(env['response.headers'] || {})
           [status, headers, [response.to_s]]
         end
 
