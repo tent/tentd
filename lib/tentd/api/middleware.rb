@@ -27,6 +27,19 @@ module TentD
         end
         [500, {}, ['Internal Server Error']]
       end
+
+      private
+
+      def self_uri(env)
+        uri = URI('')
+        uri.host = env.HTTP_HOST
+        uri.scheme = env['rack.url_scheme']
+
+        port = (env.HTTP_X_FORWARDED_PORT || env.SERVER_PORT).to_i
+        uri.port = port unless [80, 443].include?(port)
+
+        uri
+      end
     end
   end
 end

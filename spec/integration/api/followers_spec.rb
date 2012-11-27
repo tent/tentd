@@ -389,6 +389,97 @@ describe TentD::API::Followers do
     end
   end
 
+  describe 'GET /followers/:entity' do
+    authorized = proc {
+      it 'should redirect to /followers/:id' do
+        json_get "/followers/#{URI.encode_www_form_component(follower.entity)}", params, env
+        expect(last_response.status).to eql(302)
+        expect(last_response.headers['Location']).to eql("http://example.org/followers/#{follower.id}")
+      end
+    }
+
+    not_found = proc {
+      it 'should return 404' do
+        json_get "/followers/#{URI.encode_www_form_component(follower.entity)}", params, env
+        expect(last_response.status).to eql(404)
+      end
+    }
+
+    not_authorized = proc {
+      it 'should return 403' do
+        json_get "/followers/#{URI.encode_www_form_component(follower.entity)}", params, env
+        expect(last_response.status).to eql(403)
+      end
+    }
+
+    context 'when authorized via scope' do
+      before { authorize!(:read_followers) }
+      context &authorized
+
+      context 'when follower private' do
+        before { follower.update(:public => false) }
+        context &authorized
+      end
+
+      context 'when follower belongs to another user' do
+        before { follower.update(:user_id => other_user.id) }
+
+        context &not_found
+      end
+
+      context 'when no follower exists with :entity' do
+        let(:follower) { Hashie::Mash.new(:entity => 'http://example.com/foo') }
+
+        context &not_found
+      end
+    end
+
+    context 'when authorized via identity' do
+      before { env['current_auth'] = follower }
+      context &authorized
+
+      context 'when follower private' do
+        before { follower.update(:public => false) }
+        context &authorized
+      end
+
+      context 'with secrets param' do
+        before { params['secrets'] = true }
+        context &authorized
+      end
+
+      context 'when no follower exists with :entity' do
+        let(:follower) { Hashie::Mash.new(:entity => 'non-existing') }
+
+        context &not_authorized
+      end
+    end
+
+    context 'when not authorized' do
+      context 'when follower public' do
+        context &authorized
+
+        context 'when follower belongs to another user' do
+          let(:follower) { Fabricate(:follower, :user_id => other_user.id, :public => true) }
+
+          context &not_authorized
+        end
+      end
+
+      context 'when follower private' do
+        before { follower.update(:public => false) }
+
+        context &not_authorized
+      end
+
+      context 'when no follower exists with :entity' do
+        let(:follower) { Hashie::Mash.new(:entity => 'non-existing') }
+
+        context &not_authorized
+      end
+    end
+  end
+
   describe 'GET /followers/:id' do
     authorized = proc do
       it 'should respond with follower json' do
@@ -478,9 +569,9 @@ describe TentD::API::Followers do
         context 'when follower belongs to another user' do
           let(:follower) { Fabricate(:follower, :user_id => other_user.id, :public => true) }
 
-          it 'should return 404' do
+          it 'should return 403' do
             json_get "/followers/#{follower.public_id}", params, env
-            expect([404, 403]).to include(last_response.status)
+            expect(last_response.status).to eq(403)
           end
         end
       end

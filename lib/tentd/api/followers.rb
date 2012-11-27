@@ -3,8 +3,26 @@ module TentD
     class Followers
       include Router
 
+      class ParseLookupKey < Middleware
+        def action(env)
+          id_or_entity = env.params.delete(:captures).first
+
+          if id_or_entity =~ /^https?:\/\//
+            env.params.follower_entity = id_or_entity
+            follower = Model::Follower.select(:id).first(:user_id => Model::User.current.id, :entity => id_or_entity)
+            env.params.follower_id = follower.id if follower
+            env.skip_id_lookup = true
+          else
+            env.params.follower_id = id_or_entity
+          end
+
+          env
+        end
+      end
+
       class GetActualId < Middleware
         def action(env)
+          return env if env.skip_id_lookup
           [:follower_id, :before_id, :since_id].select { |k| env.params.has_key?(k) }.each do |id_key|
             if env.params[id_key] && (f = Model::Follower.select(:id).first(:user_id => Model::User.current.id, :public_id => env.params[id_key]))
               env.params[id_key] = f.id
@@ -110,8 +128,31 @@ module TentD
         end
       end
 
+      class EntityRedirect < Middleware
+        def action(env)
+          return env unless env.params.has_key?(:follower_entity)
+
+          follower = Model::Follower.select(:id, :public).where(:entity => env.params.follower_entity, :user_id => Model::User.first.id).first
+          if follower && !follower.public? && !(env.full_read_authorized || authorize_env?(env, :self))
+            follower = Model::Follower.find_with_permissions(follower.id, env.current_auth)
+            raise Unauthorized unless follower
+          end
+
+          unless follower
+            raise Unauthorized unless env.full_read_authorized
+            return env # 404
+          end
+
+          redirect_uri = self_uri(env)
+          redirect_uri.path = "/followers/#{follower.id}"
+          [302, { 'Location' => redirect_uri.to_s }, []]
+        end
+      end
+
       class GetOne < Middleware
         def action(env)
+          return env if env.params.has_key?(:follower_entity)
+
           if env.full_read_authorized || authorize_env?(env, :self)
             follower = Model::Follower.first(:id => env.params.follower_id)
           else
@@ -213,9 +254,11 @@ module TentD
         b.use GetMany
       end
 
-      get '/followers/:follower_id' do |b|
+      get %r{/followers/([^/]+)} do |b|
+        b.use ParseLookupKey
         b.use GetActualId
         b.use AuthorizeReadOne
+        b.use EntityRedirect
         b.use GetOne
       end
 
