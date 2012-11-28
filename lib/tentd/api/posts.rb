@@ -83,11 +83,50 @@ module TentD
           count_env.params.return_count = true
           count = GetFeed.new(@app).call(count_env)[2][0]
 
-          env['response.headers'] = {
-            'Count' => "#{count}"
-          }
+          env['response.headers'] ||= {}
+          env['response.headers']['Count'] = "#{count}"
 
           env
+        end
+      end
+
+      class PaginationHeader < Middleware
+        def action(env)
+          first_post = env.response.first
+          last_post = env.response.last
+          return env unless first_post && last_post
+
+          uri = self_uri(env)
+          uri.path = env['SCRIPT_NAME']
+          params = env.params
+
+          next_uri = uri.dup
+          next_params = params.dup
+          next_params.before_id = last_post.public_id
+          next_params.before_id_entity = last_post.entity
+          next_uri.query = serialize_params(next_params)
+
+          prev_uri = uri.dup
+          prev_params = params.dup
+          prev_params.since_id = first_post.public_id
+          prev_params.since_id_entity = first_post.entity
+          prev_uri.query = serialize_params(prev_params)
+
+          env['response.headers'] ||= {}
+          pagination = [%(<#{prev_uri.to_s}>; rel="prev"), %(<#{next_uri.to_s}>; rel="next")]
+          if env['response.headers']['Link']
+            env['response.headers']['Link'] += ",#{pagination.join(',')}"
+          else
+            env['response.headers']['Link'] = pagination.join(',')
+          end
+
+          env
+        end
+
+        private
+
+        def serialize_params(params)
+          "#{params.inject([]) { |m, (k,v)| m << "#{k}=#{URI.encode_www_form_component(v)}"; m }.join('&')}"
         end
       end
 
@@ -372,6 +411,7 @@ module TentD
       head '/posts' do |b|
         b.use GetActualId
         b.use GetFeed
+        b.use PaginationHeader
         b.use CountHeader
       end
 
@@ -405,6 +445,7 @@ module TentD
       get '/posts' do |b|
         b.use GetActualId
         b.use GetFeed
+        b.use PaginationHeader
       end
 
       post '/posts' do |b|
