@@ -111,6 +111,25 @@ describe TentD::API::Groups do
             expect(JSON.parse(last_response.body).size).to eq(0)
           end
         end
+
+        it 'should set pagination in header' do
+          group1 = Fabricate(:group)
+          group2 = Fabricate(:group)
+
+          with_constants "TentD::API::MAX_PER_PAGE" => 2 do
+            json_get "/groups", params, env
+            link_header = last_response.headers['Link'].to_s
+            link_headers = link_header.split(',')
+            expect(link_headers).to include(%(<http://example.org/groups?before_id=#{group1.public_id}>; rel="next"))
+            expect(link_headers).to include(%(<http://example.org/groups?since_id=#{group2.public_id}>; rel="prev"))
+
+            head "/groups", params, env
+            link_header = last_response.headers['Link'].to_s
+            link_headers = link_header.split(',')
+            expect(link_headers).to include(%(<http://example.org/groups?before_id=#{group1.public_id}>; rel="next"))
+            expect(link_headers).to include(%(<http://example.org/groups?since_id=#{group2.public_id}>; rel="prev"))
+          end
+        end
       end
     end
 

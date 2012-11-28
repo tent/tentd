@@ -74,12 +74,14 @@ module TentD
           count_env.params.return_count = true
           count = GetAll.new(@app).call(count_env)[2][0]
 
-          env['response.headers'] = {
-            'Count' => "#{count}"
-          }
+          env['response.headers'] ||= {}
+          env['response.headers']['Count'] = count
 
           env
         end
+      end
+
+      class PaginationHeader < API::PaginationHeader
       end
 
       class GetOne < Middleware
@@ -152,6 +154,7 @@ module TentD
         b.use AuthorizeRead
         b.use GetActualId
         b.use GetAll
+        b.use PaginationHeader
         b.use CountHeader
       end
 
@@ -159,6 +162,7 @@ module TentD
         b.use AuthorizeRead
         b.use GetActualId
         b.use GetAll
+        b.use PaginationHeader
       end
 
       get '/groups/count' do |b|
