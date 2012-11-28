@@ -130,6 +130,50 @@ SQL
         end
       end
 
+      def public_mentions(params = {})
+        sql = []
+        sql_bindings = []
+
+        sql << "SELECT mentions.*, mentioned_posts.type_base, mentioned_posts.type_version FROM mentions"
+        sql << "INNER JOIN posts ON posts.id = mentions.post_id"
+        sql << "INNER JOIN posts AS mentioned_posts ON (mentioned_posts.public_id = mentions.mentioned_post_id AND mentioned_posts.entity = mentions.entity)"
+
+        sql << "WHERE posts.id = ?"
+        sql_bindings << id
+
+        sql << "AND posts.user_id = ?"
+        sql_bindings << user_id
+
+        sql << "AND mentioned_posts.user_id = ?"
+        sql_bindings << user_id
+
+        sql << "AND mentioned_posts.public = ?"
+        sql_bindings << true
+
+        if params.has_key?(:before_id)
+          sql << "AND mentioned_posts.id < ?"
+          sql_bindings << params[:before_id]
+        end
+
+        if params.has_key?(:since_id)
+          sql << "AND mentioned_posts.id > ?"
+          sql_bindings << params[:since_id]
+        end
+
+        if params[:post_types]
+          sql << "AND mentioned_posts.type_base IN(?)"
+          sql_bindings << params[:post_types].split(',').map { |uri| TentType.new(uri).base }
+        end
+
+        sql << "LIMIT ?"
+        sql_bindings << [(params[:limit] ? params[:limit].to_i : API::PER_PAGE), API::MAX_PER_PAGE].min
+
+        sql = sql.join(' ')
+
+        query = Mention.with_sql(sql, *sql_bindings)
+        params[:return_count] ? query.count : query.all
+      end
+
       def latest_version(options = {})
         q = versions_dataset
         if fields = options.delete(:fields)

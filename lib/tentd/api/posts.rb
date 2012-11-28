@@ -350,6 +350,55 @@ module TentD
         end
       end
 
+      class GetMentions < Middleware
+        def action(env)
+          return env unless post = env.response
+          env.post = post
+          env.response = post.public_mentions(env.params.slice(:before_id, :since_id, :limit, :post_types, :return_count))
+          env
+        end
+      end
+
+      class MentionsCountHeader < Middleware
+        def action(env)
+          count_env = env.dup
+          count_env.params.return_count = true
+          count_env.response = env.post
+          count = GetMentions.new(@app).call(count_env)[2][0]
+
+          env['response.headers'] ||= {}
+          env['response.headers']['Count'] = count
+
+          env
+        end
+      end
+
+      class MentionsPaginationHeader < API::PaginationHeader
+        private
+
+        def build_next_params(env)
+          params = env.params.dup
+          params.delete(:captures)
+          params.delete(:post_id)
+          resource = env.response.last
+
+          params.before_id = resource.mentioned_post_id
+          params.before_id_entity = resource.entity
+          params
+        end
+
+        def build_prev_params(env)
+          params = env.params.dup
+          params.delete(:captures)
+          params.delete(:post_id)
+          resource = env.response.first
+
+          params.since_id = resource.mentioned_post_id
+          params.since_id_entity = resource.entity
+          params
+        end
+      end
+
       class ConfirmFollowing < Middleware
         def action(env)
           if Model::Following.where(:user_id => Model::User.current.id, :public_id => env.params.following_id).any?
@@ -409,6 +458,21 @@ module TentD
       get '/posts/:post_id/versions' do |b|
         b.use GetActualId
         b.use GetVersions
+      end
+
+      head '/posts/:post_id/mentions' do |b|
+        b.use GetActualId
+        b.use GetOne
+        b.use GetMentions
+        b.use MentionsPaginationHeader
+        b.use MentionsCountHeader
+      end
+
+      get '/posts/:post_id/mentions' do |b|
+        b.use GetActualId
+        b.use GetOne
+        b.use GetMentions
+        b.use MentionsPaginationHeader
       end
 
       get '/posts/:post_id_entity/:post_id' do |b|
