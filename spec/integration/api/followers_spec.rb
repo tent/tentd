@@ -300,6 +300,27 @@ describe TentD::API::Followers do
   end
 
   describe 'GET /followers' do
+    should_set_pagination = proc do
+      it 'should set pagination in header' do
+        with_constants "TentD::API::PER_PAGE" => 2 do
+          follower1 = Fabricate(:follower, :public => true)
+          follower2 = Fabricate(:follower, :public => true)
+
+          json_get "/followers", params, env
+          link_header = last_response.headers['Link'].to_s
+          link_headers = link_header.split(',')
+          expect(link_headers).to include(%(<http://example.org/followers?before_id=#{follower1.public_id}>; rel="next"))
+          expect(link_headers).to include(%(<http://example.org/followers?since_id=#{follower2.public_id}>; rel="prev"))
+
+          head "/followers", params, env
+          link_header = last_response.headers['Link'].to_s
+          link_headers = link_header.split(',')
+          expect(link_headers).to include(%(<http://example.org/followers?before_id=#{follower1.public_id}>; rel="next"))
+          expect(link_headers).to include(%(<http://example.org/followers?since_id=#{follower2.public_id}>; rel="prev"))
+        end
+      end
+    end
+
     authorized_permissible = proc do
       it 'should order id desc' do
         first_follower = Fabricate(:follower, :public => true)
@@ -332,6 +353,8 @@ describe TentD::API::Followers do
         expect(body_ids.size).to eq(1)
         expect(body_ids).to eql([follower.public_id])
       end
+
+      context &should_set_pagination
     end
 
     authorized_full = proc do
@@ -358,6 +381,8 @@ describe TentD::API::Followers do
         expect(body_ids.size).to eq(1)
         expect(body_ids).to eql([follower.public_id])
       end
+
+      context &should_set_pagination
     end
 
     context 'when not authorized', &authorized_permissible
