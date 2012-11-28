@@ -108,12 +108,14 @@ module TentD
           count_env.params.return_count = true
           count = GetMany.new(@app).call(count_env)[2][0]
 
-          env['response.headers'] = {
-            'Count' => "#{count}"
-          }
+          env['response.headers'] ||= {}
+          env['response.headers']['Count'] = count
 
           env
         end
+      end
+
+      class PaginationHeader < API::PaginationHeader
       end
 
       class Discover < Middleware
@@ -278,12 +280,14 @@ module TentD
       head '/followings' do |b|
         b.use GetActualId
         b.use GetMany
+        b.use PaginationHeader
         b.use CountHeader
       end
 
       get '/followings' do |b|
         b.use GetActualId
         b.use GetMany
+        b.use PaginationHeader
       end
 
       get %r{/followings/(\w+)/(.+)} do |b|

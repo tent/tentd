@@ -170,6 +170,30 @@ describe TentD::API::Followings do
           end
         end
       end
+
+      it 'should set pagination in header' do
+        with_constants "TentD::API::PER_PAGE" => 2 do
+          following1 = Fabricate(:following, :public => !create_permissions?)
+          following2 = Fabricate(:following, :public => !create_permissions?)
+
+          if create_permissions?
+            @create_permission.call(following1)
+            @create_permission.call(following2)
+          end
+
+          json_get "/followings", params, env
+          link_header = last_response.headers['Link'].to_s
+          link_headers = link_header.split(',')
+          expect(link_headers).to include(%(<http://example.org/followings?before_id=#{following1.public_id}>; rel="next"))
+          expect(link_headers).to include(%(<http://example.org/followings?since_id=#{following2.public_id}>; rel="prev"))
+
+          head "/followings", params, env
+          link_header = last_response.headers['Link'].to_s
+          link_headers = link_header.split(',')
+          expect(link_headers).to include(%(<http://example.org/followings?before_id=#{following1.public_id}>; rel="next"))
+          expect(link_headers).to include(%(<http://example.org/followings?since_id=#{following2.public_id}>; rel="prev"))
+        end
+      end
     end
 
     without_permissions = proc do
