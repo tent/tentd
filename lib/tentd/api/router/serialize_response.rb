@@ -14,19 +14,19 @@ module TentD
                     else
                       {}
                     end.merge(env['response.headers'] || {})
-          response = serialize_error_response(env) if (400...600).include?(status)
+          status, headers, response = serialize_error_response(status, headers, response) if (400...600).include?(status)
           [status, headers, [response.to_s]]
         end
 
         private
 
-        def serialize_error_response(env)
-          unless env.response
-            env.status = 404
-            env.response = 'Not Found'
+        def serialize_error_response(status, headers, response)
+          unless response
+            status = 404
+            response = 'Not Found'
           end
 
-          { :error => env.response }.to_json
+          [status, headers.merge('Content-Type' => MEDIA_TYPE), { :error => response }.to_json]
         end
 
         def serialize_response(env)

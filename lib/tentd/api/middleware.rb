@@ -16,11 +16,11 @@ module TentD
         response = action(env)
         response.kind_of?(Hash) ? @app.call(response) : response
       rescue NotFound
-        [404, {}, [{ 'error' => 'Not Found' }.to_json]]
+        [404, { 'Content-Type' => MEDIA_TYPE }, [{ 'error' => 'Not Found' }.to_json]]
       rescue Unauthorized
-        [403, {}, [{ 'error' => 'Unauthorized' }.to_json]]
+        [403, { 'Content-Type' => MEDIA_TYPE }, [{ 'error' => 'Unauthorized' }.to_json]]
       rescue Sequel::ValidationFailed, Sequel::DatabaseError
-        [422, {}, [{ 'error' => 'Invalid Attributes' }.to_json]]
+        [422, { 'Content-Type' => MEDIA_TYPE }, [{ 'error' => 'Invalid Attributes' }.to_json]]
       rescue Exception => e
         if ENV['RACK_ENV'] == 'test'
           raise
@@ -29,7 +29,7 @@ module TentD
         else
           puts $!.inspect, $@
         end
-        [500, {}, [{ 'error' => 'Internal Server Error' }.to_json]]
+        [500, { 'Content-Type' => MEDIA_TYPE }, [{ 'error' => 'Internal Server Error' }.to_json]]
       end
 
       private

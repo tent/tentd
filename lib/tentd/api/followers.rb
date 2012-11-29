@@ -66,17 +66,17 @@ module TentD
       class Discover < Middleware
         def action(env)
           return env if env.authorized_scopes.include?(:write_followers)
-          return [400, {}, [{ 'error' => 'Request body required' }.to_json]] unless env.params.data
-          return [422, {}, [{ 'error' => 'Invalid notification path' }.to_json]] unless env.params.data.notification_path.kind_of?(String) &&
+          return [400, {'Content-Type' => MEDIA_TYPE}, [{ 'error' => 'Request body required' }.to_json]] unless env.params.data
+          return [422, {'Content-Type' => MEDIA_TYPE}, [{ 'error' => 'Invalid notification path' }.to_json]] unless env.params.data.notification_path.kind_of?(String) &&
                                                                 !env.params.data.notification_path.match(%r{\Ahttps?://})
-          return [406, {}, [{ 'error' => 'Can not follow self' }.to_json]] if Model::User.current.profile_entity == env.params.data.entity
+          return [406, {'Content-Type' => MEDIA_TYPE}, [{ 'error' => 'Can not follow self' }.to_json]] if Model::User.current.profile_entity == env.params.data.entity
           client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
           begin
             profile, profile_url = client.discover(env.params[:data]['entity']).get_profile
           rescue Faraday::Error::ConnectionFailed
-            return [503, {}, [{ 'error' => "Couldn't connect to entity" }.to_json]]
+            return [503, {'Content-Type' => MEDIA_TYPE}, [{ 'error' => "Couldn't connect to entity" }.to_json]]
           rescue Faraday::Error::TimeoutError
-            return [504, {}, [{ 'error' => "Connection to entity timed out" }.to_json]]
+            return [504, {'Content-Type' => MEDIA_TYPE}, [{ 'error' => "Connection to entity timed out" }.to_json]]
           end
 
           raise NotFound unless profile
