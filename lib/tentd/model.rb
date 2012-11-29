@@ -10,6 +10,7 @@ module TentD
     autoload :JsonColumn, 'tentd/model/json_column'
     autoload :Permissible, 'tentd/model/permissible'
     autoload :PermissiblePost, 'tentd/model/permissible_post'
+    autoload :PermissibleProfileInfo, 'tentd/model/permissible_profile_info'
     autoload :Serializable, 'tentd/model/serializable'
     autoload :RandomPublicId, 'tentd/model/random_public_id'
     autoload :TypeProperties, 'tentd/model/type_properties'
