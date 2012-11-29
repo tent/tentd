@@ -289,28 +289,63 @@ describe TentD::API::Apps do
     context 'when not authorized' do
       context 'when token exchange' do
         context 'when valid mac header' do
-          it 'should exchange mac_key_id for mac_key' do
-            app = Fabricate(:app, :mac_algorithm => 'hmac-sha-256')
-            authorization = TentD::Model::AppAuthorization.create(:app_id => app.id)
+          let(:_app) { Fabricate(:app, :mac_algorithm => 'hmac-sha-256') }
+          let(:authorization) { TentD::Model::AppAuthorization.create(:app_id => _app.id) }
 
+          before do
+            time = Time.now.to_i
+            nonce = SecureRandom.hex(3)
+            request_string = [time.to_s, nonce, 'POST', "/apps/#{_app.public_id}/authorizations", 'example.org', '80', nil, nil].join("\n")
+            signature = Base64.encode64(OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, _app.mac_key, request_string)).sub("\n", '')
+            env['HTTP_AUTHORIZATION'] =  %(MAC id="#{_app.mac_key_id}", ts="#{time}", nonce="#{nonce}", mac="#{signature}")
+          end
+
+          it 'should exchange token code for mac_key' do
             data = {
               :code => authorization.token_code
             }
 
-            time = Time.now.to_i
-            nonce = SecureRandom.hex(3)
-            request_string = [time.to_s, nonce, 'POST', "/apps/#{app.public_id}/authorizations", 'example.org', '80', nil, nil].join("\n")
-            signature = Base64.encode64(OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, app.mac_key, request_string)).sub("\n", '')
-            env['HTTP_AUTHORIZATION'] =  %(MAC id="#{app.mac_key_id}", ts="#{time}", nonce="#{nonce}", mac="#{signature}")
-
-            json_post "/apps/#{app.public_id}/authorizations", data, env
+            json_post "/apps/#{_app.public_id}/authorizations", data, env
             expect(last_response.status).to eq(200)
             expect(authorization.reload.token_code).to_not eq(data[:code])
+            body = JSON.parse(last_response.body)
+            whitelist = %w{ access_token mac_key mac_algorithm token_type refresh_token }
+            whitelist.each { |key|
+              expect(body).to have_key(key)
+            }
+            expect(body['refresh_token']).to eql(authorization.token_code)
+          end
+
+          it 'should set tent_expires_at if requested' do
+            tent_expires_at = Time.now.to_i + 86400 # 1 day from now
+            data = {
+              :code => authorization.token_code,
+              :tent_expires_at => tent_expires_at
+            }
+
+            json_post "/apps/#{_app.public_id}/authorizations", data, env
+            expect(last_response.status).to eq(200)
+            expect(authorization.reload.token_code).to_not eq(data[:code])
+            expect(authorization.tent_expires_at).to eql(tent_expires_at)
             body = JSON.parse(last_response.body)
             whitelist = %w{ access_token mac_key mac_algorithm token_type }
             whitelist.each { |key|
               expect(body).to have_key(key)
             }
+            expect(body['tent_expires_at']).to eql(tent_expires_at)
+          end
+
+          context 'when authorization expired' do
+            let(:authorization) { TentD::Model::AppAuthorization.create(:app_id => _app.id, :tent_expires_at => Time.now.to_i - 1) }
+
+            it 'should not exchange token code' do
+              data = {
+                :code => authorization.token_code
+              }
+
+              json_post "/apps/#{_app.public_id}/authorizations", data, env
+              expect(last_response.status).to eq(403)
+            end
           end
         end
 

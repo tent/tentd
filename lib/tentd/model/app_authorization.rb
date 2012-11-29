@@ -82,14 +82,22 @@ module TentD
         saved
       end
 
-      def token_exchange!
-        update(:token_code => SecureRandom.hex(16))
-        {
+      def token_exchange!(params = {})
+        data = {
+          :token_code => SecureRandom.hex(16)
+        }
+        data[:tent_expires_at] = params.tent_expires_at.to_i if params.tent_expires_at
+        update(data)
+
+        attrs = {
           :access_token => mac_key_id,
           :mac_key => mac_key,
           :mac_algorithm => mac_algorithm,
-          :token_type => 'mac'
+          :token_type => 'mac',
+          :refresh_token => token_code
         }
+        attrs[:tent_expires_at] = tent_expires_at if tent_expires_at
+        attrs
       end
 
       def auth_details

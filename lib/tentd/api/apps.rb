@@ -126,8 +126,12 @@ module TentD
 
       class AuthorizationTokenExchange < Middleware
         def action(env)
-          if authorization = Model::AppAuthorization.first(:app_id => env.params.app_id, :token_code => env.params.data.code)
-            env.response = authorization.token_exchange!
+          authorization = Model::AppAuthorization.where(
+            :app_id => env.params.app_id,
+            :token_code => env.params.data.code
+          ).where("tent_expires_at IS NULL OR tent_expires_at > ?", Time.now.to_i).first
+          if authorization
+            env.response = authorization.token_exchange!(env.params.data.slice(:tent_expires_at))
           else
             raise Unauthorized
           end
