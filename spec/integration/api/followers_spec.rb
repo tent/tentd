@@ -76,6 +76,7 @@ describe TentD::API::Followers do
 
         json_post '/followers', follower_data, env
         expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
 
       it 'should error 503 when connection fails' do
@@ -113,6 +114,7 @@ describe TentD::API::Followers do
 
       json_post '/followers', follower_data, env
       expect(last_response.status).to eql(403)
+      expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
     end
 
     it 'should fail if entity is self' do
@@ -123,6 +125,7 @@ describe TentD::API::Followers do
       expect(lambda {
         json_post '/followers', follower_data, env
         expect(last_response.status).to eql(406)
+        expect(Yajl::Parser.parse(last_response.body)).to have_key('error') 
       }).to_not change(TentD::Model::Follower, :count)
     end
 
@@ -267,6 +270,7 @@ describe TentD::API::Followers do
           to_not change(TentD::Model::NotificationSubscription.where(:user_id => current_user.id), :count)
 
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
       end
     end
   end
@@ -427,6 +431,7 @@ describe TentD::API::Followers do
       it 'should return 404' do
         json_get "/followers/#{URI.encode_www_form_component(follower.entity)}", params, env
         expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     }
 
@@ -434,6 +439,7 @@ describe TentD::API::Followers do
       it 'should return 403' do
         json_get "/followers/#{URI.encode_www_form_component(follower.entity)}", params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
       end
     }
 
@@ -520,6 +526,7 @@ describe TentD::API::Followers do
         it 'should return 404' do
           json_get "/followers/#{follower.public_id}", params, env
           expect([404, 403]).to include(last_response.status)
+          expect(Yajl::Parser.parse(last_response.body)).to have_key('error')
         end
       end
     end
@@ -557,6 +564,7 @@ describe TentD::API::Followers do
         it 'should respond with 404' do
           json_get "/followers/invalid-id", params, env
           expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
     end
@@ -579,6 +587,7 @@ describe TentD::API::Followers do
         it 'should respond 403' do
           json_get '/followers/invalid-id', params, env
           expect(last_response.status).to eql(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
         end
       end
     end
@@ -596,7 +605,8 @@ describe TentD::API::Followers do
 
           it 'should return 403' do
             json_get "/followers/#{follower.public_id}", params, env
-            expect(last_response.status).to eq(403)
+            expect(last_response.status).to eql(403)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
           end
         end
       end
@@ -606,6 +616,7 @@ describe TentD::API::Followers do
         it 'should respond 403' do
           json_get "/followers/#{follower.id}", params, env
           expect(last_response.status).to eql(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
         end
       end
 
@@ -613,6 +624,7 @@ describe TentD::API::Followers do
         it 'should respond 403' do
           json_get "/followers/invalid-id", params, env
           expect(last_response.status).to eql(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
         end
       end
     end
@@ -638,6 +650,7 @@ describe TentD::API::Followers do
           follower.update(:user_id => other_user.id)
           json_put "/followers/#{follower.public_id}", data, env
           expect([404, 403]).to include(last_response.status)
+          expect(Yajl::Parser.parse(last_response.body)).to have_key('error')
         end
       end
 
@@ -702,6 +715,7 @@ describe TentD::API::Followers do
         it 'should respond 404' do
           json_put '/followers/invalid-id', params, env
           expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
 
@@ -723,6 +737,7 @@ describe TentD::API::Followers do
         it 'should respond 403' do
           json_put '/followers/invalid-id', params, env
           expect(last_response.status).to eql(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
         end
       end
     end
@@ -763,6 +778,7 @@ describe TentD::API::Followers do
           expect(lambda {
             delete "/followers/#{follower.public_id}", params, env
             expect([404, 403]).to include(last_response.status)
+            expect(Yajl::Parser.parse(last_response.body)).to have_key('error')
           }).to_not change(TentD::Model::Follower, :count)
         end
       end
@@ -772,6 +788,7 @@ describe TentD::API::Followers do
       it 'should respond 403' do
         delete "/followers/invalid-id", params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
       end
     end
 
@@ -783,6 +800,7 @@ describe TentD::API::Followers do
       it 'should respond with 404 if no follower exists with :id' do
         delete "/followers/invalid-id", params, env
         expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
 
@@ -794,6 +812,7 @@ describe TentD::API::Followers do
       it 'should respond with 403 if no follower exists with :id' do
         delete "/followers/invalid-id", params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
       end
     end
 

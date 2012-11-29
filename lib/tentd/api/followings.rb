@@ -123,14 +123,14 @@ module TentD
           return [422, {}, ['Invalid Request Body']] unless env.params.data && env.params.data.entity
           client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
           profile, profile_url = client.discover(env.params.data.entity).get_profile
-          return [404, {}, ['Not Found']] unless profile
+          raise NotFound unless profile
 
           profile = CoreProfileData.new(profile)
           env.profile = profile
           env.server_url = profile_url.sub(%r{/profile$}, '')
           env
         rescue Faraday::Error::ConnectionFailed
-          [404, {}, ['Not Found']]
+          raise NotFound
         end
       end
 

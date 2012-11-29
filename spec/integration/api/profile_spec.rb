@@ -194,6 +194,7 @@ describe TentD::API::Profile do
           it 'should return 403' do
             json_put "/profile/#{url_encode_type(basic_info_type)}", params, env
             expect(last_response.status).to eql(403)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
           end
         end
       end
@@ -203,6 +204,7 @@ describe TentD::API::Profile do
       it 'should return 403' do
         json_put "/profile/#{url_encode_type(basic_info_type)}", params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end

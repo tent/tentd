@@ -5,6 +5,8 @@ module TentD
     class Middleware
       include Authorizable
 
+      NotFound = Class.new(Error)
+
       def initialize(app)
         @app = app
       end
@@ -13,10 +15,12 @@ module TentD
         env = Hashie::Mash.new(env) unless env.kind_of?(Hashie::Mash)
         response = action(env)
         response.kind_of?(Hash) ? @app.call(response) : response
+      rescue NotFound
+        [404, {}, [{ 'error' => 'Not Found' }.to_json]]
       rescue Unauthorized
-        [403, {}, ['Unauthorized']]
+        [403, {}, [{ 'error' => 'Unauthorized' }.to_json]]
       rescue Sequel::ValidationFailed, Sequel::DatabaseError
-        [422, {}, ['Invalid Attributes']]
+        [422, {}, [{ 'error' => 'Invalid Attributes' }.to_json]]
       rescue Exception => e
         if ENV['RACK_ENV'] == 'test'
           raise
@@ -25,7 +29,7 @@ module TentD
         else
           puts $!.inspect, $@
         end
-        [500, {}, ['Internal Server Error']]
+        [500, {}, [{ 'error' => 'Internal Server Error' }.to_json]]
       end
 
       private

@@ -45,7 +45,7 @@ describe TentD::API::Posts do
         params[:challenge] = '123'
         json_get '/notifications/not-following-id', params, env
         expect(last_response.status).to eq(404)
-        expect(last_response.body).to_not eq(params[:challenge])
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
 
@@ -55,7 +55,7 @@ describe TentD::API::Posts do
         params[:challenge] = '123'
         json_get "/notifications/#{following.public_id}", params, env
         expect(last_response.status).to eq(404)
-        expect(last_response.body).to_not eq(params[:challenge])
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
   end
@@ -164,6 +164,7 @@ describe TentD::API::Posts do
           it 'should return 404' do
             json_get "/posts/#{post.public_id}?version=12", params, env
             expect(last_response.status).to eq(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
           end
         end
       end
@@ -241,17 +242,20 @@ describe TentD::API::Posts do
           post = Fabricate(:post, :public => true)
           json_get "/posts/#{post.id}"
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
 
         it "should not find post belonging to another user" do
           post = Fabricate(:post, :public => true, :user_id => other_user.id)
           json_get "/posts/#{post.public_id}"
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
 
         it "should be 404 if post_id doesn't exist" do
           json_get "/posts/1"
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
 
@@ -313,6 +317,7 @@ describe TentD::API::Posts do
               post # create post
               json_get "/posts/#{post.public_id}", params, env
               expect(last_response.status).to eq(404)
+              expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
             end
           end
         end
@@ -351,6 +356,7 @@ describe TentD::API::Posts do
           it 'should respond 404' do
             json_get "/posts/invalid-id", params, env
             expect(last_response.status).to eq(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
           end
         end
       end
@@ -376,6 +382,7 @@ describe TentD::API::Posts do
           post = Fabricate(:post, :public => false, :type_base => post_type)
           json_get "/posts/#{post.public_id}", params, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
     end
@@ -463,6 +470,7 @@ describe TentD::API::Posts do
       it 'should return 404' do
         get "/posts/invalid-id/versions"
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
   end
@@ -657,6 +665,7 @@ describe TentD::API::Posts do
       it 'should return 404' do
         json_get "/posts/#{post.public_id}/mentions", nil, env
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
   end
@@ -1091,6 +1100,7 @@ describe TentD::API::Posts do
       it 'should respond 403' do
         expect(lambda { json_post "/posts", {}, env }).to_not change(TentD::Model::Post, :count)
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
 
@@ -1121,6 +1131,7 @@ describe TentD::API::Posts do
         post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes.merge(:entity => 'example.org'), env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
 
       describe 'profile update post' do
@@ -1205,6 +1216,7 @@ describe TentD::API::Posts do
         post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
 
       it 'should allow a post by an entity that is not a following' do
@@ -1225,6 +1237,7 @@ describe TentD::API::Posts do
         post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes.merge(:entity => 'https://example.org'), env.merge('tent.entity' => 'https://example.org')
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
 
       context 'when following belongs to another user' do
@@ -1278,6 +1291,7 @@ describe TentD::API::Posts do
           expect(lambda {
             delete "/posts/#{post.public_id}", params, env
             expect(last_response.status).to eq(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
           }).to_not change(TentD::Model::Post, :count)
         end
       end
@@ -1288,6 +1302,7 @@ describe TentD::API::Posts do
         it 'should return 403' do
           delete "/posts/#{post.public_id}", params, env
           expect(last_response.status).to eq(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
         end
       end
 
@@ -1295,6 +1310,7 @@ describe TentD::API::Posts do
         it 'should return 404' do
           delete "/posts/post-id", params, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
     end
@@ -1303,6 +1319,7 @@ describe TentD::API::Posts do
       it 'should return 403' do
         delete "/posts/#{post.public_id}", params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -1337,6 +1354,7 @@ describe TentD::API::Posts do
       it "should return 404 if specified version doesn't exist" do
         get "/posts/#{post.public_id}/attachments/#{attachment.name}", { :version => 20}, 'HTTP_ACCEPT' => attachment.type
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
 
       context 'when :post_id is not original' do
@@ -1383,6 +1401,7 @@ describe TentD::API::Posts do
           it 'should return 404 if post_id does not exist' do
             json_get("/posts/post-id/attachments/foo", {}, env)
             expect(last_response.status).to eql(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
           end
         end
 
@@ -1392,6 +1411,7 @@ describe TentD::API::Posts do
           it 'should return 404' do
             json_get("/posts/#{post.public_id}/attachments/foo", {}, env)
             expect(last_response.status).to eql(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
           end
         end
       end
@@ -1400,11 +1420,13 @@ describe TentD::API::Posts do
     it "should 404 if the attachment doesn't exist" do
       get "/posts/#{post.public_id}/attachments/asdf"
       expect(last_response.status).to eq(404)
+      expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
     end
 
     it "should 404 if the post doesn't exist" do
       get "/posts/asdf/attachments/asdf"
       expect(last_response.status).to eq(404)
+      expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
     end
 
     context 'when post belongs to another user' do
@@ -1413,6 +1435,7 @@ describe TentD::API::Posts do
       it 'should return 404' do
         get "/posts/#{post.public_id}/attachments/#{attachment.name}", {}, 'HTTP_ACCEPT' => attachment.type
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
   end
@@ -1434,6 +1457,7 @@ describe TentD::API::Posts do
           }
           json_put "/posts/#{post.public_id}", post_attributes, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
 
@@ -1572,6 +1596,7 @@ describe TentD::API::Posts do
       it 'should return 403' do
         json_put "/posts/#{post.public_id}", params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end

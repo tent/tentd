@@ -137,6 +137,7 @@ describe TentD::API::Groups do
       it 'should return 403' do
         get '/groups', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -154,6 +155,7 @@ describe TentD::API::Groups do
       it "should render 404 if :id doesn't exist" do
         get "/groups/invalid-id", params, env
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
 
       context 'when group belongs to another user' do
@@ -161,6 +163,7 @@ describe TentD::API::Groups do
           group = Fabricate(:group, :user_id => other_user.id)
           get "/groups/#{group.public_id}", params, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
     end
@@ -169,6 +172,7 @@ describe TentD::API::Groups do
       it 'should return 403' do
         get '/groups/group-id', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -190,6 +194,7 @@ describe TentD::API::Groups do
       it 'should return 404 unless group with :id exists' do
         json_put '/groups/invalid-id', params, env
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
 
       context 'when group belongs to another user' do
@@ -197,6 +202,7 @@ describe TentD::API::Groups do
           group = Fabricate(:group, :user_id => other_user.id)
           json_put "/groups/#{group.public_id}", group, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
     end
@@ -205,6 +211,7 @@ describe TentD::API::Groups do
       it 'should return 403' do
         json_put '/groups/group-id', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -246,6 +253,7 @@ describe TentD::API::Groups do
       it 'should return 403' do
         json_post '/groups', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -269,6 +277,7 @@ describe TentD::API::Groups do
         expect(lambda { delete "/groups/invalid-id", params, env }).
           to change(TentD::Model::Group, :count).by(0)
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
 
       context 'when group belongs to another user' do
@@ -278,6 +287,7 @@ describe TentD::API::Groups do
           expect(lambda { delete "/groups/#{group.public_id}", params, env }).
             to change(TentD::Model::Group, :count).by(0)
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
     end
@@ -286,6 +296,7 @@ describe TentD::API::Groups do
       it 'should return 403' do
         delete '/groups/group-id', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end

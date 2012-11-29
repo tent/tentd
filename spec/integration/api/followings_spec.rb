@@ -329,6 +329,7 @@ describe TentD::API::Followings do
       it 'should return 403' do
         json_get "/followings/#{URI.encode_www_form_component(following.entity)}", params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
 
@@ -336,6 +337,7 @@ describe TentD::API::Followings do
       it 'should return 404' do
         json_get "/followings/#{URI.encode_www_form_component(following.entity)}", params, env
         expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
 
@@ -457,12 +459,14 @@ describe TentD::API::Followings do
         following = Fabricate(:following, :public => false)
         json_get "/followings/#{following.public_id}", params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
 
       it 'should return 403 unless exists' do
         following = Fabricate(:following, :public => true)
         json_get "/followings/invalid-id", params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
 
       context 'following belongs to another user' do
@@ -471,6 +475,7 @@ describe TentD::API::Followings do
         it 'should return 403' do
           json_get "/followings/#{following.public_id}", params, env
           expect(last_response.status).to eql(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
         end
       end
     end
@@ -531,6 +536,7 @@ describe TentD::API::Followings do
         it 'should return 404' do
           json_get "/followings/#{following.public_id}", params, env
           expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
 
@@ -580,6 +586,7 @@ describe TentD::API::Followings do
       it 'should return 404 if no following with :id exists' do
         json_get '/followings/invalid-id', params, env
         expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
   end
@@ -706,6 +713,7 @@ describe TentD::API::Followings do
 
           json_post '/followings', following_data, env
           expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
 
@@ -713,11 +721,12 @@ describe TentD::API::Followings do
         it 'should error' do
           @http_stub_head_success.call
           @http_stub_profile_success.call
-          http_stubs.post('/tent/followers') { [404, {}, 'Not Found'] }
+          http_stubs.post('/tent/followers') { [404, {}, { 'error' => 'Not Found' }.to_json] }
           TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
 
           json_post '/followings', following_data, env
           expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
 
@@ -785,6 +794,7 @@ describe TentD::API::Followings do
       it 'should return 403' do
         json_post '/followings', params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -815,6 +825,7 @@ describe TentD::API::Followings do
         it 'should return 404' do
           json_put "/followings/#{following.public_id}", data, env
           expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
 
@@ -857,6 +868,7 @@ describe TentD::API::Followings do
       it 'should return 404 unless following with :id exists' do
         json_put '/followings/invalid-id', params, env
         expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
 
@@ -864,6 +876,7 @@ describe TentD::API::Followings do
       it 'should return 403' do
         json_put '/followings/following-id', params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -896,6 +909,7 @@ describe TentD::API::Followings do
           expect(lambda { delete "/followings/invalid-id", params, env }).
             to_not change(TentD::Model::Following, :count)
           expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
 
@@ -905,6 +919,7 @@ describe TentD::API::Followings do
           expect(lambda { delete "/followings/#{following.public_id}", params, env }).
             to_not change(TentD::Model::Following, :count)
           expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
     end
@@ -914,6 +929,7 @@ describe TentD::API::Followings do
         expect(lambda { delete "/followings/invalid-id", params, env }).
           to_not change(TentD::Model::Following, :count)
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -942,6 +958,7 @@ describe TentD::API::Followings do
       it 'should return 404' do
         json_get("/followings/#{following.public_id}/profile", {}, env)
         expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
   end

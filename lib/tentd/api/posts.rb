@@ -334,7 +334,7 @@ module TentD
               res = client.post.attachment.get(post.public_id, env.params.attachment_name, type)
               return [res.status, res.headers, res.body]
             else
-              return [404, {}, []]
+              raise NotFound
             end
           else
             attachment = env.response.attachments_dataset.select(:data).first(:type => type, :name => env.params.attachment_name)
@@ -404,7 +404,7 @@ module TentD
           if Model::Following.where(:user_id => Model::User.current.id, :public_id => env.params.following_id).any?
             [200, { 'Content-Type' => 'text/plain' }, [env.params.challenge]]
           else
-            [404, {}, []]
+            raise NotFound
           end
         end
       end
