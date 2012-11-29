@@ -14,6 +14,7 @@ module TentD
       serialize_attributes :json, :content
 
       one_to_many :permissions
+      one_to_many :versions, :class => ProfileInfoVersion
       many_to_one :user
 
       attr_accessor :entity_changed, :old_entity
@@ -26,6 +27,11 @@ module TentD
 
       def before_save
         self.updated_at = Time.now
+        super
+      end
+
+      def after_save
+        create_version!
         super
       end
 
@@ -48,7 +54,7 @@ module TentD
         else
           fetch_with_permissions({}, current_auth)
         end.inject({}) do |memo, info|
-          memo[info.type.uri] = info.content.merge(:permissions => info.permissions_json(authorized_scopes.include?(:read_permissions)))
+          memo[info.type.uri] = info.content.merge(:permissions => info.permissions_json(authorized_scopes.include?(:read_permissions)), :version => info.latest_version(:fields => [:version]).version)
           memo
         end
         h
@@ -105,6 +111,24 @@ module TentD
             Notifications.notify_entity(:entity => mention.entity, :post_id => post.id)
           end
         end
+      end
+
+      def latest_version(params = {})
+        q = ProfileInfoVersion.where(:profile_info_id => id).order(:version.desc)
+        q.select(params.delete(:fields)) if params[:fields]
+        q.first
+      end
+
+      def create_version!
+        latest_version = self.latest_version(:fields => [:version])
+        ProfileInfoVersion.create(
+          :profile_info_id => id,
+          :type => type,
+          :version => latest_version ? latest_version.version + 1 : 1,
+          :user_id => user_id,
+          :public => self.public,
+          :content => content
+        )
       end
     end
   end

@@ -64,8 +64,8 @@ describe TentD::API::Profile do
 
           json_get '/profile', params, env
           expect(Yajl::Parser.parse(last_response.body)).to eql(Hashie::Mash.new(
-            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json),
-            "#{ profile_infos.last.type.uri }" => profile_infos.last.content.merge(:permissions => profile_infos.first.permissions_json)
+            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json, :version => 1),
+            "#{ profile_infos.last.type.uri }" => profile_infos.last.content.merge(:permissions => profile_infos.first.permissions_json, :version => 1)
           ).to_hash)
         end
 
@@ -88,7 +88,7 @@ describe TentD::API::Profile do
 
           json_get '/profile', params, env
           expect(Yajl::Parser.parse(last_response.body)).to eql({
-            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge('permissions' => profile_infos.first.permissions_json.inject({}) { |m, (k,v)| m[k.to_s] = v; m })
+            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge('permissions' => profile_infos.first.permissions_json.inject({}) { |m, (k,v)| m[k.to_s] = v; m }, 'version' => 1)
           })
         end
 
@@ -110,7 +110,7 @@ describe TentD::API::Profile do
 
         json_get '/profile', params, env
         expect(last_response.body).to eql({
-          "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json)
+          "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json, :version => 1)
         }.to_json)
       end
 

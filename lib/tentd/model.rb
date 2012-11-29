@@ -23,6 +23,7 @@ module TentD
     autoload :AppAuthorization, 'tentd/model/app_authorization'
     autoload :NotificationSubscription, 'tentd/model/notification_subscription'
     autoload :ProfileInfo, 'tentd/model/profile_info'
+    autoload :ProfileInfoVersion, 'tentd/model/profile_info_version'
     autoload :Group, 'tentd/model/group'
     autoload :Permission, 'tentd/model/permission'
     autoload :User, 'tentd/model/user'
