@@ -345,7 +345,7 @@ describe TentD::API::Followings do
       it 'should redirect to /followings/:id' do
         json_get "/followings/#{URI.encode_www_form_component(following.entity)}", params, env
         expect(last_response.status).to eql(302)
-        expect(last_response.headers['Location']).to eql("http://example.org/followings/#{following.id}")
+        expect(last_response.headers['Location']).to eql("http://example.org/followings/#{following.public_id}")
       end
     end
 
