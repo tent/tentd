@@ -133,7 +133,7 @@ module TentD
         def action(env)
           return env unless env.params.has_key?(:follower_entity)
 
-          follower = Model::Follower.select(:id, :public).where(:entity => env.params.follower_entity, :user_id => Model::User.first.id).first
+          follower = Model::Follower.select(:id, :public, :public_id).where(:entity => env.params.follower_entity, :user_id => Model::User.first.id).first
           if follower && !follower.public? && !(env.full_read_authorized || authorize_env?(env, :self))
             follower = Model::Follower.find_with_permissions(follower.id, env.current_auth)
             raise Unauthorized unless follower
@@ -145,7 +145,7 @@ module TentD
           end
 
           redirect_uri = self_uri(env)
-          redirect_uri.path = "/followers/#{follower.id}"
+          redirect_uri.path = "/followers/#{follower.public_id}"
           [302, { 'Location' => redirect_uri.to_s }, []]
         end
       end
