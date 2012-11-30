@@ -479,20 +479,20 @@ describe TentD::API::Posts do
     let(:post) { Fabricate(:post, :public => false) }
 
     let!(:known_mentioned_entity) { 'https://known.example.com' }
-    let!(:known_mentioned_post) { Fabricate(:post, :public => true, :entity => known_mentioned_entity) }
+    let!(:known_mentioned_post) { Fabricate(:post, :public => true, :original => false, :entity => known_mentioned_entity) }
     let!(:known_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => known_mentioned_post.public_id, :entity => known_mentioned_post.entity) }
 
     let(:known_private_mentioned_entity) { 'https://known_private.example.com' }
-    let(:known_private_mentioned_post) { Fabricate(:post, :public => false, :entity => known_private_mentioned_entity) }
-    let(:known_private_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => known_private_mentioned_post.public_id, :entity => known_private_mentioned_post.entity) }
+    let(:known_private_mentioned_post) { Fabricate(:post, :public => false, :original => false, :entity => known_private_mentioned_entity) }
+    let(:known_private_mention) { Fabricate(:mention, :post_id => post.id, :original => false, :mentioned_post_id => known_private_mentioned_post.public_id, :entity => known_private_mentioned_post.entity) }
 
     let(:unknown_mentioned_entity) { 'https://unknown.example.com' }
-    let(:unknown_mentioned_post) { Fabricate(:post, :public => true, :entity => unknown_mentioned_entity, :user_id => other_user.id) }
+    let(:unknown_mentioned_post) { Fabricate(:post, :public => true, :original => false, :entity => unknown_mentioned_entity, :user_id => other_user.id) }
     let(:unknown_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => unknown_mentioned_post.public_id, :entity => unknown_mentioned_post.entity) }
 
     let(:other_known_mentioned_post_type) { 'https://tent.io/types/post/photo/v0.1.0' }
     let(:other_known_mentioned_entity) { 'https://other_known.example.com' }
-    let(:other_known_mentioned_post) { Fabricate(:post, :public => true, :entity => other_known_mentioned_entity, :type => other_known_mentioned_post_type) }
+    let(:other_known_mentioned_post) { Fabricate(:post, :public => true, :original => false, :entity => other_known_mentioned_entity, :type => other_known_mentioned_post_type) }
     let(:other_known_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => other_known_mentioned_post.public_id, :entity => other_known_mentioned_post.entity) }
 
     context 'when authorized' do
