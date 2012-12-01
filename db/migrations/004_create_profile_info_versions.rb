@@ -18,5 +18,7 @@ Sequel.migration do
       index [:user_id], :name=> :index_profile_info_versions_user
       index [:profile_info_id], :name => :index_profile_info_versions_profile_info
     end
+
+    self["INSERT INTO profile_info_versions (type_base, type_view, type_version, public, content, user_id, profile_info_id, version) (SELECT type_base, type_view, type_version, public, content, user_id, id, 1 AS version FROM profile_info);"]
   end
 end
