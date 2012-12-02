@@ -15,7 +15,7 @@ module TentD
       serialize_attributes :json, :content
 
       one_to_many :permissions
-      one_to_many :versions, :class => ProfileInfoVersion
+      one_to_many :versions, :class => 'TentD::Model::ProfileInfoVersion'
       many_to_one :user
 
       attr_accessor :entity_changed, :old_entity

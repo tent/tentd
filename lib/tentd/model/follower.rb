@@ -16,10 +16,10 @@ module TentD
       one_to_many :notification_subscriptions
 
       # permissions describing who can see them
-      one_to_many :visibility_permissions, :key => :follower_visibility_id, :class => Permission
+      one_to_many :visibility_permissions, :key => :follower_visibility_id, :class => 'TentD::Model::Permission'
 
       # permissions describing what they have access to
-      one_to_many :access_permissions, :key => :follower_access_id, :class => Permission
+      one_to_many :access_permissions, :key => :follower_access_id, :class => 'TentD::Model::Permission'
 
       def before_create
         self.public_id ||= random_id

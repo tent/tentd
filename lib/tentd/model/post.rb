@@ -15,9 +15,9 @@ module TentD
       serialize_attributes :json, :content, :views
 
       one_to_many :permissions
-      one_to_many :attachments, :class => PostAttachment
+      one_to_many :attachments, :class => 'TentD::Model::PostAttachment'
       one_to_many :mentions
-      one_to_many :versions, :class => PostVersion
+      one_to_many :versions, :class => 'TentD::Model::PostVersion'
 
       many_to_one :app
       many_to_one :following
