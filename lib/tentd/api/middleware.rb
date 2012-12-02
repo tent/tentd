@@ -36,7 +36,7 @@ module TentD
 
       def self_uri(env)
         uri = URI('')
-        uri.host = env.HTTP_HOST
+        uri.host = env.HTTP_HOST.split(':').first
         uri.scheme = env['rack.url_scheme']
 
         port = (env.HTTP_X_FORWARDED_PORT || env.SERVER_PORT).to_i
