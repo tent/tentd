@@ -313,6 +313,7 @@ module TentD
               }
             )
             Model::Permission.copy(deleted_post, post)
+            deleted_post.notify_mentions(post.id)
           else
             return env unless (post = env.response) && post.kind_of?(Model::Post)
           end

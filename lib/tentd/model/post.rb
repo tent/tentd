@@ -83,12 +83,6 @@ module TentD
           post.notify_mentions
         end
 
-        if post.type.base == DELETED_POST_TYPE.base
-          deleted_post_public_id = post.content['id']
-          deleted_post = unfiltered.select(:id).first(:public_id => deleted_post_public_id)
-          deleted_post.notify_mentions(post.id)
-        end
-
         post
       end
 
