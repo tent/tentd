@@ -1291,6 +1291,19 @@ describe TentD::API::Posts do
           expect(post.type.base).to eq('https://tent.io/types/post/delete')
           expect(post.type_version).to eq('0.1.0')
         end
+
+        context 'when post has mentions' do
+          let!(:mention) { Fabricate(:mention, :entity => 'https://example.local', :post_id => post.id) }
+
+          it 'should send delete post notification to mentions' do
+            TentD::Notifications.expects(:notify_entity).with { |msg|
+              msg[:entity] == mention.entity && msg[:post_id] != post.id
+            }
+
+            delete "/posts/#{post.public_id}", params, env
+            expect(last_response.status).to eq(200)
+          end
+        end
       end
 
       context 'when post belongs to another user' do

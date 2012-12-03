@@ -3,6 +3,8 @@ require 'securerandom'
 module TentD
   module Model
     class Post < Sequel::Model(:posts)
+      DELETED_POST_TYPE = TentType.new('https://tent.io/types/post/delete/v0.1.0')
+
       include RandomPublicId
       include Serializable
       include TypeProperties
@@ -81,6 +83,12 @@ module TentD
           post.notify_mentions
         end
 
+        if post.type.base == DELETED_POST_TYPE.base
+          deleted_post_public_id = post.content['id']
+          deleted_post = unfiltered.select(:id).first(:public_id => deleted_post_public_id)
+          deleted_post.notify_mentions(post.id)
+        end
+
         post
       end
 
@@ -121,12 +129,12 @@ SQL
         res
       end
 
-      def notify_mentions
+      def notify_mentions(post_id = self.id)
         mentions.each do |mention|
           follower = Follower.first(:user_id => User.current.id, :entity => mention.entity)
           next if follower && NotificationSubscription.first(:user_id => User.current.id, :follower => follower, :type_base => self.type.base)
 
-          Notifications.notify_entity(:entity => mention.entity, :post_id => self.id)
+          Notifications.notify_entity(:entity => mention.entity, :post_id => post_id)
         end
       end
 
