@@ -136,6 +136,10 @@ module TentD
         Permission.copy(self, post)
         Notifications.trigger(:type => post.type.uri, :post_id => post.id)
 
+        Following.select(:id, :entity).where(:user_id => user_id).all.each do |following|
+          Notifications.notify_entity(:entity => following.entity, :post_id => post.id)
+        end
+
         if options[:entity_changed]
           Mention.select(:id, :entity).qualify.join(
             :posts,

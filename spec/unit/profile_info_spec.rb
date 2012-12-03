@@ -95,8 +95,9 @@ describe TentD::Model::ProfileInfo do
 
   describe '#create_update_post' do
     context 'entity_changed' do
+      let!(:profile_info) { Fabricate(:profile_info, :public => true, :type => core_profile_type, :content => { :entity => entity }) }
+
       it 'should notify mentioned entities' do
-        profile_info = Fabricate(:profile_info, :public => true, :type => core_profile_type, :content => { :entity => entity })
         post = Fabricate(:post, :entity => entity, :original => true)
         self_mention = TentD::Model::Mention.create(:post_id => post.id, :entity => entity)
         mention = TentD::Model::Mention.create(:post_id => post.id, :entity => other_entity)
@@ -105,6 +106,12 @@ describe TentD::Model::ProfileInfo do
         TentD::Notifications.expects(:trigger).once
         TentD::Notifications.expects(:notify_entity).with(has_entry(:entity => other_entity))
 
+        profile_info.create_update_post(:entity_changed => true, :old_entity => entity)
+      end
+
+      it 'should notify followings' do
+        following = Fabricate(:following)
+        TentD::Notifications.expects(:notify_entity).with(has_entry(:entity => following.entity))
         profile_info.create_update_post(:entity_changed => true, :old_entity => entity)
       end
     end
