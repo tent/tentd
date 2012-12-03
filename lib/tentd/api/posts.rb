@@ -302,7 +302,7 @@ module TentD
 
       class Notify < Middleware
         def action(env)
-          return env if authorize_env?(env, :write_posts) && env.params.data && env.params.data.id
+          return env if authorize_env?(env, :write_posts) && env.params.data && env.params.data.id && env.current_auth.kind_of?(Model::AppAuthorization)
           if deleted_post = env.notify_deleted_post
             post = Model::Post.create(
               :type => 'https://tent.io/types/post/delete/v0.1.0',

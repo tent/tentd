@@ -1134,6 +1134,15 @@ describe TentD::API::Posts do
         expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
 
+      it "should notify subscribed apps of post" do
+        following = Fabricate(:following)
+        env['current_auth'] = following
+        TentD::Notifications.expects(:trigger)
+
+        json_post "/notifications/#{following.public_id}", post_attributes, env
+        expect(last_response.status).to eql(200)
+      end
+
       describe 'profile update post' do
         let(:following) { Fabricate(:following) }
         let(:post_attributes) {
