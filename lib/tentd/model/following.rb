@@ -52,8 +52,8 @@ module TentD
       end
 
       def propagate_entity(entity, old_entity)
-        Post.where(:user_id => User.current.id, :entity => old_entity, :original => false).update(:entity => entity)
-        Mention.from(:mentions, :posts).where(:posts__user_id => User.current.id, :mentions__entity => old_entity, :mentions__original_post => false).update(:entity => entity)
+        Post.where(:user_id => user_id, :entity => old_entity, :original => false).update(:entity => entity)
+        Mention.from(:mentions, :posts).where(:posts__user_id => user_id, :mentions__entity => old_entity).update(:entity => entity)
       end
 
       def update_from_params(params, authorized_scopes = [])
