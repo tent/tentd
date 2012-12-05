@@ -48,7 +48,7 @@ module TentD
         def action(env)
           return env unless env.params.has_key?(:following_entity)
 
-          following = Model::Following.select(:id, :public, :public_id).where(:entity => env.params.following_entity, :user_id => Model::User.first.id).first
+          following = Model::Following.select(:id, :public, :public_id).where(:entity => env.params.following_entity, :user_id => Model::User.current.id).first
           if following && !following.public && !authorize_env?(env, :read_followings)
             following = Model::Following.find_with_permissions(following.id, env.current_auth)
             raise Unauthorized unless following

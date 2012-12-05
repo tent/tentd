@@ -148,7 +148,7 @@ module TentD
             begin
               Model::Post.create(data, :dont_notify_mentions => true)
             rescue Sequel::DatabaseError # hack to ignore duplicate posts
-              Model::Post.first(:public_id => data.public_id)
+              Model::Post.first(:user_id => Model::User.current.id, :public_id => data.public_id)
             end
           else
             Model::Post.create(data)
@@ -179,7 +179,7 @@ module TentD
             post.entity ||= env['tent.entity']
             post.app ||= env.current_auth.app
             post.original = post.entity == env['tent.entity']
-            if post.following_id && following = Model::Following.first(:public_id => post.following_id)
+            if post.following_id && following = Model::Following.first(:user_id => Model::User.current.id, :public_id => post.following_id)
               post.following_id = following.id
             end
           elsif env.current_auth.respond_to?(:app)

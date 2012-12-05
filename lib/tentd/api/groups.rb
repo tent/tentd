@@ -115,7 +115,7 @@ module TentD
               env.notify_instance = group
             end
           rescue Sequel::DatabaseError # hack to ignore duplicate groups
-            env.response = Model::Group.first(:public_id => data.public_id)
+            env.response = Model::Group.first(:user_id => Model::User.current.id, :public_id => data.public_id)
           end
           env
         end
