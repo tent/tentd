@@ -136,7 +136,7 @@ module TentD
 
       class Follow < Middleware
         def action(env)
-          existing_following = Model::Following.first(:entity => env.params.data.entity)
+          existing_following = Model::Following.first(:user_id => Model::User.current.id, :entity => env.params.data.entity)
           if existing_following && existing_following.confirmed == true
             return [409, {}, [{ 'error' => 'Already following' }.to_json]]
           end
