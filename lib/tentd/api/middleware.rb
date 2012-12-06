@@ -46,7 +46,7 @@ module TentD
       end
 
       def serialize_params(params)
-        "#{params.inject([]) { |m, (k,v)| m << "#{k}=#{URI.encode_www_form_component(v)}"; m }.join('&')}"
+        params.inject([]) { |m, (k,v)| m << "#{k}=#{URI.encode_www_form_component(v)}"; m }.join('&')
       end
     end
   end
