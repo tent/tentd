@@ -7,9 +7,9 @@ module TentD
         env['response.headers'] ||= {}
         pagination = [%(<#{prev_uri(env).to_s}>; rel="prev"), %(<#{next_uri(env).to_s}>; rel="next")]
         if env['response.headers']['Link']
-          env['response.headers']['Link'] += ",#{pagination.join(',')}"
+          env['response.headers']['Link'] += ", #{pagination.join(', ')}"
         else
-          env['response.headers']['Link'] = pagination.join(',')
+          env['response.headers']['Link'] = pagination.join(', ')
         end
 
         env

@@ -183,13 +183,13 @@ describe TentD::API::Followings do
 
           json_get "/followings", params, env
           link_header = last_response.headers['Link'].to_s
-          link_headers = link_header.split(',')
+          link_headers = link_header.split(', ')
           expect(link_headers).to include(%(<http://example.org/followings?before_id=#{following1.public_id}>; rel="next"))
           expect(link_headers).to include(%(<http://example.org/followings?since_id=#{following2.public_id}>; rel="prev"))
 
           head "/followings", params, env
           link_header = last_response.headers['Link'].to_s
-          link_headers = link_header.split(',')
+          link_headers = link_header.split(', ')
           expect(link_headers).to include(%(<http://example.org/followings?before_id=#{following1.public_id}>; rel="next"))
           expect(link_headers).to include(%(<http://example.org/followings?since_id=#{following2.public_id}>; rel="prev"))
         end

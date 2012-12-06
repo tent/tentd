@@ -631,7 +631,7 @@ describe TentD::API::Posts do
         expect(last_response.status).to eq(200)
 
         link_header = last_response.headers['Link'].to_s
-        link_headers = link_header.split(',')
+        link_headers = link_header.split(', ')
 
         mentions = post.public_mentions
 
@@ -905,13 +905,13 @@ describe TentD::API::Posts do
         with_constants "TentD::API::MAX_PER_PAGE" => 2 do
           json_get "/posts", params, env
           link_header = last_response.headers['Link'].to_s
-          link_headers = link_header.split(',')
+          link_headers = link_header.split(', ')
           expect(link_headers).to include(%(<http://example.org/posts?before_id=#{post1.public_id}&before_id_entity=#{URI.encode_www_form_component(post1.entity)}>; rel="next"))
           expect(link_headers).to include(%(<http://example.org/posts?since_id=#{post2.public_id}&since_id_entity=#{URI.encode_www_form_component(post2.entity)}>; rel="prev"))
 
           head "/posts", params, env
           link_header = last_response.headers['Link'].to_s
-          link_headers = link_header.split(',')
+          link_headers = link_header.split(', ')
           expect(link_headers).to include(%(<http://example.org/posts?before_id=#{post1.public_id}&before_id_entity=#{URI.encode_www_form_component(post1.entity)}>; rel="next"))
           expect(link_headers).to include(%(<http://example.org/posts?since_id=#{post2.public_id}&since_id_entity=#{URI.encode_www_form_component(post2.entity)}>; rel="prev"))
         end

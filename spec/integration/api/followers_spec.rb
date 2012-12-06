@@ -312,13 +312,13 @@ describe TentD::API::Followers do
 
           json_get "/followers", params, env
           link_header = last_response.headers['Link'].to_s
-          link_headers = link_header.split(',')
+          link_headers = link_header.split(', ')
           expect(link_headers).to include(%(<http://example.org/followers?before_id=#{follower1.public_id}>; rel="next"))
           expect(link_headers).to include(%(<http://example.org/followers?since_id=#{follower2.public_id}>; rel="prev"))
 
           head "/followers", params, env
           link_header = last_response.headers['Link'].to_s
-          link_headers = link_header.split(',')
+          link_headers = link_header.split(', ')
           expect(link_headers).to include(%(<http://example.org/followers?before_id=#{follower1.public_id}>; rel="next"))
           expect(link_headers).to include(%(<http://example.org/followers?since_id=#{follower2.public_id}>; rel="prev"))
         end
