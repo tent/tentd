@@ -5,7 +5,7 @@ module TentD
         return env unless env.response.kind_of?(Array) && env.response.size > 0
 
         env['response.headers'] ||= {}
-        pagination = [%(<#{prev_uri(env).to_s}>; rel="prev"), %(<#{next_uri(env).to_s}>; rel="next")]
+        pagination = [%(<#{prev_uri(env)}>; rel="prev"), %(<#{next_uri(env)}>; rel="next")]
         if env['response.headers']['Link']
           env['response.headers']['Link'] += ", #{pagination.join(', ')}"
         else
@@ -26,11 +26,19 @@ module TentD
       end
 
       def build_next_params(env)
-        params = env.params.dup
+        params = clone_params(env)
         resource = env.response.last
 
-        params.before_id = resource.public_id
+        params[next_id_key(env)] = resource.public_id
         params
+      end
+
+      def next_id_key(env)
+        if env.params.order.to_s.downcase == 'asc'
+          :since_id
+        else
+          :before_id
+        end
       end
 
       def prev_uri(env)
@@ -42,10 +50,26 @@ module TentD
       end
 
       def build_prev_params(env)
-        params = env.params.dup
+        params = clone_params(env)
         resource = env.response.first
 
-        params.since_id = resource.public_id
+        params[prev_id_key(env)] = resource.public_id
+        params
+      end
+
+      def prev_id_key(env)
+        if env.params.order.to_s.downcase == 'asc'
+          :before_id
+        else
+          :since_id
+        end
+      end
+
+      def clone_params(env)
+        params = env.params.dup
+        params.delete(:captures)
+        params.delete(:before_id)
+        params.delete(:since_id)
         params
       end
     end

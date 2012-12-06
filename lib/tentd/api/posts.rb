@@ -90,7 +90,7 @@ module TentD
           params = super
           resource = env.response.last
 
-          params.before_id_entity = resource.entity
+          params["#{next_id_key(env)}_entity"] = resource.entity
           params
         end
 
@@ -98,7 +98,15 @@ module TentD
           params = super
           resource = env.response.first
 
-          params.since_id_entity = resource.entity
+          params["#{prev_id_key(env)}_entity"] = resource.entity
+          params
+        end
+
+        def clone_params(env)
+          params = super
+          params.delete(:post_id)
+          params.delete(:before_id_entity)
+          params.delete(:since_id_entity)
           params
         end
       end
@@ -374,12 +382,9 @@ module TentD
         end
 
         def clone_params(env)
-          params = env.params.dup
-          params.delete(:captures)
+          params = super
           params.delete(:post_id)
-          params.delete(:before_id)
           params.delete(:before_id_entity)
-          params.delete(:since_id)
           params.delete(:since_id_entity)
           params
         end

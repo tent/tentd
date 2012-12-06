@@ -885,6 +885,32 @@ describe TentD::API::Posts do
             body_ids = body.map { |i| i['id'] }
             expect(body_ids.first).to eq(earlier_post.public_id)
           end
+
+          it "should set pagination in header" do
+            post = Fabricate(:post, :public => post_public?)
+
+            a_day_ago = Time.at(Time.now.to_i - 86400)
+            Time.stubs(:now).returns(a_day_ago.to_s)
+            earlier_post = Fabricate(:post, :public => post_public?)
+
+            expect(earlier_post.updated_at < post.updated_at).to be_true
+
+            with_constants "TentD::API::MAX_PER_PAGE" => 2 do
+              params = { :sort_by => 'updated_at', :order => 'asc' }
+              json_get "/posts", params, env
+              expect_pagination_header(last_response, {
+                :path => '/posts',
+                :next => params.merge(
+                  :since_id => post.public_id,
+                  :since_id_entity => post.entity
+                ),
+                :prev => params.merge(
+                  :before_id => earlier_post.public_id,
+                  :before_id_entity => earlier_post.entity
+                )
+              })
+            end
+          end
         end
       end
 
