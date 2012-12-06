@@ -195,6 +195,11 @@ describe TentD::Model::Post do
       let(:other_known_mentioned_post) { Fabricate(:post, :public => true, :entity => other_known_mentioned_entity, :type => other_known_mentioned_post_type) }
       let(:other_known_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => other_known_mentioned_post.public_id, :entity => other_known_mentioned_post.entity) }
 
+      let(:other_known_mentioned_post_type_2) { 'https://tent.io/types/post/essay/v0.1.0' }
+      let(:other_known_mentioned_entity_2) { 'https://other_known2.example.com' }
+      let(:other_known_mentioned_post_2) { Fabricate(:post, :public => true, :entity => other_known_mentioned_entity_2, :type => other_known_mentioned_post_type_2) }
+      let(:other_known_mention_2) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => other_known_mentioned_post_2.public_id, :entity => other_known_mentioned_post_2.entity) }
+
       it 'should return [:limit] mentions' do
         public_mentions = post.public_mentions(:limit => 0)
         expect(public_mentions.size).to eql(0)
@@ -229,6 +234,21 @@ describe TentD::Model::Post do
         public_mentions = post.public_mentions(:post_types => other_known_mentioned_post_type)
         expect(public_mentions.size).to eql(1)
         expect(public_mentions.first.id).to eql(other_known_mention.id)
+      end
+
+      it 'should order by posts id' do
+        other_known_mentioned_post_2 # create
+        other_known_mentioned_post # create
+        other_known_mention # create
+        other_known_mention_2 # create
+
+        ids = [known_mentioned_post.id, other_known_mentioned_post_2.id, other_known_mentioned_post.id]
+        sorted_ids = ids.dup.sort
+        expect(ids).to eql(sorted_ids)
+
+        public_mentions = post.public_mentions
+        ids = public_mentions.map(&:id)
+        expect(ids).to eql([known_mention.id, other_known_mention_2.id, other_known_mention.id])
       end
     end
   end

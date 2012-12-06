@@ -167,6 +167,8 @@ SQL
           sql_bindings << params[:post_types].split(',').map { |uri| TentType.new(uri).base }
         end
 
+        sql << "ORDER BY mentioned_posts.id"
+
         sql << "LIMIT ?"
         sql_bindings << [(params[:limit] ? params[:limit].to_i : API::PER_PAGE), API::MAX_PER_PAGE].min
 
