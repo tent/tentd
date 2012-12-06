@@ -482,7 +482,7 @@ describe TentD::API::Followers do
       context 'when no follower exists with :entity' do
         let(:follower) { Hashie::Mash.new(:entity => 'non-existing') }
 
-        context &not_authorized
+        context &not_found
       end
     end
 
@@ -493,20 +493,20 @@ describe TentD::API::Followers do
         context 'when follower belongs to another user' do
           let(:follower) { Fabricate(:follower, :user_id => other_user.id, :public => true) }
 
-          context &not_authorized
+          context &not_found
         end
       end
 
       context 'when follower private' do
         before { follower.update(:public => false) }
 
-        context &not_authorized
+        context &not_found
       end
 
       context 'when no follower exists with :entity' do
         let(:follower) { Hashie::Mash.new(:entity => 'non-existing') }
 
-        context &not_authorized
+        context &not_found
       end
     end
   end
@@ -584,10 +584,10 @@ describe TentD::API::Followers do
       end
 
       context 'when no follower exists with :id' do
-        it 'should respond 403' do
+        it 'should respond 404' do
           json_get '/followers/invalid-id', params, env
-          expect(last_response.status).to eql(403)
-          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
+          expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
     end
@@ -603,28 +603,28 @@ describe TentD::API::Followers do
         context 'when follower belongs to another user' do
           let(:follower) { Fabricate(:follower, :user_id => other_user.id, :public => true) }
 
-          it 'should return 403' do
+          it 'should return 404' do
             json_get "/followers/#{follower.public_id}", params, env
-            expect(last_response.status).to eql(403)
-            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
+            expect(last_response.status).to eql(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
           end
         end
       end
 
       context 'when follower private' do
         before { follower.update(:public => false) }
-        it 'should respond 403' do
+        it 'should respond 404' do
           json_get "/followers/#{follower.id}", params, env
-          expect(last_response.status).to eql(403)
-          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
+          expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
 
       context 'when no follower exists with :id' do
-        it 'should respond 403' do
+        it 'should respond 404' do
           json_get "/followers/invalid-id", params, env
-          expect(last_response.status).to eql(403)
-          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
+          expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
     end
