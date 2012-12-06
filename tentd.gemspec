@@ -31,5 +31,5 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency 'rake'
   gem.add_development_dependency 'guard-rspec'
   gem.add_development_dependency 'mocha', '0.12.6'
-  gem.add_development_dependency 'fabrication'
+  gem.add_development_dependency 'fabrication', '2.3.0'
 end
