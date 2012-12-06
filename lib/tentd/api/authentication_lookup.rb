@@ -25,7 +25,7 @@ module TentD
           env.hmac.secret = env.potential_auth.mac_key
           env.hmac.algorithm = env.potential_auth.mac_algorithm
         elsif mac_key_id
-          return error_response(401, {'WWW-Authenticate' => 'MAC'}, 'Invalid MAC Key ID')
+          return error_response(401, 'Invalid MAC Key ID', {'WWW-Authenticate' => 'MAC'})
         else
           env.hmac = nil
         end

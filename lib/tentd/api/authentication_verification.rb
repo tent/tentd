@@ -6,7 +6,7 @@ module TentD
     class AuthenticationVerification < Middleware
       def action(env)
         if env.hmac? && (!env.hmac.algorithm || !env.hmac.secret || !(env.hmac.verified = verify_signature(env)))
-          env = error_response(403, {}, 'Invalid MAC Signature')
+          env = error_response(403, 'Invalid MAC Signature')
         end
         env
       end

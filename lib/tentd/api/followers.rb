@@ -66,17 +66,17 @@ module TentD
       class Discover < Middleware
         def action(env)
           return env if env.authorized_scopes.include?(:write_followers)
-          return error_response(400, {}, 'Request body required') unless env.params.data
-          return error_response(422, {}, 'Invalid notification path') unless env.params.data.notification_path.kind_of?(String) &&
+          return error_response(400, 'Request body required') unless env.params.data
+          return error_response(422, 'Invalid notification path') unless env.params.data.notification_path.kind_of?(String) &&
                                                                 !env.params.data.notification_path.match(%r{\Ahttps?://})
-          return error_response(406, {}, 'Can not follow self') if Model::User.current.profile_entity == env.params.data.entity
+          return error_response(406, 'Can not follow self') if Model::User.current.profile_entity == env.params.data.entity
           client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
           begin
             profile, profile_url = client.discover(env.params[:data]['entity']).get_profile
           rescue Faraday::Error::ConnectionFailed
-            return error_response(503, {}, "Couldn't connect to entity")
+            return error_response(503, "Couldn't connect to entity")
           rescue Faraday::Error::TimeoutError
-            return error_response(504, {}, 'Connection to entity timed out')
+            return error_response(504, 'Connection to entity timed out')
           end
 
           raise NotFound unless profile
