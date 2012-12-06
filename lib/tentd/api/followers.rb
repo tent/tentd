@@ -7,7 +7,7 @@ module TentD
         def action(env)
           id_or_entity = env.params.delete(:captures).first
 
-          if id_or_entity =~ /^https?:\/\//
+          if id_or_entity =~ /\Ahttps?:\/\//
             env.params.follower_entity = id_or_entity
             follower = Model::Follower.select(:id).first(:user_id => Model::User.current.id, :entity => id_or_entity)
             env.params.follower_id = follower.id if follower
