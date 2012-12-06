@@ -10,7 +10,7 @@ def expect_pagination_header(response, options)
   end
 
   if next_params = options[:next]
-    expect(link_headers['next']).to_not be_nil
+    expect(link_headers['next']).to_not be_nil, "Expected next pagination header, but it was not there"
     expect(link_headers['next'][:uri].path).to eql(options[:path])
     next_params.each_pair do |key, val|
       actual = link_headers['next'][:params][key.to_s]
@@ -21,7 +21,7 @@ def expect_pagination_header(response, options)
   end
 
   if prev_params = options[:prev]
-    expect(link_headers['prev']).to_not be_nil
+    expect(link_headers['prev']).to_not be_nil, "Expected prev pagination header, but it was not there"
     expect(link_headers['prev'][:uri].path).to eql(options[:path])
     prev_params.each_pair do |key, val|
       actual = link_headers['prev'][:params][key.to_s]

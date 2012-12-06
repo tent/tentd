@@ -4,7 +4,7 @@ module TentD
       include Serializable
       include TypeProperties
       include Permissible
-      include PermissiblePost
+      include PermissiblePostVersion
 
       plugin :paranoia
       plugin :serialization

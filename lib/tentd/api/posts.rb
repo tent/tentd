@@ -123,6 +123,50 @@ module TentD
         end
       end
 
+      class VersionsPaginationHeader < API::PaginationHeader
+        private
+
+        def build_next_params(env)
+          params = clone_params(env)
+          resource = env.response.last
+
+          params[next_id_key(env)] = resource.version
+          params
+        end
+
+        def next_id_key(env)
+          if env.params.order.to_s.downcase == 'asc'
+            :since_version
+          else
+            :before_version
+          end
+        end
+
+        def build_prev_params(env)
+          params = clone_params(env)
+          resource = env.response.first
+
+          params[prev_id_key(env)] = resource.version
+          params
+        end
+
+        def prev_id_key(env)
+          if env.params.order.to_s.downcase == 'asc'
+            :before_version
+          else
+            :since_version
+          end
+        end
+
+        def clone_params(env)
+          params = super
+          params.delete(:post_id)
+          params.delete(:before_version)
+          params.delete(:since_version)
+          params
+        end
+      end
+
       class VersionsCountHeader < API::CountHeader
         def get_count(env)
           GetVersions.new(@app).call(env)[2][0]
@@ -442,13 +486,15 @@ module TentD
 
       head '/posts/:post_id/versions' do |b|
         b.use GetActualId
-        b.use GetOne
+        b.use GetVersions
+        b.use VersionsPaginationHeader
         b.use VersionsCountHeader
       end
 
       get '/posts/:post_id/versions' do |b|
         b.use GetActualId
         b.use GetVersions
+        b.use VersionsPaginationHeader
       end
 
       head '/posts/:post_id/mentions' do |b|

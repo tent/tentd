@@ -431,6 +431,115 @@ describe TentD::API::Posts do
         expect(last_response.status).to eq(200)
         expect(Yajl::Parser.parse(last_response.body).size).to eq(2)
       end
+
+      context 'with params' do
+        context '[:since_version]' do
+          it 'should return versions > :since_version' do
+            latest_post_version = post.create_version!
+
+            params = { :since_version => post_version.version }
+            get "/posts/#{post.public_id}/versions", params, env
+            expect(last_response.status).to eql(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(1)
+            expect(body.first['version']).to eql(latest_post_version.version)
+          end
+        end
+
+        context '[:before_version]' do
+          it 'should return versions < :before_version' do
+            params = { :before_version => post_version.version }
+            get "/posts/#{post.public_id}/versions", params, env
+            expect(last_response.status).to eql(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(1)
+            expect(body.first['version']).to eql(1)
+          end
+        end
+
+        context '[:order] = asc' do
+          it 'should return versions in asc order' do
+            version_12 = Fabricate(:post_version, :post_id => post.id, :public_id => post.public_id, :version => 12)
+            version_8  = Fabricate(:post_version, :post_id => post.id, :public_id => post.public_id, :version => 8)
+
+            params = { :order => 'asc' }
+            get "/posts/#{post.public_id}/versions", params, env
+            expect(last_response.status).to eql(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(4)
+
+            expect(body.map { |v| v['version'] }).to eql([1, 2, 8, 12])
+          end
+        end
+
+        context '[:limit]' do
+          context 'when :limit < MAX_PER_PAGE' do
+            it 'should return :limit versions' do
+              with_constants "TentD::API::MAX_PER_PAGE" => 10 do
+                params = { :limit => 1 }
+                get "/posts/#{post.public_id}/versions", params, env
+                expect(last_response.status).to eql(200)
+
+                body = Yajl::Parser.parse(last_response.body)
+                expect(body.size).to eql(1)
+              end
+            end
+          end
+
+          context 'when :limit > MAX_PER_PAGE' do
+            it 'should return MAX_PER_PAGE versions' do
+              with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+                params = { :limit => 2 }
+                get "/posts/#{post.public_id}/versions", params, env
+                expect(last_response.status).to eql(200)
+
+                body = Yajl::Parser.parse(last_response.body)
+                expect(body.size).to eql(1)
+              end
+            end
+          end
+        end
+      end
+
+      it 'should order by version' do
+        version_12 = Fabricate(:post_version, :post_id => post.id, :public_id => post.public_id, :version => 12)
+        version_8  = Fabricate(:post_version, :post_id => post.id, :public_id => post.public_id, :version => 8)
+
+        get "/posts/#{post.public_id}/versions", params, env
+        expect(last_response.status).to eql(200)
+
+        body = Yajl::Parser.parse(last_response.body)
+        expect(body.size).to eql(4)
+
+        expect(body.map { |v| v['version'] }).to eql([12, 8, 2, 1])
+      end
+
+      it 'should set pagination in link header' do
+        expectation = lambda do |response|
+          expect_pagination_header(response, {
+            :path => "/posts/#{post.public_id}/versions",
+            :next => {
+              :before_version => "1"
+            },
+            :prev => {
+              :since_version => "2"
+            }
+          })
+        end
+
+        with_constants "TentD::API::MAX_PER_PAGE" => 2 do
+          get "/posts/#{post.public_id}/versions", params, env
+          expect(last_response.status).to eql(200)
+          expectation.call(last_response)
+
+          head "/posts/#{post.public_id}/versions", params, env
+          expect(last_response.status).to eql(200)
+          expectation.call(last_response)
+        end
+      end
     end
 
     should_not_return_post_versions = proc do
