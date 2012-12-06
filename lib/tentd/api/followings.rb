@@ -120,7 +120,7 @@ module TentD
 
       class Discover < Middleware
         def action(env)
-          return [422, {}, [{ 'error' => 'Invalid Request Body' }.to_json]] unless env.params.data && env.params.data.entity
+          return error_response(422, {}, 'Invalid Request Body') unless env.params.data && env.params.data.entity
           client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
           profile, profile_url = client.discover(env.params.data.entity).get_profile
           raise NotFound unless profile
@@ -138,7 +138,7 @@ module TentD
         def action(env)
           existing_following = Model::Following.first(:user_id => Model::User.current.id, :entity => env.params.data.entity)
           if existing_following && existing_following.confirmed == true
-            return [409, {}, [{ 'error' => 'Already following' }.to_json]]
+            return error_response(409, {}, 'Already following')
           end
 
           if existing_following

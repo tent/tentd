@@ -16,11 +16,11 @@ module TentD
         response = action(env)
         response.kind_of?(Hash) ? @app.call(response) : response
       rescue NotFound
-        [404, { 'Content-Type' => MEDIA_TYPE }, [{ 'error' => 'Not Found' }.to_json]]
+        error_response(404, {}, 'Not Found')
       rescue Unauthorized
-        [403, { 'Content-Type' => MEDIA_TYPE }, [{ 'error' => 'Unauthorized' }.to_json]]
+        error_response(403, {}, 'Unauthorized')
       rescue Sequel::ValidationFailed, Sequel::DatabaseError
-        [422, { 'Content-Type' => MEDIA_TYPE }, [{ 'error' => 'Invalid Attributes' }.to_json]]
+        error_response(422, {}, 'Invalid Attributes')
       rescue Exception => e
         if ENV['RACK_ENV'] == 'test'
           raise
@@ -29,7 +29,7 @@ module TentD
         else
           puts $!.inspect, $@
         end
-        [500, { 'Content-Type' => MEDIA_TYPE }, [{ 'error' => 'Internal Server Error' }.to_json]]
+        error_response(500, {}, 'Internal Server Error')
       end
 
       private
@@ -47,6 +47,10 @@ module TentD
 
       def serialize_params(params)
         params.inject([]) { |m, (k,v)| m << "#{k}=#{URI.encode_www_form_component(v)}"; m }.join('&')
+      end
+
+      def error_response(status, headers, error)
+        [status, headers.merge('Content-Type' => MEDIA_TYPE), [{ 'error' => error }.to_json]]
       end
     end
   end
