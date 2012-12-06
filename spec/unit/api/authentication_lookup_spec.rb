@@ -78,7 +78,7 @@ describe TentD::API::AuthenticationLookup do
 
   it 'should not lookup expired user authentication model' do
     authed_user = TentD::Model::AppAuthorization.create(:mac_key_id => "u:h480djs93hd8",
-                                                             :tent_expires_at => Time.now.to_i - 1,
+                                                             :expires_at => Time.now.to_i - 1,
                                                              :app => Fabricate(:app))
     env['HTTP_AUTHORIZATION'] = auth_header % 'u'
     described_class.new(app).call(env)

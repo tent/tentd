@@ -326,7 +326,7 @@ describe TentD::API::Apps do
             json_post "/apps/#{_app.public_id}/authorizations", data, env
             expect(last_response.status).to eq(200)
             expect(authorization.reload.token_code).to_not eq(data[:code])
-            expect(authorization.tent_expires_at).to eql(tent_expires_at)
+            expect(authorization.expires_at).to eql(tent_expires_at)
             body = JSON.parse(last_response.body)
             whitelist = %w{ access_token mac_key mac_algorithm token_type }
             whitelist.each { |key|
@@ -336,7 +336,7 @@ describe TentD::API::Apps do
           end
 
           context 'when authorization expired' do
-            let(:authorization) { TentD::Model::AppAuthorization.create(:app_id => _app.id, :tent_expires_at => Time.now.to_i - 1) }
+            let(:authorization) { TentD::Model::AppAuthorization.create(:app_id => _app.id, :expires_at => Time.now.to_i - 1) }
 
             it 'should not exchange token code' do
               data = {

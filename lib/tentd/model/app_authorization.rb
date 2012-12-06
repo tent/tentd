@@ -86,7 +86,7 @@ module TentD
         data = {
           :token_code => SecureRandom.hex(16)
         }
-        data[:tent_expires_at] = params.tent_expires_at.to_i if params.tent_expires_at
+        data[:expires_at] = params.tent_expires_at.to_i if params.tent_expires_at
         update(data)
 
         attrs = {
@@ -96,7 +96,7 @@ module TentD
           :token_type => 'mac',
           :refresh_token => token_code
         }
-        attrs[:tent_expires_at] = tent_expires_at if tent_expires_at
+        attrs[:tent_expires_at] = expires_at if expires_at
         attrs
       end
 
