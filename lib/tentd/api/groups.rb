@@ -68,16 +68,9 @@ module TentD
         end
       end
 
-      class CountHeader < Middleware
-        def action(env)
-          count_env = env.dup
-          count_env.params.return_count = true
-          count = GetAll.new(@app).call(count_env)[2][0]
-
-          env['response.headers'] ||= {}
-          env['response.headers']['Count'] = count
-
-          env
+      class CountHeader < API::CountHeader
+        def get_count(env)
+          GetAll.new(@app).call(env)[2][0]
         end
       end
 

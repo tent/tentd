@@ -77,16 +77,9 @@ module TentD
         end
       end
 
-      class CountHeader < Middleware
-        def action(env)
-          count_env = env.dup
-          count_env.params.return_count = true
-          count = GetFeed.new(@app).call(count_env)[2][0]
-
-          env['response.headers'] ||= {}
-          env['response.headers']['Count'] = "#{count}"
-
-          env
+      class CountHeader < API::CountHeader
+        def get_count(env)
+          GetFeed.new(@app).call(env)[2][0]
         end
       end
 
@@ -122,17 +115,9 @@ module TentD
         end
       end
 
-      class VersionsCountHeader < Middleware
-        def action(env)
-          count_env = env.dup
-          count_env.params.return_count = true
-          count = GetVersions.new(@app).call(count_env)[2][0]
-
-          env['response.headers'] = {
-            'Count' => "#{count}"
-          }
-
-          env
+      class VersionsCountHeader < API::CountHeader
+        def get_count(env)
+          GetVersions.new(@app).call(env)[2][0]
         end
       end
 
@@ -360,17 +345,10 @@ module TentD
         end
       end
 
-      class MentionsCountHeader < Middleware
-        def action(env)
-          count_env = env.dup
-          count_env.params.return_count = true
-          count_env.response = env.post
-          count = GetMentions.new(@app).call(count_env)[2][0]
-
-          env['response.headers'] ||= {}
-          env['response.headers']['Count'] = count
-
-          env
+      class MentionsCountHeader < API::CountHeader
+        def get_count(env)
+          env.response = env.post
+          GetMentions.new(@app).call(env)[2][0]
         end
       end
 
