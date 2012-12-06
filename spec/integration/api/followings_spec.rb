@@ -325,14 +325,6 @@ describe TentD::API::Followings do
   describe 'GET /followings/:entity' do
     let(:current_auth) { env['current_auth'] }
 
-    unauthorized = proc do
-      it 'should return 403' do
-        json_get "/followings/#{URI.encode_www_form_component(following.entity)}", params, env
-        expect(last_response.status).to eql(403)
-        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
-      end
-    end
-
     not_found = proc do
       it 'should return 404' do
         json_get "/followings/#{URI.encode_www_form_component(following.entity)}", params, env
@@ -359,19 +351,19 @@ describe TentD::API::Followings do
       context 'following private' do
         let(:following) { Fabricate(:following, :public => false) }
 
-        context &unauthorized
+        context &not_found
       end
 
       context 'following does not exist' do
         let(:following) { Hashie::Mash.new(:entity => 'https://example.com/foo') }
 
-        context &unauthorized
+        context &not_found
       end
 
       context 'following belongs to another user' do
         let(:following) { Fabricate(:following, :public => true, :user_id => other_user.id) }
 
-        context &unauthorized
+        context &not_found
       end
     end
 
@@ -455,27 +447,27 @@ describe TentD::API::Followings do
         expect(JSON.parse(last_response.body)['id']).to eql(following.public_id)
       end
 
-      it 'should return 403 unless public' do
+      it 'should return 404 unless public' do
         following = Fabricate(:following, :public => false)
         json_get "/followings/#{following.public_id}", params, env
-        expect(last_response.status).to eql(403)
-        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
+        expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' }) 
       end
 
-      it 'should return 403 unless exists' do
+      it 'should return 404 unless exists' do
         following = Fabricate(:following, :public => true)
         json_get "/followings/invalid-id", params, env
-        expect(last_response.status).to eql(403)
-        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
+        expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' }) 
       end
 
       context 'following belongs to another user' do
         let(:following) { Fabricate(:following, :public => true, :user_id => other_user.id) }
 
-        it 'should return 403' do
+        it 'should return 404' do
           json_get "/followings/#{following.public_id}", params, env
-          expect(last_response.status).to eql(403)
-          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
+          expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' }) 
         end
       end
     end

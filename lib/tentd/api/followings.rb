@@ -51,13 +51,9 @@ module TentD
           following = Model::Following.select(:id, :public, :public_id).where(:entity => env.params.following_entity, :user_id => Model::User.current.id).first
           if following && !following.public && !authorize_env?(env, :read_followings)
             following = Model::Following.find_with_permissions(following.id, env.current_auth)
-            raise Unauthorized unless following
           end
 
-          unless following
-            raise Unauthorized unless authorize_env?(env, :read_followings)
-            return env # 404
-          end
+          raise NotFound unless following
 
           redirect_uri = self_uri(env)
           redirect_uri.path = "/followings/#{following.public_id}"
@@ -77,7 +73,7 @@ module TentD
             if following
               env.response = following
             else
-              raise Unauthorized
+              raise NotFound
             end
           end
           env
