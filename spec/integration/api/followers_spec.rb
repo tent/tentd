@@ -311,16 +311,26 @@ describe TentD::API::Followers do
           follower2 = Fabricate(:follower, :public => true)
 
           json_get "/followers", params, env
-          link_header = last_response.headers['Link'].to_s
-          link_headers = link_header.split(', ')
-          expect(link_headers).to include(%(<http://example.org/followers?before_id=#{follower1.public_id}>; rel="next"))
-          expect(link_headers).to include(%(<http://example.org/followers?since_id=#{follower2.public_id}>; rel="prev"))
+          expect_pagination_header(last_response, {
+            :path => "/followers",
+            :next => {
+              :before_id => follower1.public_id
+            },
+            :prev => {
+              :since_id => follower2.public_id
+            }
+          })
 
           head "/followers", params, env
-          link_header = last_response.headers['Link'].to_s
-          link_headers = link_header.split(', ')
-          expect(link_headers).to include(%(<http://example.org/followers?before_id=#{follower1.public_id}>; rel="next"))
-          expect(link_headers).to include(%(<http://example.org/followers?since_id=#{follower2.public_id}>; rel="prev"))
+          expect_pagination_header(last_response, {
+            :path => "/followers",
+            :next => {
+              :before_id => follower1.public_id
+            },
+            :prev => {
+              :since_id => follower2.public_id
+            }
+          })
         end
       end
     end

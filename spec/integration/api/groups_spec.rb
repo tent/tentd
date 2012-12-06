@@ -118,16 +118,26 @@ describe TentD::API::Groups do
 
           with_constants "TentD::API::MAX_PER_PAGE" => 2 do
             json_get "/groups", params, env
-            link_header = last_response.headers['Link'].to_s
-            link_headers = link_header.split(', ')
-            expect(link_headers).to include(%(<http://example.org/groups?before_id=#{group1.public_id}>; rel="next"))
-            expect(link_headers).to include(%(<http://example.org/groups?since_id=#{group2.public_id}>; rel="prev"))
+            expect_pagination_header(last_response, {
+              :path => "/groups",
+              :next => {
+                :before_id => group1.public_id
+              },
+              :prev => {
+                :since_id => group2.public_id
+              }
+            })
 
             head "/groups", params, env
-            link_header = last_response.headers['Link'].to_s
-            link_headers = link_header.split(', ')
-            expect(link_headers).to include(%(<http://example.org/groups?before_id=#{group1.public_id}>; rel="next"))
-            expect(link_headers).to include(%(<http://example.org/groups?since_id=#{group2.public_id}>; rel="prev"))
+            expect_pagination_header(last_response, {
+              :path => "/groups",
+              :next => {
+                :before_id => group1.public_id
+              },
+              :prev => {
+                :since_id => group2.public_id
+              }
+            })
           end
         end
       end

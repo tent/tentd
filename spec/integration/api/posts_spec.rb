@@ -630,16 +630,20 @@ describe TentD::API::Posts do
         json_get "/posts/#{post.public_id}/mentions", nil, env
         expect(last_response.status).to eq(200)
 
-        link_header = last_response.headers['Link'].to_s
-        link_headers = link_header.split(', ')
-
         mentions = post.public_mentions
-
         next_mention = mentions.last
-        expect(link_headers).to include(%(<http://example.org/posts/#{post.public_id}/mentions?before_id=#{next_mention.mentioned_post_id}&before_id_entity=#{URI.encode_www_form_component(next_mention.entity)}>; rel="next"))
-
         prev_mention = mentions.first
-        expect(link_headers).to include(%(<http://example.org/posts/#{post.public_id}/mentions?since_id=#{prev_mention.mentioned_post_id}&since_id_entity=#{URI.encode_www_form_component(prev_mention.entity)}>; rel="prev"))
+        expect_pagination_header(last_response, {
+          :path => "/posts/#{post.public_id}/mentions",
+          :next => {
+            :before_id => next_mention.mentioned_post_id,
+            :before_id_entity => next_mention.entity
+          },
+          :prev => {
+            :since_id => prev_mention.mentioned_post_id,
+            :since_id_entity => prev_mention.entity
+          }
+        })
       end
 
       context 'when HEAD request' do
@@ -904,16 +908,30 @@ describe TentD::API::Posts do
 
         with_constants "TentD::API::MAX_PER_PAGE" => 2 do
           json_get "/posts", params, env
-          link_header = last_response.headers['Link'].to_s
-          link_headers = link_header.split(', ')
-          expect(link_headers).to include(%(<http://example.org/posts?before_id=#{post1.public_id}&before_id_entity=#{URI.encode_www_form_component(post1.entity)}>; rel="next"))
-          expect(link_headers).to include(%(<http://example.org/posts?since_id=#{post2.public_id}&since_id_entity=#{URI.encode_www_form_component(post2.entity)}>; rel="prev"))
+          expect_pagination_header(last_response, {
+            :path => '/posts',
+            :next => {
+              :before_id => post1.public_id,
+              :before_id_entity => post1.entity
+            },
+            :prev => {
+              :since_id => post2.public_id,
+              :since_id_entity => post2.entity
+            }
+          })
 
           head "/posts", params, env
-          link_header = last_response.headers['Link'].to_s
-          link_headers = link_header.split(', ')
-          expect(link_headers).to include(%(<http://example.org/posts?before_id=#{post1.public_id}&before_id_entity=#{URI.encode_www_form_component(post1.entity)}>; rel="next"))
-          expect(link_headers).to include(%(<http://example.org/posts?since_id=#{post2.public_id}&since_id_entity=#{URI.encode_www_form_component(post2.entity)}>; rel="prev"))
+          expect_pagination_header(last_response, {
+            :path => '/posts',
+            :next => {
+              :before_id => post1.public_id,
+              :before_id_entity => post1.entity
+            },
+            :prev => {
+              :since_id => post2.public_id,
+              :since_id_entity => post2.entity
+            }
+          })
         end
       end
     end
