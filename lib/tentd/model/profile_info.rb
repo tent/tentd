@@ -56,6 +56,7 @@ module TentD
           fetch_with_permissions({}, current_auth)
         end.inject({}) do |memo, info|
           memo[info.type.uri] = info.content.merge(:permissions => info.permissions_json(authorized_scopes.include?(:read_permissions)), :version => info.latest_version(:fields => [:version]).version)
+          memo[info.type.uri].merge!(:tent_version => TENT_VERSION) if info.type.base == TENT_PROFILE_TYPE.base
           memo
         end
         h

@@ -58,13 +58,13 @@ describe TentD::API::Profile do
 
         it 'should return all info types' do
           profile_infos = []
-          profile_infos << Fabricate(:profile_info, :public => false)
+          profile_infos << Fabricate(:profile_info, :public => false) # core
           profile_infos << Fabricate(:basic_profile_info, :public => false)
           profile_infos << Fabricate(:basic_profile_info, :public => false, :user_id => other_user.id)
 
           json_get '/profile', params, env
           expect(Yajl::Parser.parse(last_response.body)).to eql(Hashie::Mash.new(
-            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json, :version => 1),
+            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json, :version => 1, :tent_version => TentD::TENT_VERSION), # core
             "#{ profile_infos.last.type.uri }" => profile_infos.last.content.merge(:permissions => profile_infos.first.permissions_json, :version => 1)
           ).to_hash)
         end
@@ -109,9 +109,10 @@ describe TentD::API::Profile do
         profile_infos << Fabricate(:basic_profile_info, :public => false)
 
         json_get '/profile', params, env
-        expect(last_response.body).to eql({
-          "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json, :version => 1)
-        }.to_json)
+        body = Yajl::Parser.parse(last_response.body)
+        expect(body).to eql(Hashie::Mash.new(
+          "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json, :version => 1, :tent_version => TentD::TENT_VERSION)
+        ).to_hash)
       end
 
       it 'should not return profile info for another user' do

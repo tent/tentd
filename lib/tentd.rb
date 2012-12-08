@@ -11,6 +11,8 @@ module TentD
   autoload :TentType, 'tentd/tent_type'
   autoload :Model, 'tentd/model'
 
+  TENT_VERSION = '0.2'.freeze
+
   def self.new(options={})
     if database_url = options[:database] || ENV['DATABASE_URL']
       Sequel.connect(database_url, :logger => Logger.new(ENV['DB_LOGFILE'] || STDOUT))
