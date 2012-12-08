@@ -607,7 +607,7 @@ describe TentD::API::Followers do
         it 'should respond with follower json' do
           json_get "/followers/#{follower.public_id}", params, env
           expect(last_response.status).to eql(200)
-          expect(last_response.body).to eql(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type]).to_json)
+          expect(last_response.body).to eql(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :created_at]).to_json)
         end
 
         context 'when follower belongs to another user' do

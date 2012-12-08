@@ -382,7 +382,8 @@ describe TentD::Model::Follower do
       {
         :id => follower.public_id,
         :entity => follower.entity,
-        :permissions => { :public => true }
+        :permissions => { :public => true },
+        :created_at => follower.created_at.to_i
       }
     end
 

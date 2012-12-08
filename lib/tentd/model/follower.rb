@@ -41,7 +41,7 @@ module TentD
       end
 
       def self.public_attributes
-        [:entity]
+        [:entity, :created_at]
       end
 
       def self.create_follower(data, authorized_scopes = [])
