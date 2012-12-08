@@ -28,7 +28,7 @@ module TentD
       end
 
       def self.public_attributes
-        [:entity]
+        [:entity, :created_at]
       end
 
       def self.update_profile(id)
