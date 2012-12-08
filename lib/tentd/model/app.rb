@@ -43,7 +43,7 @@ module TentD
       end
 
       def self.public_attributes
-        [:name, :description, :url, :icon, :scopes, :redirect_uris]
+        [:name, :description, :url, :icon, :scopes, :redirect_uris, :created_at]
       end
 
       def auth_details
