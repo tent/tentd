@@ -21,7 +21,7 @@ module TentD
       end
 
       def self.public_attributes
-        [:name]
+        [:name, :created_at]
       end
     end
   end
