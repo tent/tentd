@@ -432,8 +432,9 @@ describe TentD::API::Followers do
     authorized = proc {
       it 'should redirect to /followers/:id' do
         json_get "/followers/#{URI.encode_www_form_component(follower.entity)}", params, env
-        expect(last_response.status).to eql(302)
-        expect(last_response.headers['Location']).to eql("http://example.org/followers/#{follower.public_id}")
+        expect(last_response.status).to eql(200)
+        expect(last_response.headers['Content-Location']).to eql("http://example.org/followers/#{follower.public_id}")
+        expect(Yajl::Parser.parse(last_response.body)['id']).to eql(follower.public_id)
       end
     }
 

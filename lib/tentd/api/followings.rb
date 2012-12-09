@@ -57,7 +57,10 @@ module TentD
 
           redirect_uri = self_uri(env)
           redirect_uri.path = env.SCRIPT_NAME.sub(%r{/followings/.*\Z}, "/followings/#{following.public_id}")
-          [302, { 'Location' => redirect_uri.to_s }, []]
+          env['response.headers'] ||= {}
+          env['response.headers']['Content-Location'] = redirect_uri.to_s
+          env.response = following
+          env
         end
       end
 
