@@ -217,7 +217,7 @@ module TentD
 
         def whitelisted_headers(env)
           %w(Accept If-Modified-Since).inject({}) do |h,k|
-            h[k] = env['HTTP_' + k.gsub('-', '_').upcase]; h
+            h[k] = env['HTTP_' + k.gsub('-', '_').upcase].to_s; h
           end
         end
       end
