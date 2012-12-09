@@ -206,11 +206,11 @@ module TentD
         def action(env)
           return env unless env.following
           following = env.following
-          client = TentClient.new(following.core_profile.servers.first,
+          client = TentClient.new(following.core_profile.servers,
                                   following.auth_details.merge(:skip_serialization => true,
                                                                :faraday_adapter => TentD.faraday_adapter))
           env.params.delete(:following_id)
-          path = env.params.delete(:proxy_path)
+          path = env.params.delete(:proxy_path).sub(%r{\A/}, '')
           res = client.http.get(path, env.params, whitelisted_headers(env))
           [res.status, res.headers, [res.body]]
         end
