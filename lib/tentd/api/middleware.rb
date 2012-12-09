@@ -38,6 +38,7 @@ module TentD
         uri = URI('')
         uri.host = env.HTTP_HOST.split(':').first
         uri.scheme = env['rack.url_scheme']
+        uri.path = env.SCRIPT_NAME
 
         port = (env.HTTP_X_FORWARDED_PORT || env.SERVER_PORT).to_i
         uri.port = port unless [80, 443].include?(port)

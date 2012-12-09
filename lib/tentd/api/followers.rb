@@ -141,7 +141,7 @@ module TentD
           raise NotFound unless follower
 
           redirect_uri = self_uri(env)
-          redirect_uri.path = "/followers/#{follower.public_id}"
+          redirect_uri.path = env.SCRIPT_NAME.sub(%r{/followers/.*\Z}, "/followers/#{follower.public_id}")
           [302, { 'Location' => redirect_uri.to_s }, []]
         end
       end
