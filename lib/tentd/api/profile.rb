@@ -34,6 +34,22 @@ module TentD
         end
       end
 
+      class Destroy < Middleware
+        def action(env)
+          type = TentType.new(env.params.type_uri)
+          if env.params.has_key?(:version) && Model::ProfileInfoVersion.where(:type_base => type.base, :type_version => type.version.to_s).count > 1
+            if (info_version = Model::ProfileInfoVersion.where(:version => env.params.version.to_i, :type_base => type.base, :type_version => type.version.to_s).first) && info_version.destroy
+              env.response = ''
+            end
+          else
+            if (info = Model::ProfileInfo.where(:type_base => type.base, :type_version => type.version.to_s).first) && (!env.params.has_key?(:version) || info.latest_version(:fields => [:version]).version == env.params.version.to_i) && info.destroy
+              env.response = ''
+            end
+          end
+          env
+        end
+      end
+
       class Notify < Middleware
         def action(env)
           return env unless env.updated_info
@@ -61,6 +77,11 @@ module TentD
 
       get '/profile/:type_uri' do |b|
         b.use GetOne
+      end
+
+      delete '/profile/:type_uri' do |b|
+        b.use AuthorizeWrite
+        b.use Destroy
       end
     end
   end
