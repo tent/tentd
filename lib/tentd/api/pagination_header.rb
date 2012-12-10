@@ -21,7 +21,7 @@ module TentD
       private
 
       def next_uri(env)
-        uri = self_uri(env)
+        uri = URI('')
         uri.path = env['SCRIPT_NAME']
 
         uri.query = serialize_params(build_next_params(env))
@@ -45,7 +45,7 @@ module TentD
       end
 
       def prev_uri(env)
-        uri = self_uri(env)
+        uri = URI('')
         uri.path = env['SCRIPT_NAME']
 
         uri.query = serialize_params(build_prev_params(env))
