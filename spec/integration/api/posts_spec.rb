@@ -1515,6 +1515,23 @@ describe TentD::API::Posts do
             expect(post).to_not be_nil
             expect(post.latest_version.version).to eql(post_version.version - 1)
           end
+
+          context 'when specified version of post is the only version' do
+            it 'should delete post when version matches' do
+              expect(post.versions_dataset.count).to eql(1)
+              post_id = post.id
+              delete "/posts/#{post.public_id}", { :version => post.latest_version.version }, env
+              expect(last_response.status).to eq(200)
+              expect(TentD::Model::Post.first(:id => post_id)).to be_nil
+            end
+
+            it 'should not delete post when version does not match' do
+              expect(post.versions_dataset.count).to eql(1)
+              post_id = post.id
+              delete "/posts/#{post.public_id}", { :version => post.latest_version.version + 1 }, env
+              expect(last_response.status).to eq(404)
+            end
+          end
         end
       end
 
