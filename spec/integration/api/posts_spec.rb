@@ -1504,6 +1504,18 @@ describe TentD::API::Posts do
             expect(last_response.status).to eq(200)
           end
         end
+
+        context 'when :version param given' do
+          it 'should delete specified version of post' do
+            post_version = post.create_version!
+            post_id = post.id
+            delete "/posts/#{post.public_id}", { :version => post_version.version }, env
+            expect(last_response.status).to eq(200)
+            post = TentD::Model::Post.first(:id => post_id)
+            expect(post).to_not be_nil
+            expect(post.latest_version.version).to eql(post_version.version - 1)
+          end
+        end
       end
 
       context 'when post belongs to another user' do
@@ -1521,10 +1533,10 @@ describe TentD::API::Posts do
       context 'when post is not original' do
         let(:post) { Fabricate(:post, :original => false) }
 
-        it 'should return 403' do
+        it 'should return 404' do
           delete "/posts/#{post.public_id}", params, env
-          expect(last_response.status).to eq(403)
-          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
+          expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' }) 
         end
       end
 

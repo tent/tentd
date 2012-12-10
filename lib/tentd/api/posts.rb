@@ -304,10 +304,15 @@ module TentD
       class Destroy < Middleware
         def action(env)
           authorize_env!(env, :write_posts)
-          if (post = TentD::Model::Post.first(:user_id => Model::User.current.id, :id => env.params.post_id)) && post.destroy
-            raise Unauthorized unless post.original
-            env.response = ''
-            env.notify_deleted_post = post
+          if env.params.has_key?(:version)
+            if (post_version = TentD::Model::PostVersion.where(:user_id => Model::User.current.id, :post_id => env.params.post_id, :version => env.params.version.to_i).qualify.join(:posts, :posts__id => :post_versions__post_id).where(:posts__original => true).first) && post_version.destroy
+              env.response = ''
+            end
+          else
+            if (post = TentD::Model::Post.first(:user_id => Model::User.current.id, :id => env.params.post_id, :original => true)) && post.destroy
+              env.response = ''
+              env.notify_deleted_post = post
+            end
           end
           env
         end
