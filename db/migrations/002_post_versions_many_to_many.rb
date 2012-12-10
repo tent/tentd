@@ -27,7 +27,7 @@ Sequel.migration do
       SELECT id AS mention_id, post_version_id FROM mentions
       WHERE mentions.post_version_id IS NOT NULL;
 SQL
-    self[sql]
+    self[sql].insert
 
     alter_table(:post_attachments) do
       drop_column(:post_version_id)
@@ -62,7 +62,7 @@ SQL
       FROM post_version_mentions
       WHERE post_version_mentions.mention_id = mentions.id;
 SQL
-    self[sql]
+    self[sql].insert
 
     drop_table(:post_versions_attachments)
     drop_table(:post_versions_mentions)
