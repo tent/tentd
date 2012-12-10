@@ -11,7 +11,8 @@ describe TentD::Model::Group do
     let(:public_attributes) do
       {
         :id => group.public_id,
-        :name => group.name
+        :name => group.name,
+        :created_at => group.created_at.to_i
       }
     end
 

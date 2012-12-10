@@ -13,7 +13,8 @@ describe TentD::Model::App do
         :icon => app.icon,
         :redirect_uris => app.redirect_uris,
         :scopes => app.scopes,
-        :authorizations => []
+        :authorizations => [],
+        :created_at => app.created_at.to_i
       }
     end
 

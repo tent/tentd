@@ -12,7 +12,7 @@ module TentD
       serialize_attributes :pg_array, :redirect_uris
       serialize_attributes :json, :scopes
 
-      one_to_many :authorizations, :class => AppAuthorization
+      one_to_many :authorizations, :class => 'TentD::Model::AppAuthorization'
       one_to_many :posts
       one_to_many :post_versions
 
@@ -43,7 +43,7 @@ module TentD
       end
 
       def self.public_attributes
-        [:name, :description, :url, :icon, :scopes, :redirect_uris]
+        [:name, :description, :url, :icon, :scopes, :redirect_uris, :created_at]
       end
 
       def auth_details

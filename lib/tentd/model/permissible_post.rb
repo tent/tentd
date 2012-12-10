@@ -45,9 +45,16 @@ module TentD
         end
 
         def fetch_all(params, current_auth)
+          params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
+          return [] if params.has_key?(:since_id) && params.since_id.nil?
+          return [] if params.has_key?(:before_id) && params.before_id.nil?
+
           allowed_post_types = current_auth.post_types
           post_types = params.post_types
-          super(params) do |params, query, query_conditions, query_bindings|
+
+          _params = params.dup
+          %w(before_id since_id).each { |key| _params.delete(key) }
+          super(_params) do |_params, query, query_conditions, query_bindings|
             query_with_public_and_private_types(allowed_post_types, post_types, query_conditions, query_bindings)
 
             if params.post_id
@@ -56,6 +63,18 @@ module TentD
             end
 
             sort_column = get_sort_column(params)
+
+            if params.since_id
+              query_conditions << "(#{table_name}.#{sort_column} >= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
+              query_bindings << params.since_id
+              query_bindings << params.since_id
+            end
+
+            if params.before_id
+              query_conditions << "(#{table_name}.#{sort_column} <= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
+              query_bindings << params.before_id
+              query_bindings << params.before_id
+            end
 
             if params.since_time
               query_conditions << "#{table_name}.#{sort_column} > ?"
@@ -96,13 +115,31 @@ module TentD
         end
 
         def fetch_with_permissions(params, current_auth)
-          super do |params, query, query_bindings|
+          params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
+          return [] if params.has_key?(:since_id) && params.since_id.nil?
+          return [] if params.has_key?(:before_id) && params.before_id.nil?
+
+          _params = params.dup
+          %w(before_id since_id).each { |key| _params.delete(key) }
+          super(_params, current_auth) do |_params, query, query_bindings|
             if params.post_id
               query << "AND #{table_name}.post_id = ?"
               query_bindings << params.post_id
             end
 
             sort_column = get_sort_column(params)
+
+            if params.since_id
+              query << "AND (#{table_name}.#{sort_column} >= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
+              query_bindings << params.since_id
+              query_bindings << params.since_id
+            end
+
+            if params.before_id
+              query << "AND (#{table_name}.#{sort_column} <= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
+              query_bindings << params.before_id
+              query_bindings << params.before_id
+            end
 
             if params.since_time
               query << "AND #{table_name}.#{sort_column} > ?"

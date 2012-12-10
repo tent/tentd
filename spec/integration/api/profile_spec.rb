@@ -58,14 +58,14 @@ describe TentD::API::Profile do
 
         it 'should return all info types' do
           profile_infos = []
-          profile_infos << Fabricate(:profile_info, :public => false)
+          profile_infos << Fabricate(:profile_info, :public => false) # core
           profile_infos << Fabricate(:basic_profile_info, :public => false)
           profile_infos << Fabricate(:basic_profile_info, :public => false, :user_id => other_user.id)
 
           json_get '/profile', params, env
           expect(Yajl::Parser.parse(last_response.body)).to eql(Hashie::Mash.new(
-            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json),
-            "#{ profile_infos.last.type.uri }" => profile_infos.last.content.merge(:permissions => profile_infos.first.permissions_json)
+            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json, :version => 1, :tent_version => TentD::TENT_VERSION), # core
+            "#{ profile_infos.last.type.uri }" => profile_infos.last.content.merge(:permissions => profile_infos.first.permissions_json, :version => 1)
           ).to_hash)
         end
 
@@ -88,7 +88,7 @@ describe TentD::API::Profile do
 
           json_get '/profile', params, env
           expect(Yajl::Parser.parse(last_response.body)).to eql({
-            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge('permissions' => profile_infos.first.permissions_json.inject({}) { |m, (k,v)| m[k.to_s] = v; m })
+            "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge('permissions' => profile_infos.first.permissions_json.inject({}) { |m, (k,v)| m[k.to_s] = v; m }, 'version' => 1)
           })
         end
 
@@ -109,9 +109,10 @@ describe TentD::API::Profile do
         profile_infos << Fabricate(:basic_profile_info, :public => false)
 
         json_get '/profile', params, env
-        expect(last_response.body).to eql({
-          "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json)
-        }.to_json)
+        body = Yajl::Parser.parse(last_response.body)
+        expect(body).to eql(Hashie::Mash.new(
+          "#{ profile_infos.first.type.uri }" => profile_infos.first.content.merge(:permissions => profile_infos.first.permissions_json, :version => 1, :tent_version => TentD::TENT_VERSION)
+        ).to_hash)
       end
 
       it 'should not return profile info for another user' do
@@ -124,7 +125,7 @@ describe TentD::API::Profile do
     end
   end
 
-  describe 'PUT /profile/:type_url' do
+  describe 'PUT /profile/:type_uri' do
     before { env['current_auth'] = app_authorization }
 
     context 'when authorized' do
@@ -184,16 +185,17 @@ describe TentD::API::Profile do
       end
 
       context 'when specific info types authorized' do
-        context 'when :type_url authorized info type' do
+        context 'when :type_uri authorized info type' do
           let(:authorized_info_types) { [basic_info_type] }
 
           context '', &can_update_basic_info_type
         end
 
-        context 'when :type_url not authoried info type' do
+        context 'when :type_uri not authoried info type' do
           it 'should return 403' do
             json_put "/profile/#{url_encode_type(basic_info_type)}", params, env
             expect(last_response.status).to eql(403)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
           end
         end
       end
@@ -203,6 +205,81 @@ describe TentD::API::Profile do
       it 'should return 403' do
         json_put "/profile/#{url_encode_type(basic_info_type)}", params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
+      end
+    end
+  end
+
+  describe 'GET profile/:type_uri' do
+    let(:is_public) { false }
+    let(:info) {
+      create_info(basic_info_type, basic_info_content, :public => is_public)
+    }
+
+    before {
+      create_info(work_history_type, work_history_content, :public => true)
+    }
+
+    can_read_basic_info_type = proc do
+      it 'should return profile info content' do
+        json_get "/profile/#{URI.encode_www_form_component(info.type.uri)}", nil, env
+        expect(last_response.status).to eql(200)
+
+        body = Yajl::Parser.parse(last_response.body)
+        expect(body).to eql(Hashie::Mash.new(info.content).merge(:permissions => info.permissions_json, :version => 1).to_hash)
+      end
+
+      context 'with params [:version]' do
+        it 'should return specified version' do
+          info.create_version! # 2nd version
+          params[:version] = 1
+          json_get "/profile/#{URI.encode_www_form_component(info.type.uri)}", params, env
+
+          body = Yajl::Parser.parse(last_response.body)
+          expect(body).to eql(Hashie::Mash.new(info.content).merge(:permissions => info.permissions_json, :version => 1).to_hash)
+        end
+      end
+    end
+
+    context 'when read_profile scope authorized' do
+      before { env['current_auth'] = app_authorization }
+      let(:authorized_scopes) { [:read_profile] }
+
+      context 'when all info types authorized' do
+        let(:authorized_info_types) { ['all'] }
+
+        context &can_read_basic_info_type
+      end
+
+      context 'when specific info types authorized' do
+        context 'when :type_uri authorized' do
+          let(:authorized_info_types) { [basic_info_type] }
+
+          context &can_read_basic_info_type
+        end
+
+        context 'when :type_uri not authorized' do
+          it 'should return 404' do
+            json_get "/profile/#{URI.encode_www_form_component(info.type.uri)}", nil, env
+            expect(last_response.status).to eql(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+          end
+        end
+      end
+    end
+
+    context 'when read_profile scope not authorized' do
+      context 'when :type_uri public' do
+        let(:is_public) { true }
+        context &can_read_basic_info_type
+      end
+
+      context 'when :type_uri private' do
+        it 'should return 404' do
+          json_get "/profile/#{URI.encode_www_form_component(info.type.uri)}", nil, env
+          expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+        end
       end
     end
   end

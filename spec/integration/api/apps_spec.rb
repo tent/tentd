@@ -86,6 +86,7 @@ describe TentD::API::Apps do
       it 'should respond 403' do
         json_get '/apps', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
       end
 
       context 'when pretending to be authorized' do
@@ -97,6 +98,7 @@ describe TentD::API::Apps do
         it 'should respond 403' do
           json_get "/apps?app_id=#{ _app.public_id }", params, env
           expect(last_response.status).to eq(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
         end
       end
     end
@@ -159,7 +161,8 @@ describe TentD::API::Apps do
       context 'app with :id does not exist' do
         it 'should return 404' do
           json_get "/apps/app-id", params, env
-          expect(last_response.status).to eq(404)
+          expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
     end
@@ -175,6 +178,7 @@ describe TentD::API::Apps do
           it 'should return 403' do
             json_get '/apps/app-id', params, env
             expect(last_response.status).to eq(403)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
           end
         end
       end
@@ -192,6 +196,7 @@ describe TentD::API::Apps do
       it 'should respond 403' do
         json_get "/apps/app-id", params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
       end
     end
   end
@@ -276,6 +281,7 @@ describe TentD::API::Apps do
           }
           json_post "/apps/#{app.public_id}/authorizations", data, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
     end
@@ -283,28 +289,63 @@ describe TentD::API::Apps do
     context 'when not authorized' do
       context 'when token exchange' do
         context 'when valid mac header' do
-          it 'should exchange mac_key_id for mac_key' do
-            app = Fabricate(:app, :mac_algorithm => 'hmac-sha-256')
-            authorization = TentD::Model::AppAuthorization.create(:app_id => app.id)
+          let(:_app) { Fabricate(:app, :mac_algorithm => 'hmac-sha-256') }
+          let(:authorization) { TentD::Model::AppAuthorization.create(:app_id => _app.id) }
 
+          before do
+            time = Time.now.to_i
+            nonce = SecureRandom.hex(3)
+            request_string = [time.to_s, nonce, 'POST', "/apps/#{_app.public_id}/authorizations", 'example.org', '80', nil, nil].join("\n")
+            signature = Base64.encode64(OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, _app.mac_key, request_string)).sub("\n", '')
+            env['HTTP_AUTHORIZATION'] =  %(MAC id="#{_app.mac_key_id}", ts="#{time}", nonce="#{nonce}", mac="#{signature}")
+          end
+
+          it 'should exchange token code for mac_key' do
             data = {
               :code => authorization.token_code
             }
 
-            time = Time.now.to_i
-            nonce = SecureRandom.hex(3)
-            request_string = [time.to_s, nonce, 'POST', "/apps/#{app.public_id}/authorizations", 'example.org', '80', nil, nil].join("\n")
-            signature = Base64.encode64(OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, app.mac_key, request_string)).sub("\n", '')
-            env['HTTP_AUTHORIZATION'] =  %(MAC id="#{app.mac_key_id}", ts="#{time}", nonce="#{nonce}", mac="#{signature}")
-
-            json_post "/apps/#{app.public_id}/authorizations", data, env
+            json_post "/apps/#{_app.public_id}/authorizations", data, env
             expect(last_response.status).to eq(200)
             expect(authorization.reload.token_code).to_not eq(data[:code])
+            body = JSON.parse(last_response.body)
+            whitelist = %w{ access_token mac_key mac_algorithm token_type refresh_token }
+            whitelist.each { |key|
+              expect(body).to have_key(key)
+            }
+            expect(body['refresh_token']).to eql(authorization.token_code)
+          end
+
+          it 'should set tent_expires_at if requested' do
+            tent_expires_at = Time.now.to_i + 86400 # 1 day from now
+            data = {
+              :code => authorization.token_code,
+              :tent_expires_at => tent_expires_at
+            }
+
+            json_post "/apps/#{_app.public_id}/authorizations", data, env
+            expect(last_response.status).to eq(200)
+            expect(authorization.reload.token_code).to_not eq(data[:code])
+            expect(authorization.expires_at).to eql(tent_expires_at)
             body = JSON.parse(last_response.body)
             whitelist = %w{ access_token mac_key mac_algorithm token_type }
             whitelist.each { |key|
               expect(body).to have_key(key)
             }
+            expect(body['tent_expires_at']).to eql(tent_expires_at)
+          end
+
+          context 'when authorization expired' do
+            let(:authorization) { TentD::Model::AppAuthorization.create(:app_id => _app.id, :expires_at => Time.now.to_i - 1) }
+
+            it 'should not exchange token code' do
+              data = {
+                :code => authorization.token_code
+              }
+
+              json_post "/apps/#{_app.public_id}/authorizations", data, env
+              expect(last_response.status).to eq(403)
+            end
           end
         end
 
@@ -319,6 +360,7 @@ describe TentD::API::Apps do
 
             json_post "/apps/#{app.public_id}/authorizations", data, env
             expect(last_response.status).to eq(403)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
           end
         end
       end
@@ -329,6 +371,7 @@ describe TentD::API::Apps do
           json_post "/apps/#{app.public_id}/authorizations", params, env
         }).to_not change(TentD::Model::AppAuthorization, :count)
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
       end
     end
   end
@@ -359,6 +402,7 @@ describe TentD::API::Apps do
             data[:name] = "Yet Another MicroBlog App"
             json_put "/apps/#{app.public_id}", data, env
             expect([404, 403]).to include(last_response.status)
+            expect(Yajl::Parser.parse(last_response.body)).to have_key('error')
           end
         end
       end
@@ -374,6 +418,7 @@ describe TentD::API::Apps do
         it 'should return 404' do
           json_put "/apps/#{(TentD::Model::App.count + 1) * 100}", params, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
     end
@@ -391,6 +436,7 @@ describe TentD::API::Apps do
         it 'should return 403' do
           json_put "/apps/app-id", params, env
           expect(last_response.status).to eq(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
         end
       end
     end
@@ -399,6 +445,7 @@ describe TentD::API::Apps do
       it 'should respond 403' do
         json_put '/apps/app-id', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
       end
     end
   end
@@ -427,6 +474,7 @@ describe TentD::API::Apps do
             expect(lambda {
               delete "/apps/#{app.public_id}", params, env
               expect([404, 403]).to include(last_response.status)
+              expect(Yajl::Parser.parse(last_response.body)).to have_key('error')
             }).to_not change(TentD::Model::App, :count)
           end
         end
@@ -442,6 +490,7 @@ describe TentD::API::Apps do
         it 'should return 404' do
           delete "/apps/app-id", params, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
     end
@@ -458,6 +507,7 @@ describe TentD::API::Apps do
         it 'should respond 403' do
           delete '/apps/app-id', params, env
           expect(last_response.status).to eq(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
         end
       end
     end
@@ -466,6 +516,7 @@ describe TentD::API::Apps do
       it 'should respond 403' do
         delete '/apps/app-id', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
       end
     end
   end
@@ -485,6 +536,7 @@ describe TentD::API::Apps do
           }
           json_put "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", data, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
 
@@ -534,6 +586,7 @@ describe TentD::API::Apps do
       it 'should return 404 unless app and authorization exist' do
         json_put "/apps/app-id/authorizations/auth-id", params, env
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
       end
     end
   end
@@ -549,6 +602,7 @@ describe TentD::API::Apps do
           _app.update(:user_id => other_user.id)
           delete "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", params, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
 
@@ -566,6 +620,7 @@ describe TentD::API::Apps do
           expect(lambda {
             delete "/apps/app-id/authorizations/#{app_auth.public_id}", params, env
             expect(last_response.status).to eq(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
           }).to_not change(TentD::Model::App, :count)
         }).to_not change(TentD::Model::AppAuthorization, :count)
 
@@ -573,6 +628,7 @@ describe TentD::API::Apps do
           expect(lambda {
             delete "/apps/#{_app.public_id}/authorizations/auth-id", params, env
             expect(last_response.status).to eq(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
           }).to_not change(TentD::Model::App, :count)
         }).to_not change(TentD::Model::AppAuthorization, :count)
       end
@@ -585,6 +641,7 @@ describe TentD::API::Apps do
             delete "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", params, env
           }).to_not change(TentD::Model::App, :count)
           expect(last_response.status).to eq(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
         }).to_not change(TentD::Model::AppAuthorization, :count)
       end
     end

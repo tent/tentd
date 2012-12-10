@@ -68,6 +68,15 @@ module TentD
         end
       end
 
+      class CountHeader < API::CountHeader
+        def get_count(env)
+          GetAll.new(@app).call(env)[2][0]
+        end
+      end
+
+      class PaginationHeader < API::PaginationHeader
+      end
+
       class GetOne < Middleware
         def action(env)
           if group = Model::Group.first(:id => env.params[:group_id])
@@ -99,7 +108,7 @@ module TentD
               env.notify_instance = group
             end
           rescue Sequel::DatabaseError # hack to ignore duplicate groups
-            env.response = Model::Group.first(:public_id => data.public_id)
+            env.response = Model::Group.first(:user_id => Model::User.current.id, :public_id => data.public_id)
           end
           env
         end
@@ -134,10 +143,19 @@ module TentD
         end
       end
 
+      head '/groups' do |b|
+        b.use AuthorizeRead
+        b.use GetActualId
+        b.use GetAll
+        b.use PaginationHeader
+        b.use CountHeader
+      end
+
       get '/groups' do |b|
         b.use AuthorizeRead
         b.use GetActualId
         b.use GetAll
+        b.use PaginationHeader
       end
 
       get '/groups/count' do |b|

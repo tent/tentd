@@ -27,6 +27,7 @@ describe TentD::API::Posts do
   let(:params) { Hash.new }
   let(:current_user) { TentD::Model::User.current }
   let(:other_user) { TentD::Model::User.create }
+  let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
 
   describe 'GET /notifications/:following_id' do
     context 'when following' do
@@ -44,7 +45,7 @@ describe TentD::API::Posts do
         params[:challenge] = '123'
         json_get '/notifications/not-following-id', params, env
         expect(last_response.status).to eq(404)
-        expect(last_response.body).to_not eq(params[:challenge])
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
 
@@ -54,7 +55,39 @@ describe TentD::API::Posts do
         params[:challenge] = '123'
         json_get "/notifications/#{following.public_id}", params, env
         expect(last_response.status).to eq(404)
-        expect(last_response.body).to_not eq(params[:challenge])
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+      end
+    end
+  end
+
+  describe 'HEAD /posts' do
+    it 'should return count of posts' do
+      Fabricate(:post, :public => true, :user_id => other_user.id)
+      Fabricate(:post, :public => true)
+      Fabricate(:post, :public => true)
+      Fabricate(:post, :public => false)
+
+      with_constants "TentD::API::PER_PAGE" => 1 do
+        head '/posts', params, env
+        expect(last_response.status).to eq(200)
+        expect(last_response.headers['Count']).to eql('2')
+      end
+    end
+
+    context 'when read_posts scope authorized' do
+      let(:authorized_post_types) { ['all'] }
+      before { authorize!(:read_posts) }
+
+      it 'should return count of posts' do
+        Fabricate(:post, :public => true, :user_id => other_user.id)
+        Fabricate(:post, :public => true)
+        Fabricate(:post, :public => true)
+        Fabricate(:post, :public => false)
+
+        params[:limit] = 2
+        head '/posts', params, env
+        expect(last_response.status).to eq(200)
+        expect(last_response.headers['Count']).to eql('3')
       end
     end
   end
@@ -131,6 +164,7 @@ describe TentD::API::Posts do
           it 'should return 404' do
             json_get "/posts/#{post.public_id}?version=12", params, env
             expect(last_response.status).to eq(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
           end
         end
       end
@@ -208,17 +242,20 @@ describe TentD::API::Posts do
           post = Fabricate(:post, :public => true)
           json_get "/posts/#{post.id}"
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
 
         it "should not find post belonging to another user" do
           post = Fabricate(:post, :public => true, :user_id => other_user.id)
           json_get "/posts/#{post.public_id}"
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
 
         it "should be 404 if post_id doesn't exist" do
           json_get "/posts/1"
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
 
@@ -280,6 +317,7 @@ describe TentD::API::Posts do
               post # create post
               json_get "/posts/#{post.public_id}", params, env
               expect(last_response.status).to eq(404)
+              expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
             end
           end
         end
@@ -318,6 +356,7 @@ describe TentD::API::Posts do
           it 'should respond 404' do
             json_get "/posts/invalid-id", params, env
             expect(last_response.status).to eq(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
           end
         end
       end
@@ -343,6 +382,43 @@ describe TentD::API::Posts do
           post = Fabricate(:post, :public => false, :type_base => post_type)
           json_get "/posts/#{post.public_id}", params, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+        end
+      end
+    end
+  end
+
+  describe 'HEAD /posts/:post_id/versions' do
+    count_header = proc do
+      it 'should set COUNT header' do
+        head "/posts/#{post.public_id}/versions", nil, env
+        expect(last_response.headers['COUNT']).to eq(post.versions_dataset.count.to_s)
+      end
+    end
+
+    context 'when post exists' do
+      context 'when post is public' do
+        let(:post) { Fabricate(:post, :public => true) }
+        before { post.create_version! }
+
+        context &count_header
+      end
+
+      context 'when post is private' do
+        let(:post) { Fabricate(:post, :public => false) }
+
+        context 'when authorized' do
+          let!(:authorized_post_types) { ['all'] }
+          before { authorize!(:read_posts) }
+
+          context &count_header
+        end
+
+        context 'when not authorized' do
+          it 'should set COUNT header to 0' do
+            head "/posts/#{post.public_id}/versions", nil, env
+            expect(last_response.headers['COUNT']).to eql('0')
+          end
         end
       end
     end
@@ -354,6 +430,115 @@ describe TentD::API::Posts do
         get "/posts/#{post.public_id}/versions", nil, env
         expect(last_response.status).to eq(200)
         expect(Yajl::Parser.parse(last_response.body).size).to eq(2)
+      end
+
+      context 'with params' do
+        context '[:since_version]' do
+          it 'should return versions > :since_version' do
+            latest_post_version = post.create_version!
+
+            params = { :since_version => post_version.version }
+            get "/posts/#{post.public_id}/versions", params, env
+            expect(last_response.status).to eql(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(1)
+            expect(body.first['version']).to eql(latest_post_version.version)
+          end
+        end
+
+        context '[:before_version]' do
+          it 'should return versions < :before_version' do
+            params = { :before_version => post_version.version }
+            get "/posts/#{post.public_id}/versions", params, env
+            expect(last_response.status).to eql(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(1)
+            expect(body.first['version']).to eql(1)
+          end
+        end
+
+        context '[:order] = asc' do
+          it 'should return versions in asc order' do
+            version_12 = Fabricate(:post_version, :post_id => post.id, :public_id => post.public_id, :version => 12)
+            version_8  = Fabricate(:post_version, :post_id => post.id, :public_id => post.public_id, :version => 8)
+
+            params = { :order => 'asc' }
+            get "/posts/#{post.public_id}/versions", params, env
+            expect(last_response.status).to eql(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(4)
+
+            expect(body.map { |v| v['version'] }).to eql([1, 2, 8, 12])
+          end
+        end
+
+        context '[:limit]' do
+          context 'when :limit < MAX_PER_PAGE' do
+            it 'should return :limit versions' do
+              with_constants "TentD::API::MAX_PER_PAGE" => 10 do
+                params = { :limit => 1 }
+                get "/posts/#{post.public_id}/versions", params, env
+                expect(last_response.status).to eql(200)
+
+                body = Yajl::Parser.parse(last_response.body)
+                expect(body.size).to eql(1)
+              end
+            end
+          end
+
+          context 'when :limit > MAX_PER_PAGE' do
+            it 'should return MAX_PER_PAGE versions' do
+              with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+                params = { :limit => 2 }
+                get "/posts/#{post.public_id}/versions", params, env
+                expect(last_response.status).to eql(200)
+
+                body = Yajl::Parser.parse(last_response.body)
+                expect(body.size).to eql(1)
+              end
+            end
+          end
+        end
+      end
+
+      it 'should order by version' do
+        version_12 = Fabricate(:post_version, :post_id => post.id, :public_id => post.public_id, :version => 12)
+        version_8  = Fabricate(:post_version, :post_id => post.id, :public_id => post.public_id, :version => 8)
+
+        get "/posts/#{post.public_id}/versions", params, env
+        expect(last_response.status).to eql(200)
+
+        body = Yajl::Parser.parse(last_response.body)
+        expect(body.size).to eql(4)
+
+        expect(body.map { |v| v['version'] }).to eql([12, 8, 2, 1])
+      end
+
+      it 'should set pagination in link header' do
+        expectation = lambda do |response|
+          expect_pagination_header(response, {
+            :path => "/posts/#{post.public_id}/versions",
+            :next => {
+              :before_version => "1"
+            },
+            :prev => {
+              :since_version => "2"
+            }
+          })
+        end
+
+        with_constants "TentD::API::MAX_PER_PAGE" => 2 do
+          get "/posts/#{post.public_id}/versions", params, env
+          expect(last_response.status).to eql(200)
+          expectation.call(last_response)
+
+          head "/posts/#{post.public_id}/versions", params, env
+          expect(last_response.status).to eql(200)
+          expectation.call(last_response)
+        end
       end
     end
 
@@ -394,6 +579,206 @@ describe TentD::API::Posts do
       it 'should return 404' do
         get "/posts/invalid-id/versions"
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+      end
+    end
+  end
+
+  describe 'GET/HEAD /posts/:post_id/mentions' do
+    let(:post) { Fabricate(:post, :public => false) }
+
+    let!(:known_mentioned_entity) { 'https://known.example.com' }
+    let!(:known_mentioned_post) { Fabricate(:post, :public => true, :original => false, :entity => known_mentioned_entity) }
+    let!(:known_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => known_mentioned_post.public_id, :entity => known_mentioned_post.entity) }
+
+    let(:known_private_mentioned_entity) { 'https://known_private.example.com' }
+    let(:known_private_mentioned_post) { Fabricate(:post, :public => false, :original => false, :entity => known_private_mentioned_entity) }
+    let(:known_private_mention) { Fabricate(:mention, :post_id => post.id, :original => false, :mentioned_post_id => known_private_mentioned_post.public_id, :entity => known_private_mentioned_post.entity) }
+
+    let(:unknown_mentioned_entity) { 'https://unknown.example.com' }
+    let(:unknown_mentioned_post) { Fabricate(:post, :public => true, :original => false, :entity => unknown_mentioned_entity, :user_id => other_user.id) }
+    let(:unknown_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => unknown_mentioned_post.public_id, :entity => unknown_mentioned_post.entity) }
+
+    let(:other_known_mentioned_post_type) { 'https://tent.io/types/post/photo/v0.1.0' }
+    let(:other_known_mentioned_entity) { 'https://other_known.example.com' }
+    let(:other_known_mentioned_post) { Fabricate(:post, :public => true, :original => false, :entity => other_known_mentioned_entity, :type => other_known_mentioned_post_type) }
+    let(:other_known_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => other_known_mentioned_post.public_id, :entity => other_known_mentioned_post.entity) }
+
+    context 'when authorized' do
+      let(:authorized_post_types) { ['all'] }
+      before { authorize!(:read_posts) }
+
+      context 'with params' do
+        context 'with [:before_id] param' do
+          it 'should return mentions with id < :before_id' do
+            other_known_mention # create
+
+            params = {
+              :before_id => other_known_mentioned_post.public_id
+            }
+            json_get "/posts/#{post.public_id}/mentions", params, env
+            expect(last_response.status).to eq(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(1)
+            expect(body.first['post']).to eql(known_mentioned_post.public_id)
+          end
+
+          it 'should return mentions with id < :before_id where entity = :before_id_entity' do
+            other_known_mention # create
+
+            params = {
+              :before_id => other_known_mentioned_post.public_id,
+              :before_id_entity => other_known_mentioned_post.entity
+            }
+            json_get "/posts/#{post.public_id}/mentions", params, env
+            expect(last_response.status).to eq(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(1)
+            expect(body.first['post']).to eql(known_mentioned_post.public_id)
+
+            params = {
+              :before_id => other_known_mentioned_post.public_id,
+              :before_id_entity => post.entity
+            }
+            json_get "/posts/#{post.public_id}/mentions", params, env
+            expect(last_response.status).to eq(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(0)
+          end
+        end
+
+        context 'with [:since_id] param' do
+          it 'should return mentions with id > :since_id' do
+            other_known_mention # create
+
+            params = {
+              :since_id => known_mentioned_post.public_id
+            }
+            json_get "/posts/#{post.public_id}/mentions", params, env
+            expect(last_response.status).to eq(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(1)
+            expect(body.first['post']).to eql(other_known_mentioned_post.public_id)
+          end
+
+          it 'should return mentions with id > :since_id where entity = :since_id_entity' do
+            other_known_mention # create
+
+            params = {
+              :since_id => known_mentioned_post.public_id,
+              :since_id_entity => known_mentioned_post.entity
+            }
+            json_get "/posts/#{post.public_id}/mentions", params, env
+            expect(last_response.status).to eq(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(1)
+            expect(body.first['post']).to eql(other_known_mentioned_post.public_id)
+
+            params = {
+              :since_id => known_mentioned_post.public_id,
+              :since_id_entity => post.entity
+            }
+            json_get "/posts/#{post.public_id}/mentions", params, env
+            expect(last_response.status).to eq(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(0)
+          end
+        end
+
+        context 'with [:limit] param' do
+          it 'should return [:limit] mentions' do
+            params = {
+              :limit => 0
+            }
+
+            json_get "/posts/#{post.public_id}/mentions", params, env
+            expect(last_response.status).to eq(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(0)
+          end
+        end
+
+        context 'with [:post_types] param' do
+          it 'should only return mentions where mentioned post type matches :post_types' do
+            other_known_mention # create
+
+            params = {
+              :post_types => other_known_mentioned_post_type
+            }
+            json_get "/posts/#{post.public_id}/mentions", params, env
+            expect(last_response.status).to eq(200)
+
+            body = Yajl::Parser.parse(last_response.body)
+            expect(body.size).to eql(1)
+            expect(body.first['post']).to eql(other_known_mentioned_post.public_id)
+          end
+        end
+      end
+
+      it 'should return mentions for :post_id' do
+        json_get "/posts/#{post.public_id}/mentions", nil, env
+        expect(last_response.status).to eq(200)
+
+        body = Yajl::Parser.parse(last_response.body)
+        expect(body.size).to eql(1)
+        expect(body.first['entity']).to eql(known_mention.entity)
+        expect(body.first['post']).to eql(known_mentioned_post.public_id)
+        expect(body.first['type']).to eql(known_mentioned_post.type.uri)
+      end
+
+      it 'should set pagination in header' do
+        other_known_mention # create
+
+        json_get "/posts/#{post.public_id}/mentions", nil, env
+        expect(last_response.status).to eq(200)
+
+        mentions = post.public_mentions
+        next_mention = mentions.last
+        prev_mention = mentions.first
+        expect_pagination_header(last_response, {
+          :path => "/posts/#{post.public_id}/mentions",
+          :next => {
+            :before_id => next_mention.mentioned_post_id,
+            :before_id_entity => next_mention.entity
+          },
+          :prev => {
+            :since_id => prev_mention.mentioned_post_id,
+            :since_id_entity => prev_mention.entity
+          }
+        })
+      end
+
+      context 'when HEAD request' do
+        it 'should return count header' do
+          other_known_mention # create
+
+          head "/posts/#{post.public_id}/mentions", nil, env
+          expect(last_response.status).to eq(200)
+          expect(last_response.headers['COUNT']).to eql("2")
+        end
+      end
+
+      context 'when GET request' do
+        it 'should not return count header' do
+          get "/posts/#{post.public_id}/mentions", nil, env
+          expect(last_response.status).to eq(200)
+          expect(last_response.headers['COUNT']).to be_nil
+        end
+      end
+    end
+
+    context 'when not authorized' do
+      it 'should return 404' do
+        json_get "/posts/#{post.public_id}/mentions", nil, env
+        expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
   end
@@ -609,6 +994,56 @@ describe TentD::API::Posts do
             body_ids = body.map { |i| i['id'] }
             expect(body_ids.first).to eq(earlier_post.public_id)
           end
+
+          it "should paginate" do
+            post = Fabricate(:post, :public => post_public?)
+
+            a_day_ago = Time.at(Time.now.to_i - 86400)
+            Time.stubs(:now).returns(a_day_ago.to_s)
+            earlier_post = Fabricate(:post, :public => post_public?)
+
+            expect(earlier_post.updated_at < post.updated_at).to be_true
+
+            with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+              params = {
+                :sort_by => 'updated_at',
+                :order => 'asc',
+                :since_id => earlier_post.public_id,
+                :since_id_entity => earlier_post.entity
+              }
+              json_get "/posts", params, env
+              body = JSON.parse(last_response.body)
+              expect(body.size).to eq(1)
+              body_ids = body.map { |i| i['id'] }
+              expect(body_ids.first).to eq(post.public_id)
+            end
+          end
+
+          it "should set pagination in header" do
+            post = Fabricate(:post, :public => post_public?)
+
+            a_day_ago = Time.at(Time.now.to_i - 86400)
+            Time.stubs(:now).returns(a_day_ago.to_s)
+            earlier_post = Fabricate(:post, :public => post_public?)
+
+            expect(earlier_post.updated_at < post.updated_at).to be_true
+
+            with_constants "TentD::API::MAX_PER_PAGE" => 2 do
+              params = { :sort_by => 'updated_at', :order => 'asc' }
+              json_get "/posts", params, env
+              expect_pagination_header(last_response, {
+                :path => '/posts',
+                :next => params.merge(
+                  :since_id => post.public_id,
+                  :since_id_entity => post.entity
+                ),
+                :prev => params.merge(
+                  :before_id => earlier_post.public_id,
+                  :before_id_entity => earlier_post.entity
+                )
+              })
+            end
+          end
         end
       end
 
@@ -623,6 +1058,39 @@ describe TentD::API::Posts do
           0.upto(2).each { Fabricate(:post, :public => post_public?) }
           json_get '/posts?limit=1', params, env
           expect(last_response.body).to eq([].to_json)
+        end
+      end
+
+      it "should set pagination in header" do
+        post1 = Fabricate(:post, :public => post_public?)
+        post2 = Fabricate(:post, :public => post_public?)
+
+        with_constants "TentD::API::MAX_PER_PAGE" => 2 do
+          json_get "/posts", params, env
+          expect_pagination_header(last_response, {
+            :path => '/posts',
+            :next => {
+              :before_id => post1.public_id,
+              :before_id_entity => post1.entity
+            },
+            :prev => {
+              :since_id => post2.public_id,
+              :since_id_entity => post2.entity
+            }
+          })
+
+          head "/posts", params, env
+          expect_pagination_header(last_response, {
+            :path => '/posts',
+            :next => {
+              :before_id => post1.public_id,
+              :before_id_entity => post1.entity
+            },
+            :prev => {
+              :since_id => post2.public_id,
+              :since_id_entity => post2.entity
+            }
+          })
         end
       end
     end
@@ -732,6 +1200,7 @@ describe TentD::API::Posts do
         post_attributes[:type] = p.type.uri
         mentions = [
           { :entity => "https://johndoe.example.com" },
+          { :entity => "https://johndoe.example.com" },
           { :entity => "https://alexsmith.example.org", :post => "post-uid" }
         ]
         post_attributes.merge!(
@@ -739,11 +1208,14 @@ describe TentD::API::Posts do
         )
 
         expect(lambda {
-          json_post "/posts", post_attributes, env
-          expect(last_response.status).to eq(200)
-        }).to change(TentD::Model::Post, :count).by(1)
+          expect(lambda {
+            json_post "/posts", post_attributes, env
+            expect(last_response.status).to eq(200)
+          }).to change(TentD::Model::Post, :count).by(1)
+        }).to change(TentD::Model::Mention, :count).by(2)
 
         post = TentD::Model::Post.order(:id.asc).last
+        mentions.uniq!
         expect(post.as_json[:mentions].sort_by { |m| m[:entity] }).to eq(mentions.sort_by { |m| m[:entity] })
         expect(post.mentions.map(&:id).sort).to eq(post.latest_version.mentions.map(&:id).sort)
       end
@@ -805,6 +1277,7 @@ describe TentD::API::Posts do
       it 'should respond 403' do
         expect(lambda { json_post "/posts", {}, env }).to_not change(TentD::Model::Post, :count)
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
 
@@ -835,6 +1308,16 @@ describe TentD::API::Posts do
         post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes.merge(:entity => 'example.org'), env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
+      end
+
+      it "should notify subscribed apps of post" do
+        following = Fabricate(:following)
+        env['current_auth'] = following
+        TentD::Notifications.expects(:trigger)
+
+        json_post "/notifications/#{following.public_id}", post_attributes, env
+        expect(last_response.status).to eql(200)
       end
 
       describe 'profile update post' do
@@ -919,6 +1402,7 @@ describe TentD::API::Posts do
         post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
 
       it 'should allow a post by an entity that is not a following' do
@@ -939,6 +1423,7 @@ describe TentD::API::Posts do
         post_attributes[:type] = p.type.uri
         json_post "/posts", post_attributes.merge(:entity => 'https://example.org'), env.merge('tent.entity' => 'https://example.org')
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
 
       context 'when following belongs to another user' do
@@ -983,6 +1468,19 @@ describe TentD::API::Posts do
           expect(post.type.base).to eq('https://tent.io/types/post/delete')
           expect(post.type_version).to eq('0.1.0')
         end
+
+        context 'when post has mentions' do
+          let!(:mention) { Fabricate(:mention, :entity => 'https://example.local', :post_id => post.id) }
+
+          it 'should send delete post notification to mentions' do
+            TentD::Notifications.expects(:notify_entity).with { |msg|
+              msg[:entity] == mention.entity && msg[:post_id] != post.id
+            }
+
+            delete "/posts/#{post.public_id}", params, env
+            expect(last_response.status).to eq(200)
+          end
+        end
       end
 
       context 'when post belongs to another user' do
@@ -992,6 +1490,7 @@ describe TentD::API::Posts do
           expect(lambda {
             delete "/posts/#{post.public_id}", params, env
             expect(last_response.status).to eq(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
           }).to_not change(TentD::Model::Post, :count)
         end
       end
@@ -1002,6 +1501,7 @@ describe TentD::API::Posts do
         it 'should return 403' do
           delete "/posts/#{post.public_id}", params, env
           expect(last_response.status).to eq(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
         end
       end
 
@@ -1009,6 +1509,7 @@ describe TentD::API::Posts do
         it 'should return 404' do
           delete "/posts/post-id", params, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
     end
@@ -1017,6 +1518,7 @@ describe TentD::API::Posts do
       it 'should return 403' do
         delete "/posts/#{post.public_id}", params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -1051,17 +1553,79 @@ describe TentD::API::Posts do
       it "should return 404 if specified version doesn't exist" do
         get "/posts/#{post.public_id}/attachments/#{attachment.name}", { :version => 20}, 'HTTP_ACCEPT' => attachment.type
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+      end
+
+      context 'when :post_id is not original' do
+        let(:authorized_post_types) { ['all'] }
+        before {
+          TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+          authorize!(:read_posts)
+        }
+
+        context 'when following post author' do
+          let!(:following) { Fabricate(:following) }
+          let!(:attachment) { Fabricate(:post_attachment) }
+
+          context 'when :post_id exists' do
+            let!(:post) { Fabricate(:post, :following_id => following.id, :original => false) }
+
+            context 'when attachment exists' do
+              it 'should get attachment via proxy' do
+                http_stubs.get("/posts/#{post.public_id}/attachments/foo") { |env|
+                  expect(env[:request_headers]['Authorization']).to match(/#{following.mac_key_id}/)
+                  [200, {  'Content-Type' => attachment.type }, [Base64.decode64(attachment.data)]]
+                }
+                json_get("/posts/#{post.public_id}/attachments/foo", {}, env)
+                expect(last_response.status).to eql(200)
+                expect(last_response.body).to eql(Base64.decode64(attachment.data))
+                expect(last_response.headers['Content-Type']).to eq(attachment.type)
+                http_stubs.verify_stubbed_calls
+              end
+            end
+
+            context 'when attachment does not exist' do
+              it 'should proxy response' do
+                http_stubs.get("/posts/#{post.public_id}/attachments/foo") { |env|
+                  expect(env[:request_headers]['Authorization']).to match(/#{following.mac_key_id}/)
+                  [404, {}, []]
+                }
+                json_get("/posts/#{post.public_id}/attachments/foo", {}, env)
+                expect(last_response.status).to eql(404)
+                http_stubs.verify_stubbed_calls
+              end
+            end
+          end
+
+          it 'should return 404 if post_id does not exist' do
+            json_get("/posts/post-id/attachments/foo", {}, env)
+            expect(last_response.status).to eql(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+          end
+        end
+
+        context 'when not following post author' do
+          let!(:post) { Fabricate(:post, :original => false) }
+
+          it 'should return 404' do
+            json_get("/posts/#{post.public_id}/attachments/foo", {}, env)
+            expect(last_response.status).to eql(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+          end
+        end
       end
     end
 
     it "should 404 if the attachment doesn't exist" do
       get "/posts/#{post.public_id}/attachments/asdf"
       expect(last_response.status).to eq(404)
+      expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
     end
 
     it "should 404 if the post doesn't exist" do
       get "/posts/asdf/attachments/asdf"
       expect(last_response.status).to eq(404)
+      expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
     end
 
     context 'when post belongs to another user' do
@@ -1070,6 +1634,7 @@ describe TentD::API::Posts do
       it 'should return 404' do
         get "/posts/#{post.public_id}/attachments/#{attachment.name}", {}, 'HTTP_ACCEPT' => attachment.type
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
   end
@@ -1091,6 +1656,7 @@ describe TentD::API::Posts do
           }
           json_put "/posts/#{post.public_id}", post_attributes, env
           expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
 
@@ -1229,6 +1795,7 @@ describe TentD::API::Posts do
       it 'should return 403' do
         json_put "/posts/#{post.public_id}", params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end

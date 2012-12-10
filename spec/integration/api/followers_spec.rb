@@ -76,6 +76,7 @@ describe TentD::API::Followers do
 
         json_post '/followers', follower_data, env
         expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
 
       it 'should error 503 when connection fails' do
@@ -113,6 +114,7 @@ describe TentD::API::Followers do
 
       json_post '/followers', follower_data, env
       expect(last_response.status).to eql(403)
+      expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
     end
 
     it 'should fail if entity is self' do
@@ -123,6 +125,7 @@ describe TentD::API::Followers do
       expect(lambda {
         json_post '/followers', follower_data, env
         expect(last_response.status).to eql(406)
+        expect(Yajl::Parser.parse(last_response.body)).to have_key('error') 
       }).to_not change(TentD::Model::Follower, :count)
     end
 
@@ -146,6 +149,31 @@ describe TentD::API::Followers do
         %w{ mac_key_id mac_key mac_algorithm }.each { |key|
           expect(body[key]).to eql(follow.send(key))
         }
+      end
+
+      context 'when follower already exists' do
+        let!(:follower) { Fabricate(:follower, :entity => follower_entity_url) }
+
+        it 'should use existing db record and respond with new hmac secret' do
+          expect(lambda {
+            json_post '/followers', follower_data, env
+          }).to_not change(TentD::Model::Follower, :count)
+          expect(last_response.status).to eq(200)
+
+          mac_key_id = follower.mac_key_id
+          old_mac_key = follower.mac_key
+
+          follow = follower.class.first(:id => follower.id)
+          expect(follow).to_not be_nil
+
+          body = Yajl::Parser.parse(last_response.body)
+          expect(body['id']).to eql(follow.public_id)
+          %w{ mac_key_id mac_key mac_algorithm }.each { |key|
+            expect(body[key]).to eql(follow.send(key))
+          }
+          expect(follow.mac_key_id).to eql(mac_key_id)
+          expect(follow.mac_key).to_not eql(old_mac_key)
+        end
       end
 
       it 'should create post (notification)' do
@@ -178,16 +206,6 @@ describe TentD::API::Followers do
           to change(TentD::Model::NotificationSubscription.where(:user_id => current_user.id), :count).by(2)
         expect(last_response.status).to eql(200)
         expect(TentD::Model::NotificationSubscription.order(:id.asc).last.type_view).to eql('meta')
-      end
-
-      context 'when follower already exists' do
-        it 'should delete old follower records before creating the new one' do
-          dup_follower_1 = Fabricate(:follower, :entity => follower_entity_url)
-          dup_follower_2 = Fabricate(:follower, :entity => follower_entity_url)
-
-          expect(lambda { json_post '/followers', follower_data, env }).
-            to change(TentD::Model::Follower.where(:user_id => current_user.id), :count).by(-1)
-        end
       end
     end
   end
@@ -252,7 +270,23 @@ describe TentD::API::Followers do
           to_not change(TentD::Model::NotificationSubscription.where(:user_id => current_user.id), :count)
 
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
       end
+    end
+  end
+
+  describe 'HEAD /followers' do
+    it 'should return count of followers' do
+      follower = Fabricate(:follower, :public => true)
+      other_follower = Fabricate(:follower, :public => true, :user_id => other_user.id)
+      head '/followers', params, env
+      expect(last_response.status).to eq(200)
+      expect(last_response.headers['Count']).to eql('1')
+
+      TentD::Model::Follower.delete
+      head '/followers', params, env
+      expect(last_response.status).to eq(200)
+      expect(last_response.headers['Count']).to eql('0')
     end
   end
 
@@ -270,6 +304,37 @@ describe TentD::API::Followers do
   end
 
   describe 'GET /followers' do
+    should_set_pagination = proc do
+      it 'should set pagination in header' do
+        with_constants "TentD::API::PER_PAGE" => 2 do
+          follower1 = Fabricate(:follower, :public => true)
+          follower2 = Fabricate(:follower, :public => true)
+
+          json_get "/followers", params, env
+          expect_pagination_header(last_response, {
+            :path => "/followers",
+            :next => {
+              :before_id => follower1.public_id
+            },
+            :prev => {
+              :since_id => follower2.public_id
+            }
+          })
+
+          head "/followers", params, env
+          expect_pagination_header(last_response, {
+            :path => "/followers",
+            :next => {
+              :before_id => follower1.public_id
+            },
+            :prev => {
+              :since_id => follower2.public_id
+            }
+          })
+        end
+      end
+    end
+
     authorized_permissible = proc do
       it 'should order id desc' do
         first_follower = Fabricate(:follower, :public => true)
@@ -302,6 +367,8 @@ describe TentD::API::Followers do
         expect(body_ids.size).to eq(1)
         expect(body_ids).to eql([follower.public_id])
       end
+
+      context &should_set_pagination
     end
 
     authorized_full = proc do
@@ -328,6 +395,8 @@ describe TentD::API::Followers do
         expect(body_ids.size).to eq(1)
         expect(body_ids).to eql([follower.public_id])
       end
+
+      context &should_set_pagination
     end
 
     context 'when not authorized', &authorized_permissible
@@ -359,6 +428,100 @@ describe TentD::API::Followers do
     end
   end
 
+  describe 'GET /followers/:entity' do
+    authorized = proc {
+      it 'should redirect to /followers/:id' do
+        json_get "/followers/#{URI.encode_www_form_component(follower.entity)}", params, env
+        expect(last_response.status).to eql(200)
+        expect(last_response.headers['Content-Location']).to eql("http://example.org/followers/#{follower.public_id}")
+        expect(Yajl::Parser.parse(last_response.body)['id']).to eql(follower.public_id)
+      end
+    }
+
+    not_found = proc {
+      it 'should return 404' do
+        json_get "/followers/#{URI.encode_www_form_component(follower.entity)}", params, env
+        expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+      end
+    }
+
+    not_authorized = proc {
+      it 'should return 403' do
+        json_get "/followers/#{URI.encode_www_form_component(follower.entity)}", params, env
+        expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
+      end
+    }
+
+    context 'when authorized via scope' do
+      before { authorize!(:read_followers) }
+      context &authorized
+
+      context 'when follower private' do
+        before { follower.update(:public => false) }
+        context &authorized
+      end
+
+      context 'when follower belongs to another user' do
+        before { follower.update(:user_id => other_user.id) }
+
+        context &not_found
+      end
+
+      context 'when no follower exists with :entity' do
+        let(:follower) { Hashie::Mash.new(:entity => 'http://example.com/foo') }
+
+        context &not_found
+      end
+    end
+
+    context 'when authorized via identity' do
+      before { env['current_auth'] = follower }
+      context &authorized
+
+      context 'when follower private' do
+        before { follower.update(:public => false) }
+        context &authorized
+      end
+
+      context 'with secrets param' do
+        before { params['secrets'] = true }
+        context &authorized
+      end
+
+      context 'when no follower exists with :entity' do
+        let(:follower) { Hashie::Mash.new(:entity => 'non-existing') }
+
+        context &not_found
+      end
+    end
+
+    context 'when not authorized' do
+      context 'when follower public' do
+        context &authorized
+
+        context 'when follower belongs to another user' do
+          let(:follower) { Fabricate(:follower, :user_id => other_user.id, :public => true) }
+
+          context &not_found
+        end
+      end
+
+      context 'when follower private' do
+        before { follower.update(:public => false) }
+
+        context &not_found
+      end
+
+      context 'when no follower exists with :entity' do
+        let(:follower) { Hashie::Mash.new(:entity => 'non-existing') }
+
+        context &not_found
+      end
+    end
+  end
+
   describe 'GET /followers/:id' do
     authorized = proc do
       it 'should respond with follower json' do
@@ -374,6 +537,7 @@ describe TentD::API::Followers do
         it 'should return 404' do
           json_get "/followers/#{follower.public_id}", params, env
           expect([404, 403]).to include(last_response.status)
+          expect(Yajl::Parser.parse(last_response.body)).to have_key('error')
         end
       end
     end
@@ -411,6 +575,7 @@ describe TentD::API::Followers do
         it 'should respond with 404' do
           json_get "/followers/invalid-id", params, env
           expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
     end
@@ -430,9 +595,10 @@ describe TentD::API::Followers do
       end
 
       context 'when no follower exists with :id' do
-        it 'should respond 403' do
+        it 'should respond 404' do
           json_get '/followers/invalid-id', params, env
-          expect(last_response.status).to eql(403)
+          expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
     end
@@ -442,7 +608,7 @@ describe TentD::API::Followers do
         it 'should respond with follower json' do
           json_get "/followers/#{follower.public_id}", params, env
           expect(last_response.status).to eql(200)
-          expect(last_response.body).to eql(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type]).to_json)
+          expect(last_response.body).to eql(follower.as_json(:only => [:id, :groups, :entity, :licenses, :type, :created_at]).to_json)
         end
 
         context 'when follower belongs to another user' do
@@ -450,23 +616,26 @@ describe TentD::API::Followers do
 
           it 'should return 404' do
             json_get "/followers/#{follower.public_id}", params, env
-            expect([404, 403]).to include(last_response.status)
+            expect(last_response.status).to eql(404)
+            expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
           end
         end
       end
 
       context 'when follower private' do
         before { follower.update(:public => false) }
-        it 'should respond 403' do
+        it 'should respond 404' do
           json_get "/followers/#{follower.id}", params, env
-          expect(last_response.status).to eql(403)
+          expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
 
       context 'when no follower exists with :id' do
-        it 'should respond 403' do
+        it 'should respond 404' do
           json_get "/followers/invalid-id", params, env
-          expect(last_response.status).to eql(403)
+          expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
         end
       end
     end
@@ -492,6 +661,7 @@ describe TentD::API::Followers do
           follower.update(:user_id => other_user.id)
           json_put "/followers/#{follower.public_id}", data, env
           expect([404, 403]).to include(last_response.status)
+          expect(Yajl::Parser.parse(last_response.body)).to have_key('error')
         end
       end
 
@@ -556,6 +726,7 @@ describe TentD::API::Followers do
         it 'should respond 404' do
           json_put '/followers/invalid-id', params, env
           expect(last_response.status).to eql(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
         end
       end
 
@@ -577,6 +748,7 @@ describe TentD::API::Followers do
         it 'should respond 403' do
           json_put '/followers/invalid-id', params, env
           expect(last_response.status).to eql(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
         end
       end
     end
@@ -617,6 +789,7 @@ describe TentD::API::Followers do
           expect(lambda {
             delete "/followers/#{follower.public_id}", params, env
             expect([404, 403]).to include(last_response.status)
+            expect(Yajl::Parser.parse(last_response.body)).to have_key('error')
           }).to_not change(TentD::Model::Follower, :count)
         end
       end
@@ -626,6 +799,7 @@ describe TentD::API::Followers do
       it 'should respond 403' do
         delete "/followers/invalid-id", params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
       end
     end
 
@@ -637,6 +811,7 @@ describe TentD::API::Followers do
       it 'should respond with 404 if no follower exists with :id' do
         delete "/followers/invalid-id", params, env
         expect(last_response.status).to eql(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
       end
     end
 
@@ -648,6 +823,7 @@ describe TentD::API::Followers do
       it 'should respond with 403 if no follower exists with :id' do
         delete "/followers/invalid-id", params, env
         expect(last_response.status).to eql(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized'})
       end
     end
 

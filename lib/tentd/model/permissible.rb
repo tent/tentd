@@ -74,10 +74,16 @@ module TentD
           query = []
           query_bindings = []
 
-          if params.return_count
-            query << "SELECT COUNT(#{table_name}.*) FROM #{table_name}"
+          if params._select
+            select_columns = Array(params.delete(:_select)).map { |c| "#{table_name}.#{c}" }.join(',')
           else
-            query << "SELECT #{table_name}.* FROM #{table_name}"
+            select_columns = "#{table_name}.*"
+          end
+
+          if params.return_count
+            query << "SELECT COUNT(#{select_columns}) FROM #{table_name}"
+          else
+            query << "SELECT #{select_columns} FROM #{table_name}"
           end
 
           if current_auth && current_auth.respond_to?(:permissible_foreign_key)

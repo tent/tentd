@@ -8,7 +8,8 @@ describe TentD::Model::Following do
       {
         :id => following.public_id,
         :entity => following.entity,
-        :permissions => { :public => following.public }
+        :permissions => { :public => following.public },
+        :created_at => following.created_at.to_i
       }
     end
 

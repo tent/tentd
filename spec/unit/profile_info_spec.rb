@@ -49,12 +49,55 @@ describe TentD::Model::ProfileInfo do
         expect(profile_info.content['previous_entities']).to eq([entity, 'http://example.com'])
       end
     end
+
+    context 'when record does not exist' do
+      it 'should create profile version' do
+        data = {
+          'entity' => %w( https://example.org ),
+          'servers' => %w( https://example.org/tent )
+        }
+        expect(lambda {
+          expect(lambda {
+            described_class.update_profile(core_profile_type, data)
+          }).to change(described_class, :count).by(1)
+        }).to change(TentD::Model::ProfileInfoVersion, :count).by(1)
+
+        profile_info = described_class.first(:type_base => core_profile_type_base)
+        expect(profile_info.content).to eql(data)
+
+        profile_info_version = profile_info.latest_version
+        expect(profile_info_version).to_not be_nil
+        expect(profile_info_version.content).to eql(data)
+      end
+    end
+
+    context 'when record exists' do
+      it 'should create profile version' do
+        data = {
+          'entity' => %w( https://example.org ),
+          'servers' => %w( https://example.org/tent )
+        }
+
+        profile_info = Fabricate(:profile_info, :type => core_profile_type, :content => data)
+
+        expect(lambda {
+          expect(lambda {
+            described_class.update_profile(core_profile_type, data)
+          }).to change(described_class, :count).by(0)
+        }).to change(TentD::Model::ProfileInfoVersion, :count).by(1)
+
+        profile_info = described_class.first(:id => profile_info.id)
+        expect(profile_info).to_not be_nil
+        expect(profile_info.content).to eql(data)
+      end
+    end
   end
 
   describe '#create_update_post' do
     context 'entity_changed' do
+      let!(:profile_info) { Fabricate(:profile_info, :public => true, :type => core_profile_type, :content => { :entity => entity }) }
+
       it 'should notify mentioned entities' do
-        profile_info = Fabricate(:profile_info, :public => true, :type => core_profile_type, :content => { :entity => entity })
         post = Fabricate(:post, :entity => entity, :original => true)
         self_mention = TentD::Model::Mention.create(:post_id => post.id, :entity => entity)
         mention = TentD::Model::Mention.create(:post_id => post.id, :entity => other_entity)
@@ -63,6 +106,12 @@ describe TentD::Model::ProfileInfo do
         TentD::Notifications.expects(:trigger).once
         TentD::Notifications.expects(:notify_entity).with(has_entry(:entity => other_entity))
 
+        profile_info.create_update_post(:entity_changed => true, :old_entity => entity)
+      end
+
+      it 'should notify followings' do
+        following = Fabricate(:following)
+        TentD::Notifications.expects(:notify_entity).with(has_entry(:entity => following.entity))
         profile_info.create_update_post(:entity_changed => true, :old_entity => entity)
       end
     end

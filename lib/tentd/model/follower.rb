@@ -16,10 +16,10 @@ module TentD
       one_to_many :notification_subscriptions
 
       # permissions describing who can see them
-      one_to_many :visibility_permissions, :key => :follower_visibility_id, :class => Permission
+      one_to_many :visibility_permissions, :key => :follower_visibility_id, :class => 'TentD::Model::Permission'
 
       # permissions describing what they have access to
-      one_to_many :access_permissions, :key => :follower_access_id, :class => Permission
+      one_to_many :access_permissions, :key => :follower_access_id, :class => 'TentD::Model::Permission'
 
       def before_create
         self.public_id ||= random_id
@@ -41,29 +41,30 @@ module TentD
       end
 
       def self.public_attributes
-        [:entity]
+        [:entity, :created_at]
       end
 
       def self.create_follower(data, authorized_scopes = [])
-        existing_followers = where(:entity => data.entity)
-        if existing_followers.any?
-          existing_followers.destroy
+        if follower = where(:entity => data.entity).order(:id.desc).first
+          follower.update(:mac_key => SecureRandom.hex(16))
+        else
+          if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
+            follower = create(data.slice(:public_id, :entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
+            if data.permissions
+              follower.assign_permissions(data.permissions)
+            end
+          else
+            follower = create(data.slice('entity', 'licenses', 'profile', 'notification_path'))
+          end
+
+          (data.types || ['all']).each do |type_url|
+            NotificationSubscription.create(
+              :follower => follower,
+              :type => type_url
+            )
+          end
         end
 
-        if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
-          follower = create(data.slice(:public_id, :entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
-          if data.permissions
-            follower.assign_permissions(data.permissions)
-          end
-        else
-          follower = create(data.slice('entity', 'licenses', 'profile', 'notification_path'))
-        end
-        (data.types || ['all']).each do |type_url|
-          NotificationSubscription.create(
-            :follower => follower,
-            :type => type_url
-          )
-        end
         follower
       end
 
@@ -110,8 +111,8 @@ module TentD
       end
 
       def propagate_entity(new_entity, old_entity)
-        Post.where(:user_id => User.current.id, :entity => old_entity, :original => false).update(:entity => entity)
-        Mention.from(:mentions, :posts).where(:posts__user_id => User.current.id, :mentions__entity => old_entity, :mentions__original_post => false).update(:entity => entity)
+        Post.where(:user_id => user_id, :entity => old_entity, :original => false).update(:entity => entity)
+        Mention.from(:mentions, :posts).where(:posts__user_id => user_id, :mentions__entity => old_entity).update(:entity => entity)
       end
 
       def public?

@@ -18,14 +18,14 @@ module TentD
             :apps__user_id => TentD::Model::User.current.id,
             :app_authorizations__mac_key_id => mac_key_id,
             :apps__deleted_at => nil
-          ).first
+          ).where("app_authorizations.expires_at IS NULL OR app_authorizations.expires_at > ?", Time.now.to_i).first
         end
         env.potential_auth = Model::Following.first(:user_id => TentD::Model::User.current.id, :mac_key_id => mac_key_id) unless env.potential_auth
         if env.potential_auth
           env.hmac.secret = env.potential_auth.mac_key
           env.hmac.algorithm = env.potential_auth.mac_algorithm
         elsif mac_key_id
-          return [401, {'WWW-Authenticate' => 'MAC'}, ['Invalid MAC Key ID']]
+          return error_response(401, 'Invalid MAC Key ID', {'WWW-Authenticate' => 'MAC'})
         else
           env.hmac = nil
         end

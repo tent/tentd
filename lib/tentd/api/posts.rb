@@ -77,6 +77,40 @@ module TentD
         end
       end
 
+      class CountHeader < API::CountHeader
+        def get_count(env)
+          GetFeed.new(@app).call(env)[2][0]
+        end
+      end
+
+      class PaginationHeader < API::PaginationHeader
+        private
+
+        def build_next_params(env)
+          params = super
+          resource = env.response.last
+
+          params["#{next_id_key(env)}_entity"] = resource.entity
+          params
+        end
+
+        def build_prev_params(env)
+          params = super
+          resource = env.response.first
+
+          params["#{prev_id_key(env)}_entity"] = resource.entity
+          params
+        end
+
+        def clone_params(env)
+          params = super
+          params.delete(:post_id)
+          params.delete(:before_id_entity)
+          params.delete(:since_id_entity)
+          params
+        end
+      end
+
       class GetVersions < Middleware
         def action(env)
           return env unless env.params.post_id
@@ -86,6 +120,56 @@ module TentD
             env.response = Model::PostVersion.fetch_with_permissions(env.params, env.current_auth)
           end
           env
+        end
+      end
+
+      class VersionsPaginationHeader < API::PaginationHeader
+        private
+
+        def build_next_params(env)
+          params = clone_params(env)
+          resource = env.response.last
+
+          params[next_id_key(env)] = resource.version
+          params
+        end
+
+        def next_id_key(env)
+          if env.params.order.to_s.downcase == 'asc'
+            :since_version
+          else
+            :before_version
+          end
+        end
+
+        def build_prev_params(env)
+          params = clone_params(env)
+          resource = env.response.first
+
+          params[prev_id_key(env)] = resource.version
+          params
+        end
+
+        def prev_id_key(env)
+          if env.params.order.to_s.downcase == 'asc'
+            :before_version
+          else
+            :since_version
+          end
+        end
+
+        def clone_params(env)
+          params = super
+          params.delete(:post_id)
+          params.delete(:before_version)
+          params.delete(:since_version)
+          params
+        end
+      end
+
+      class VersionsCountHeader < API::CountHeader
+        def get_count(env)
+          GetVersions.new(@app).call(env)[2][0]
         end
       end
 
@@ -101,7 +185,7 @@ module TentD
             begin
               Model::Post.create(data, :dont_notify_mentions => true)
             rescue Sequel::DatabaseError # hack to ignore duplicate posts
-              Model::Post.first(:public_id => data.public_id)
+              Model::Post.first(:user_id => Model::User.current.id, :public_id => data.public_id)
             end
           else
             Model::Post.create(data)
@@ -132,7 +216,7 @@ module TentD
             post.entity ||= env['tent.entity']
             post.app ||= env.current_auth.app
             post.original = post.entity == env['tent.entity']
-            if post.following_id && following = Model::Following.first(:public_id => post.following_id)
+            if post.following_id && following = Model::Following.first(:user_id => Model::User.current.id, :public_id => post.following_id)
               post.following_id = following.id
             end
           elsif env.current_auth.respond_to?(:app)
@@ -255,17 +339,18 @@ module TentD
 
       class Notify < Middleware
         def action(env)
-          return env if authorize_env?(env, :write_posts) && env.params.data && env.params.data.id
+          return env if authorize_env?(env, :write_posts) && env.params.data && env.params.data.id && env.current_auth.kind_of?(Model::AppAuthorization)
           if deleted_post = env.notify_deleted_post
             post = Model::Post.create(
-              :type => 'https://tent.io/types/post/delete/v0.1.0',
+              :type => Model::Post::DELETED_POST_TYPE.uri,
               :entity => env['tent.entity'],
               :original => true,
               :content => {
-                :id => deleted_post.public_id
+                'id' => deleted_post.public_id
               }
             )
             Model::Permission.copy(deleted_post, post)
+            deleted_post.notify_mentions(post.id)
           else
             return env unless (post = env.response) && post.kind_of?(Model::Post)
           end
@@ -277,15 +362,75 @@ module TentD
       class GetAttachment < Middleware
         def action(env)
           return env unless env.response
+
+          post = env.response
           type = env['HTTP_ACCEPT'].split(/;|,/).first if env['HTTP_ACCEPT']
-          attachment = env.response.attachments_dataset.select(:data).first(:type => type, :name => env.params.attachment_name)
-          if attachment
-            env.response = Base64.decode64(attachment.data)
-            env['response.type'] = type
+
+          if !post.original && post.following_id
+            if following = Model::Following.first(:id => post.following_id)
+              client = TentClient.new(following.core_profile.servers.first, following.auth_details.merge(:skip_serialization => true, :faraday_adapter => TentD.faraday_adapter))
+              res = client.post.attachment.get(post.public_id, env.params.attachment_name, type)
+              return [res.status, res.headers, res.body]
+            else
+              raise NotFound
+            end
           else
-            env.response = nil
+            attachment = env.response.attachments_dataset.select(:data).first(:type => type, :name => env.params.attachment_name)
+            if attachment
+              env.response = Base64.decode64(attachment.data)
+              env['response.type'] = type
+            else
+              env.response = nil
+            end
           end
+
           env
+        end
+      end
+
+      class GetMentions < Middleware
+        def action(env)
+          return env unless post = env.response
+          env.post = post
+          env.response = post.public_mentions(env.params.slice(:before_id, :since_id, :limit, :post_types, :return_count))
+          env
+        end
+      end
+
+      class MentionsCountHeader < API::CountHeader
+        def get_count(env)
+          env.response = env.post
+          GetMentions.new(@app).call(env)[2][0]
+        end
+      end
+
+      class MentionsPaginationHeader < API::PaginationHeader
+        private
+
+        def build_next_params(env)
+          params = clone_params(env)
+          resource = env.response.last
+
+          params.before_id = resource.mentioned_post_id
+          params.before_id_entity = resource.entity
+          params
+        end
+
+        def build_prev_params(env)
+          params = clone_params(env)
+          resource = env.response.first
+
+          params.since_id = resource.mentioned_post_id
+          params.since_id_entity = resource.entity
+          params
+        end
+
+        def clone_params(env)
+          params = super
+          params.delete(:post_id)
+          params.delete(:before_id_entity)
+          params.delete(:since_id_entity)
+          params
         end
       end
 
@@ -294,7 +439,7 @@ module TentD
           if Model::Following.where(:user_id => Model::User.current.id, :public_id => env.params.following_id).any?
             [200, { 'Content-Type' => 'text/plain' }, [env.params.challenge]]
           else
-            [404, {}, []]
+            raise NotFound
           end
         end
       end
@@ -327,14 +472,44 @@ module TentD
         b.use GetFeed
       end
 
+      head '/posts' do |b|
+        b.use GetActualId
+        b.use GetFeed
+        b.use PaginationHeader
+        b.use CountHeader
+      end
+
       get '/posts/:post_id' do |b|
         b.use GetActualId
         b.use GetOne
       end
 
+      head '/posts/:post_id/versions' do |b|
+        b.use GetActualId
+        b.use GetVersions
+        b.use VersionsPaginationHeader
+        b.use VersionsCountHeader
+      end
+
       get '/posts/:post_id/versions' do |b|
         b.use GetActualId
         b.use GetVersions
+        b.use VersionsPaginationHeader
+      end
+
+      head '/posts/:post_id/mentions' do |b|
+        b.use GetActualId
+        b.use GetOne
+        b.use GetMentions
+        b.use MentionsPaginationHeader
+        b.use MentionsCountHeader
+      end
+
+      get '/posts/:post_id/mentions' do |b|
+        b.use GetActualId
+        b.use GetOne
+        b.use GetMentions
+        b.use MentionsPaginationHeader
       end
 
       get '/posts/:post_id_entity/:post_id' do |b|
@@ -351,6 +526,7 @@ module TentD
       get '/posts' do |b|
         b.use GetActualId
         b.use GetFeed
+        b.use PaginationHeader
       end
 
       post '/posts' do |b|

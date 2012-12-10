@@ -3,6 +3,8 @@ require 'securerandom'
 module TentD
   module Model
     class Post < Sequel::Model(:posts)
+      DELETED_POST_TYPE = TentType.new('https://tent.io/types/post/delete/v0.1.0')
+
       include RandomPublicId
       include Serializable
       include TypeProperties
@@ -15,9 +17,9 @@ module TentD
       serialize_attributes :json, :content, :views
 
       one_to_many :permissions
-      one_to_many :attachments, :class => PostAttachment
+      one_to_many :attachments, :class => 'TentD::Model::PostAttachment'
       one_to_many :mentions
-      one_to_many :versions, :class => PostVersion
+      one_to_many :versions, :class => 'TentD::Model::PostVersion'
 
       many_to_one :app
       many_to_one :following
@@ -63,7 +65,7 @@ module TentD
         mentions = data.delete(:mentions)
         post = super(data)
 
-        mentions.to_a.each do |mention|
+        mentions.to_a.uniq.each do |mention|
           next unless mention[:entity]
           mention = Mention.create(
             :post_id => post.id,
@@ -121,13 +123,59 @@ SQL
         res
       end
 
-      def notify_mentions
+      def notify_mentions(post_id = self.id)
         mentions.each do |mention|
           follower = Follower.first(:user_id => User.current.id, :entity => mention.entity)
           next if follower && NotificationSubscription.first(:user_id => User.current.id, :follower => follower, :type_base => self.type.base)
 
-          Notifications.notify_entity(:entity => mention.entity, :post_id => self.id)
+          Notifications.notify_entity(:entity => mention.entity, :post_id => post_id)
         end
+      end
+
+      def public_mentions(params = {})
+        sql = []
+        sql_bindings = []
+
+        sql << "SELECT mentions.*, mentioned_posts.type_base, mentioned_posts.type_version FROM mentions"
+        sql << "INNER JOIN posts ON posts.id = mentions.post_id"
+        sql << "INNER JOIN posts AS mentioned_posts ON (mentioned_posts.public_id = mentions.mentioned_post_id AND mentioned_posts.entity = mentions.entity)"
+
+        sql << "WHERE posts.id = ?"
+        sql_bindings << id
+
+        sql << "AND posts.user_id = ?"
+        sql_bindings << user_id
+
+        sql << "AND mentioned_posts.user_id = ?"
+        sql_bindings << user_id
+
+        sql << "AND mentioned_posts.public = ?"
+        sql_bindings << true
+
+        if params.has_key?(:before_id)
+          sql << "AND mentioned_posts.id < ?"
+          sql_bindings << params[:before_id]
+        end
+
+        if params.has_key?(:since_id)
+          sql << "AND mentioned_posts.id > ?"
+          sql_bindings << params[:since_id]
+        end
+
+        if params[:post_types]
+          sql << "AND mentioned_posts.type_base IN ?"
+          sql_bindings << params[:post_types].split(',').map { |uri| TentType.new(uri).base }
+        end
+
+        sql << "ORDER BY mentioned_posts.id"
+
+        sql << "LIMIT ?"
+        sql_bindings << [(params[:limit] ? params[:limit].to_i : API::PER_PAGE), API::MAX_PER_PAGE].min
+
+        sql = sql.join(' ')
+
+        query = Mention.with_sql(sql, *sql_bindings)
+        params[:return_count] ? query.count : query.all
       end
 
       def latest_version(options = {})

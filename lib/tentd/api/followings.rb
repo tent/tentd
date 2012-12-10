@@ -3,8 +3,26 @@ module TentD
     class Followings
       include Router
 
+      class ParseLookupKey < Middleware
+        def action(env)
+          id_or_entity = env.params.delete(:captures).first
+
+          if id_or_entity =~ /^https?:\/\//
+            env.params.following_entity = id_or_entity
+            following = Model::Following.select(:id).first(:user_id => Model::User.current.id, :entity => id_or_entity)
+            env.params.following_id = following.id if following
+            env.skip_id_lookup = true
+          else
+            env.params.following_id = id_or_entity
+          end
+
+          env
+        end
+      end
+
       class GetActualId < Middleware
         def action(env)
+          return env if env.skip_id_lookup
           id_mapping = [:following_id, :since_id, :before_id].select { |key| env.params.has_key?(key) }.inject({}) { |memo, key|
             memo[env.params[key]] = key
             env.params[key] = nil
@@ -26,6 +44,26 @@ module TentD
         end
       end
 
+      class EntityRedirect < Middleware
+        def action(env)
+          return env unless env.params.has_key?(:following_entity)
+
+          following = Model::Following.select(:id, :public, :public_id).where(:entity => env.params.following_entity, :user_id => Model::User.current.id).first
+          if following && !following.public && !authorize_env?(env, :read_followings)
+            following = Model::Following.find_with_permissions(following.id, env.current_auth)
+          end
+
+          raise NotFound unless following
+
+          redirect_uri = self_uri(env)
+          redirect_uri.path = env.SCRIPT_NAME.sub(%r{/followings/.*\Z}, "/followings/#{following.public_id}")
+          env['response.headers'] ||= {}
+          env['response.headers']['Content-Location'] = redirect_uri.to_s
+          env.response = following
+          env
+        end
+      end
+
       class GetOne < Middleware
         def action(env)
           if authorize_env?(env, :read_followings)
@@ -38,7 +76,7 @@ module TentD
             if following
               env.response = following
             else
-              raise Unauthorized
+              raise NotFound
             end
           end
           env
@@ -63,27 +101,36 @@ module TentD
         end
       end
 
+      class CountHeader < API::CountHeader
+        def get_count(env)
+          count = GetMany.new(@app).call(env)[2][0]
+        end
+      end
+
+      class PaginationHeader < API::PaginationHeader
+      end
+
       class Discover < Middleware
         def action(env)
-          return [422, {}, ['Invalid Request Body']] unless env.params.data && env.params.data.entity
+          return error_response(422, 'Invalid Request Body') unless env.params.data && env.params.data.entity
           client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
           profile, profile_url = client.discover(env.params.data.entity).get_profile
-          return [404, {}, ['Not Found']] unless profile
+          raise NotFound unless profile
 
           profile = CoreProfileData.new(profile)
           env.profile = profile
           env.server_url = profile_url.sub(%r{/profile$}, '')
           env
         rescue Faraday::Error::ConnectionFailed
-          [404, {}, ['Not Found']]
+          raise NotFound
         end
       end
 
       class Follow < Middleware
         def action(env)
-          existing_following = Model::Following.first(:entity => env.params.data.entity)
+          existing_following = Model::Following.first(:user_id => Model::User.current.id, :entity => env.params.data.entity)
           if existing_following && existing_following.confirmed == true
-            return [409, {}, ['Already following']]
+            return error_response(409, 'Already following')
           end
 
           if existing_following
@@ -159,18 +206,18 @@ module TentD
         def action(env)
           return env unless env.following
           following = env.following
-          client = TentClient.new(following.core_profile.servers.first,
+          client = TentClient.new(following.core_profile.servers,
                                   following.auth_details.merge(:skip_serialization => true,
                                                                :faraday_adapter => TentD.faraday_adapter))
           env.params.delete(:following_id)
-          path = env.params.delete(:proxy_path)
+          path = env.params.delete(:proxy_path).sub(%r{\A/}, '')
           res = client.http.get(path, env.params, whitelisted_headers(env))
           [res.status, res.headers, [res.body]]
         end
 
         def whitelisted_headers(env)
           %w(Accept If-Modified-Since).inject({}) do |h,k|
-            h[k] = env['HTTP_' + k.gsub('-', '_').upcase]; h
+            h[k] = env['HTTP_' + k.gsub('-', '_').upcase].to_s; h
           end
         end
       end
@@ -222,14 +269,17 @@ module TentD
         b.use GetMany
       end
 
-      get '/followings/:following_id' do |b|
+      head '/followings' do |b|
         b.use GetActualId
-        b.use GetOne
+        b.use GetMany
+        b.use PaginationHeader
+        b.use CountHeader
       end
 
       get '/followings' do |b|
         b.use GetActualId
         b.use GetMany
+        b.use PaginationHeader
       end
 
       get %r{/followings/(\w+)/(.+)} do |b|
@@ -237,6 +287,13 @@ module TentD
         b.use GetActualId
         b.use GetOne
         b.use ProxyRequest
+      end
+
+      get %r{/followings/([^/]+)} do |b|
+        b.use ParseLookupKey
+        b.use GetActualId
+        b.use EntityRedirect
+        b.use GetOne
       end
 
       post '/followings' do |b|

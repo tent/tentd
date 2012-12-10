@@ -1,6 +1,7 @@
 require 'tentd/version'
 require 'tent-client'
 require 'logger'
+require 'sequel'
 
 module TentD
   autoload :API, 'tentd/api'
@@ -8,6 +9,9 @@ module TentD
   autoload :JsonPatch, 'tentd/json_patch'
   autoload :TentVersion, 'tentd/tent_version'
   autoload :TentType, 'tentd/tent_type'
+  autoload :Model, 'tentd/model'
+
+  TENT_VERSION = '0.2'.freeze
 
   def self.new(options={})
     if database_url = options[:database] || ENV['DATABASE_URL']
@@ -28,5 +32,3 @@ module TentD
     @faraday_adapter = a
   end
 end
-
-require 'tentd/model'
