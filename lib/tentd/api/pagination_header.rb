@@ -5,7 +5,10 @@ module TentD
         return env unless env.response.kind_of?(Array) && env.response.size > 0
 
         env['response.headers'] ||= {}
-        pagination = [%(<#{prev_uri(env)}>; rel="prev"), %(<#{next_uri(env)}>; rel="next")]
+        next_link = %(<#{next_uri(env)}>; rel="next")
+        prev_link = %(<#{prev_uri(env)}>; rel="prev")
+        pagination = [prev_link]
+        pagination << next_link unless last_page?(env)
         if env['response.headers']['Link']
           env['response.headers']['Link'] += ", #{pagination.join(', ')}"
         else
@@ -71,6 +74,10 @@ module TentD
         params.delete(:before_id)
         params.delete(:since_id)
         params
+      end
+
+      def last_page?(env)
+        env.response.size < [(env.params.limit ? env.params.limit.to_i : PER_PAGE), MAX_PER_PAGE].min
       end
     end
   end

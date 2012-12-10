@@ -540,6 +540,31 @@ describe TentD::API::Posts do
           expectation.call(last_response)
         end
       end
+
+      context 'when on last page' do
+        it 'should only set prev pagination in link header' do
+          expectation = lambda do |response|
+            expect_pagination_header(response, {
+              :path => "/posts/#{post.public_id}/versions",
+              :prev => {
+                :since_version => "2"
+              }
+            })
+          end
+
+          params["since_version"] = 1
+
+          with_constants "TentD::API::MAX_PER_PAGE" => 2 do
+            get "/posts/#{post.public_id}/versions", params, env
+            expect(last_response.status).to eql(200)
+            expectation.call(last_response)
+
+            head "/posts/#{post.public_id}/versions", params, env
+            expect(last_response.status).to eql(200)
+            expectation.call(last_response)
+          end
+        end
+      end
     end
 
     should_not_return_post_versions = proc do
@@ -736,23 +761,25 @@ describe TentD::API::Posts do
       it 'should set pagination in header' do
         other_known_mention # create
 
-        json_get "/posts/#{post.public_id}/mentions", nil, env
-        expect(last_response.status).to eq(200)
+        with_constants "TentD::API::MAX_PER_PAGE" => 2 do
+          json_get "/posts/#{post.public_id}/mentions", nil, env
+          expect(last_response.status).to eq(200)
 
-        mentions = post.public_mentions
-        next_mention = mentions.last
-        prev_mention = mentions.first
-        expect_pagination_header(last_response, {
-          :path => "/posts/#{post.public_id}/mentions",
-          :next => {
-            :before_id => next_mention.mentioned_post_id,
-            :before_id_entity => next_mention.entity
-          },
-          :prev => {
-            :since_id => prev_mention.mentioned_post_id,
-            :since_id_entity => prev_mention.entity
-          }
-        })
+          mentions = post.public_mentions
+          next_mention = mentions.last
+          prev_mention = mentions.first
+          expect_pagination_header(last_response, {
+            :path => "/posts/#{post.public_id}/mentions",
+            :next => {
+              :before_id => next_mention.mentioned_post_id,
+              :before_id_entity => next_mention.entity
+            },
+            :prev => {
+              :since_id => prev_mention.mentioned_post_id,
+              :since_id_entity => prev_mention.entity
+            }
+          })
+        end
       end
 
       context 'when HEAD request' do
