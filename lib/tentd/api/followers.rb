@@ -3,10 +3,28 @@ module TentD
     class Followers
       include Router
 
+      class ParseLookupKey < Middleware
+        def action(env)
+          id_or_entity = env.params.delete(:captures).first
+
+          if id_or_entity =~ /\Ahttps?:\/\//
+            env.params.follower_entity = id_or_entity
+            follower = Model::Follower.select(:id).first(:user_id => Model::User.current.id, :entity => id_or_entity)
+            env.params.follower_id = follower.id if follower
+            env.skip_id_lookup = true
+          else
+            env.params.follower_id = id_or_entity
+          end
+
+          env
+        end
+      end
+
       class GetActualId < Middleware
         def action(env)
+          return env if env.skip_id_lookup
           [:follower_id, :before_id, :since_id].select { |k| env.params.has_key?(k) }.each do |id_key|
-            if env.params[id_key] && (f = Model::Follower.first(:public_id => env.params[id_key], :fields => [:id]))
+            if env.params[id_key] && (f = Model::Follower.select(:id).first(:user_id => Model::User.current.id, :public_id => env.params[id_key]))
               env.params[id_key] = f.id
             else
               env.params[id_key] = nil
@@ -48,19 +66,20 @@ module TentD
       class Discover < Middleware
         def action(env)
           return env if env.authorized_scopes.include?(:write_followers)
-          return [400, {}, ['Request body required']] unless env.params.data
-          return [422, {}, ['Invalid notification path']] unless env.params.data.notification_path.kind_of?(String) &&
+          return error_response(400, 'Request body required') unless env.params.data
+          return error_response(422, 'Invalid notification path') unless env.params.data.notification_path.kind_of?(String) &&
                                                                 !env.params.data.notification_path.match(%r{\Ahttps?://})
-          return [406, {}, ['Can not follow self']] if Model::User.current.profile_entity == env.params.data.entity
+          return error_response(406, 'Can not follow self') if Model::User.current.profile_entity == env.params.data.entity
           client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
           begin
             profile, profile_url = client.discover(env.params[:data]['entity']).get_profile
           rescue Faraday::Error::ConnectionFailed
-            return [503, {}, ["Couldn't connect to entity"]]
+            return error_response(503, "Couldn't connect to entity")
           rescue Faraday::Error::TimeoutError
-            return [504, {}, ["Connection to entity timed out"]]
+            return error_response(504, 'Connection to entity timed out')
           end
-          return [404, {}, ['Not Found']] unless profile
+
+          raise NotFound unless profile
 
           profile = CoreProfileData.new(profile)
           env['profile'] = profile
@@ -75,7 +94,7 @@ module TentD
           if client.follower.challenge(env.params.data.notification_path)
             env
           else
-            [403, {}, ['Unauthorized Follower']]
+            raise Unauthorized
           end
         end
       end
@@ -110,10 +129,32 @@ module TentD
         end
       end
 
+      class EntityRedirect < Middleware
+        def action(env)
+          return env unless env.params.has_key?(:follower_entity)
+
+          follower = Model::Follower.select(:id, :public, :public_id).where(:entity => env.params.follower_entity, :user_id => Model::User.current.id).first
+          if follower && !follower.public? && !(env.full_read_authorized || authorize_env?(env, :self))
+            follower = Model::Follower.find_with_permissions(follower.id, env.current_auth)
+          end
+
+          raise NotFound unless follower
+
+          redirect_uri = self_uri(env)
+          redirect_uri.path = env.SCRIPT_NAME.sub(%r{/followers/.*\Z}, "/followers/#{follower.public_id}")
+          env['response.headers'] ||= {}
+          env['response.headers']['Content-Location'] = redirect_uri.to_s
+          env.response = follower
+          env
+        end
+      end
+
       class GetOne < Middleware
         def action(env)
+          return env if env.params.has_key?(:follower_entity)
+
           if env.full_read_authorized || authorize_env?(env, :self)
-            follower = Model::Follower.find(env.params.follower_id)
+            follower = Model::Follower.first(:id => env.params.follower_id)
           else
             follower = Model::Follower.find_with_permissions(env.params.follower_id, env.current_auth)
           end
@@ -121,7 +162,7 @@ module TentD
           if env.full_read_authorized || authorize_env?(env, :self) || (follower && follower.public?)
             env.response = follower
           else
-            raise Unauthorized
+            raise NotFound
           end
 
           env
@@ -145,6 +186,15 @@ module TentD
           env.response = followers if followers
           env
         end
+      end
+
+      class CountHeader < API::CountHeader
+        def get_count(env)
+          GetMany.new(@app).call(env)[2][0]
+        end
+      end
+
+      class PaginationHeader < API::PaginationHeader
       end
 
       class Update < Middleware
@@ -199,16 +249,27 @@ module TentD
         b.use GetMany
       end
 
-      get '/followers/:follower_id' do |b|
+      get %r{/followers/([^/]+)} do |b|
+        b.use ParseLookupKey
         b.use GetActualId
         b.use AuthorizeReadOne
+        b.use EntityRedirect
         b.use GetOne
+      end
+
+      head '/followers' do |b|
+        b.use AuthorizeReadMany
+        b.use GetActualId
+        b.use GetMany
+        b.use PaginationHeader
+        b.use CountHeader
       end
 
       get '/followers' do |b|
         b.use AuthorizeReadMany
         b.use GetActualId
         b.use GetMany
+        b.use PaginationHeader
       end
 
       put '/followers/:follower_id' do |b|

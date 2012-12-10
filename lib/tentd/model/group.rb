@@ -1,23 +1,27 @@
 module TentD
   module Model
-    class Group
-      include DataMapper::Resource
+    class Group < Sequel::Model(:groups)
       include RandomPublicId
       include Serializable
-      include UserScoped
 
-      storage_names[:default] = "groups"
+      plugin :paranoia
 
-      property :id, Serial
-      property :name, Text, :required => true, :lazy => false
-      property :created_at, DateTime
-      property :updated_at, DateTime
-      property :deleted_at, ParanoidDateTime
+      one_to_many :permissions
 
-      has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy, :parent_key => :public_id
+      def before_create
+        self.public_id ||= random_id
+        self.user_id ||= User.current.id
+        self.created_at = Time.now
+        super
+      end
+
+      def before_save
+        self.updated_at = Time.now
+        super
+      end
 
       def self.public_attributes
-        [:name]
+        [:name, :created_at]
       end
     end
   end

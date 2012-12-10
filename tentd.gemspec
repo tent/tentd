@@ -19,13 +19,11 @@ Gem::Specification.new do |gem|
 
   gem.add_runtime_dependency 'rack-mount', '~> 0.8.3'
   gem.add_runtime_dependency 'hashie'
-  gem.add_runtime_dependency 'data_mapper', '~> 1.2.0'
-  gem.add_runtime_dependency 'dm-ar-finders', '~> 1.2.0'
-  gem.add_runtime_dependency 'dm-constraints', '~> 1.2.0'
-  gem.add_runtime_dependency 'dm-postgres-adapter', '~> 1.2.0'
   gem.add_runtime_dependency 'tent-client'
   gem.add_runtime_dependency 'json'
   gem.add_runtime_dependency 'yajl-ruby'
+  gem.add_runtime_dependency 'pg'
+  gem.add_runtime_dependency 'sequel'
 
   gem.add_development_dependency 'rack-test', '~> 0.6.1'
   gem.add_development_dependency 'rspec', '~> 2.11'
@@ -33,5 +31,5 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency 'rake'
   gem.add_development_dependency 'guard-rspec'
   gem.add_development_dependency 'mocha', '0.12.6'
-  gem.add_development_dependency 'fabrication'
+  gem.add_development_dependency 'fabrication', '2.3.0'
 end

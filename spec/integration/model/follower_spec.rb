@@ -23,7 +23,7 @@ describe TentD::Model::Follower do
       }
 
       TentD::Model::Follower.update_entity(follower.id)
-      expect(follower.reload.entity).to eq(new_entity)
+      expect(follower.reload.entity).to eql(new_entity)
     end
 
     it 'should update posts authored by follower' do
@@ -33,7 +33,7 @@ describe TentD::Model::Follower do
       post = Fabricate(:post, :entity => old_entity, :original => false)
 
       TentD::Model::Follower.update_entity(follower.id)
-      expect(post.reload.entity).to eq(new_entity)
+      expect(post.reload.entity).to eql(new_entity)
     end
   end
 
@@ -80,8 +80,8 @@ describe TentD::Model::Follower do
 
     context 'when write_followers and write_secrets authorized' do
       let(:authorized_scopes) { [:write_followers, :write_secrets] }
-      before { TentD::Model::Follower.all.destroy }
-      before { TentD::Model::Following.all.destroy }
+      before { TentD::Model::Follower.destroy }
+      before { TentD::Model::Following.destroy }
 
       it 'should create permissions' do
         expect(lambda {
@@ -96,7 +96,7 @@ describe TentD::Model::Follower do
       it 'should return follower if public' do
         follower = Fabricate(:follower, :public => true)
         response = described_class.find_with_permissions(follower.id, current_auth)
-        expect(response).to eq(follower)
+        expect(response).to eql(follower)
       end
 
       it 'should return nil if not public' do
@@ -121,7 +121,7 @@ describe TentD::Model::Follower do
               :follower_visibility_id => follower.id, current_auth.permissible_foreign_key => current_auth.id)
 
             response = described_class.find_with_permissions(follower.id, current_auth)
-            expect(response).to eq(follower)
+            expect(response).to eql(follower)
           end
         end
 
@@ -162,20 +162,20 @@ describe TentD::Model::Follower do
           params['since_id'] = since_follower.id
 
           res = described_class.fetch_all(params)
-          expect(res).to eq([follower])
+          expect(res).to eql([follower])
         end
       end
 
       context '[:before_id]' do
         it 'should only return followers with id < :since_id' do
-          TentD::Model::Follower.all.destroy
+          TentD::Model::Follower.destroy
           follower = Fabricate(:follower, :public => false)
           before_follower = Fabricate(:follower, :public => false)
 
           params['before_id'] = before_follower.id
 
           res = described_class.fetch_all(params)
-          expect(res).to eq([follower])
+          expect(res).to eql([follower])
         end
       end
 
@@ -187,7 +187,7 @@ describe TentD::Model::Follower do
           params['limit'] = limit
 
           res = described_class.fetch_all(params)
-          expect(res.size).to eq(limit)
+          expect(res.size).to eql(limit)
         end
 
         it 'should never return more than TentD::API::MAX_PER_PAGE followers' do
@@ -198,7 +198,7 @@ describe TentD::Model::Follower do
 
           with_constants "TentD::API::MAX_PER_PAGE" => 0 do
             res = described_class.fetch_all(params)
-            expect(res.size).to eq(0)
+            expect(res.size).to eql(0)
           end
         end
       end
@@ -209,7 +209,7 @@ describe TentD::Model::Follower do
 
           with_constants "TentD::API::MAX_PER_PAGE" => 0 do
             res = described_class.fetch_all(params)
-            expect(res.size).to eq(0)
+            expect(res.size).to eql(0)
           end
         end
       end
@@ -244,17 +244,17 @@ describe TentD::Model::Follower do
           end
 
           response = described_class.fetch_with_permissions(params, current_auth)
-          expect(response).to eq([follower])
+          expect(response).to eql([follower])
         end
       end
 
       context '[:before_id]' do
         it 'should only return followers with id < :before_id' do
           if current_auth.kind_of?(TentD::Model::Follower)
-            TentD::Model::Follower.all(:id.not => current_auth.id).destroy!
+            TentD::Model::Follower.where(Sequel.~(:id => current_auth.id)).destroy
             follower = current_auth
           else
-            TentD::Model::Follower.all.destroy!
+            TentD::Model::Follower.destroy
             follower = Fabricate(:follower, :public => !authorize_folower)
           end
 
@@ -267,7 +267,7 @@ describe TentD::Model::Follower do
           end
 
           response = described_class.fetch_with_permissions(params, current_auth)
-          expect(response).to eq([follower])
+          expect(response).to eql([follower])
         end
       end
 
@@ -283,7 +283,7 @@ describe TentD::Model::Follower do
           params['limit'] = limit
 
           response = described_class.fetch_with_permissions(params, current_auth)
-          expect(response.size).to eq(limit)
+          expect(response.size).to eql(limit)
         end
 
         it 'should never return more than TentD::API::MAX_PER_PAGE followers' do
@@ -295,7 +295,7 @@ describe TentD::Model::Follower do
             end
 
             response = described_class.fetch_with_permissions(params, current_auth)
-            expect(response.size).to eq(0)
+            expect(response.size).to eql(0)
           end
         end
       end
@@ -310,7 +310,7 @@ describe TentD::Model::Follower do
             end
 
             response = described_class.fetch_with_permissions(params, current_auth)
-            expect(response.size).to eq(1)
+            expect(response.size).to eql(1)
           end
         end
       end
@@ -382,19 +382,20 @@ describe TentD::Model::Follower do
       {
         :id => follower.public_id,
         :entity => follower.entity,
-        :permissions => { :public => true }
+        :permissions => { :public => true },
+        :created_at => follower.created_at.to_i
       }
     end
 
     context 'without options' do
       it 'should return public attributes' do
-        expect(follower.as_json).to eq(public_attributes)
+        expect(follower.as_json).to eql(public_attributes)
       end
     end
 
     context 'with options[:mac]' do
       it 'should return mac key' do
-        expect(follower.as_json(:mac => true)).to eq(public_attributes.merge(
+        expect(follower.as_json(:mac => true)).to eql(public_attributes.merge(
           :mac_key_id => follower.mac_key_id,
           :mac_key => follower.mac_key,
           :mac_algorithm => follower.mac_algorithm
@@ -404,12 +405,12 @@ describe TentD::Model::Follower do
 
     context 'with options[:app]' do
       it 'should return additional attributes' do
-        expect(follower.as_json(:app => true)).to eq(public_attributes.merge(
+        expect(follower.as_json(:app => true)).to eql(public_attributes.merge(
           :profile => follower.profile,
           :licenses => follower.licenses,
           :types => [],
-          :created_at => follower.created_at.to_time.to_i,
-          :updated_at => follower.updated_at.to_time.to_i,
+          :created_at => follower.created_at.to_i,
+          :updated_at => follower.updated_at.to_i,
           :notification_path => follower.notification_path
         ))
       end
@@ -417,7 +418,7 @@ describe TentD::Model::Follower do
 
     context 'with options[:self]' do
       it 'should return licenses and types' do
-        expect(follower.as_json(:self => true)).to eq(public_attributes.merge(
+        expect(follower.as_json(:self => true)).to eql(public_attributes.merge(
           :licenses => follower.licenses,
           :types => [],
           :notification_path => follower.notification_path
@@ -427,7 +428,7 @@ describe TentD::Model::Follower do
 
     context 'with options[:groups]' do
       it 'should return groups' do
-        expect(follower.as_json(:groups => true)).to eq(public_attributes.merge(
+        expect(follower.as_json(:groups => true)).to eql(public_attributes.merge(
           :groups => follower.groups.uniq
         ))
       end

@@ -1,7 +1,257 @@
 require 'spec_helper'
+require 'hashie'
 
 describe TentD::Model::Post do
   let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
+  let(:current_user) { TentD::Model::User.current }
+  let(:other_user) { TentD::Model::User.create }
+
+  describe '#assign_permissions(permissions)' do
+    let(:post) { Fabricate(:post) }
+
+    should_create_permission = proc {
+      it 'should create permission' do
+        expect(lambda {
+          post.assign_permissions(permissions)
+        }).to change(TentD::Model::Permission, :count).by(1)
+      end
+    }
+
+    should_not_create_permission = proc {
+      it 'should not create permission' do
+        expect(lambda {
+          post.assign_permissions(permissions)
+        }).to_not change(TentD::Model::Permission, :count)
+      end
+    }
+
+    context 'with groups' do
+      let(:permissions) {
+        Hashie::Mash.new(
+          :groups => [Hashie::Mash.new(:id => group.public_id)]
+        )
+      }
+
+      context 'when group exists' do
+        let(:group) { Fabricate(:group) }
+
+        context &should_create_permission
+
+        context 'when group belongs to another user' do
+          let(:group) { Fabricate(:group, :user_id => other_user.id) }
+
+          context &should_not_create_permission
+        end
+      end
+
+      context 'when group does not exist' do
+        let(:group) { Hashie::Mash.new(:public_id => 'some-id') }
+
+        context &should_not_create_permission
+      end
+    end
+
+    context 'with follower entities' do
+      let(:permissions) {
+        Hashie::Mash.new(
+          :entities => {
+            follower.entity => true
+          }
+        )
+      }
+
+      context 'when follower exists' do
+        let(:follower) { Fabricate(:follower) }
+
+        context &should_create_permission
+
+        context 'when follower belongs to alother user' do
+          let(:follower) { Fabricate(:follower, :user_id => other_user.id) }
+
+          context &should_not_create_permission
+        end
+      end
+
+      context 'when follower does not exist' do
+        let(:follower) { Hashie::Mash.new(:entity => 'some-entity') }
+
+        context &should_not_create_permission
+      end
+    end
+
+    context 'with following entities' do
+      let(:permissions) {
+        Hashie::Mash.new(
+          :entities => {
+            following.entity => true
+          }
+        )
+      }
+
+      context 'when following exists' do
+        let(:following) { Fabricate(:following) }
+
+        context &should_create_permission
+
+        context 'when following belongs to another user' do
+          let(:following) { Fabricate(:following, :user_id => other_user.id) }
+
+          context &should_not_create_permission
+        end
+      end
+
+      context 'when following does not exist' do
+        let(:following) { Hashie::Mash.new(:entity => 'some-entity') }
+
+        context &should_not_create_permission
+      end
+    end
+
+    context 'with public' do
+      let(:permissions) {
+        Hashie::Mash.new(
+          :public => is_public
+        )
+      }
+
+      context 'when true' do
+        let(:is_public) { true }
+
+        it 'should set post to public' do
+          post.assign_permissions(permissions)
+          expect(post.reload.public).to be_true
+        end
+      end
+
+      context 'when false' do
+        let(:is_public) { false }
+
+        it 'should set post to private' do
+          post.assign_permissions(permissions)
+          expect(post.reload.public).to be_false
+        end
+      end
+    end
+  end
+
+  describe '#public_mentions' do
+    let!(:post) { Fabricate(:post) }
+
+    let!(:known_mentioned_entity) { 'https://known.example.com' }
+    let!(:known_mentioned_post) { Fabricate(:post, :public => true, :entity => known_mentioned_entity) }
+    let!(:known_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => known_mentioned_post.public_id, :entity => known_mentioned_post.entity) }
+
+    let(:known_private_mentioned_entity) { 'https://known_private.example.com' }
+    let(:known_private_mentioned_post) { Fabricate(:post, :public => false, :entity => known_private_mentioned_entity) }
+    let(:known_private_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => known_private_mentioned_post.public_id, :entity => known_private_mentioned_post.entity) }
+
+    let(:unknown_mentioned_entity) { 'https://unknown.example.com' }
+    let(:unknown_mentioned_post) { Fabricate(:post, :public => true, :entity => unknown_mentioned_entity, :user_id => other_user.id) }
+    let(:unknown_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => unknown_mentioned_post.public_id, :entity => unknown_mentioned_post.entity) }
+
+    it 'should return mentions referencing known public posts' do
+      known_private_mention # create
+      unknown_mention # create
+      expect(post.mentions_dataset.count > 1).to be_true
+
+      public_mentions = post.public_mentions
+      expect(public_mentions.size).to eql(1)
+      mention = public_mentions.first
+      expect(mention.id).to eql(known_mention.id)
+    end
+
+    it 'should serialize with entity, post, and type properties' do
+      public_mentions = post.public_mentions
+      expect(public_mentions.size).to eql(1)
+      mention = public_mentions.first
+      expect(mention.id).to eql(known_mention.id)
+
+      expect(mention[:type_base]).to eql(known_mentioned_post.type_base)
+      expect(mention[:type_version]).to eql(known_mentioned_post.type_version)
+      expect(mention.as_json).to eql(
+        :entity => mention.entity,
+        :post => mention.mentioned_post_id,
+        :type => "#{mention[:type_base]}/v#{mention[:type_version]}"
+      )
+    end
+
+    it 'should return API::PER_PAGE mentions' do
+      with_constants "TentD::API::PER_PAGE" => 0 do
+        public_mentions = post.public_mentions
+        expect(public_mentions.size).to eql(0)
+      end
+    end
+
+    it 'should return at most API::MAX_PER_PAGE mentions' do
+      with_constants "TentD::API::MAX_PER_PAGE" => 0 do
+        public_mentions = post.public_mentions
+        expect(public_mentions.size).to eql(0)
+      end
+    end
+
+    context 'with params' do
+      let(:other_known_mentioned_post_type) { 'https://tent.io/types/post/photo/v0.1.0' }
+      let(:other_known_mentioned_entity) { 'https://other_known.example.com' }
+      let(:other_known_mentioned_post) { Fabricate(:post, :public => true, :entity => other_known_mentioned_entity, :type => other_known_mentioned_post_type) }
+      let(:other_known_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => other_known_mentioned_post.public_id, :entity => other_known_mentioned_post.entity) }
+
+      let(:other_known_mentioned_post_type_2) { 'https://tent.io/types/post/essay/v0.1.0' }
+      let(:other_known_mentioned_entity_2) { 'https://other_known2.example.com' }
+      let(:other_known_mentioned_post_2) { Fabricate(:post, :public => true, :entity => other_known_mentioned_entity_2, :type => other_known_mentioned_post_type_2) }
+      let(:other_known_mention_2) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => other_known_mentioned_post_2.public_id, :entity => other_known_mentioned_post_2.entity) }
+
+      it 'should return [:limit] mentions' do
+        public_mentions = post.public_mentions(:limit => 0)
+        expect(public_mentions.size).to eql(0)
+      end
+
+      it 'should return mentions with post_id < [:before_id]' do
+        other_known_mention # create
+
+        public_mentions = post.public_mentions(:before_id => other_known_mentioned_post.id)
+        expect(public_mentions.size).to eql(1)
+        expect(public_mentions.first.id).to eql(known_mention.id)
+      end
+
+      it 'should return mentions with post_id > [:since_id]' do
+        other_known_mention # create
+
+        public_mentions = post.public_mentions(:since_id => known_mentioned_post.id)
+        expect(public_mentions.size).to eql(1)
+        expect(public_mentions.first.id).to eql(other_known_mention.id)
+      end
+
+      it 'should return count if [:return_count] param' do
+        other_known_mention # create
+
+        count = post.public_mentions(:return_count => true)
+        expect(count).to eql(2)
+      end
+
+      it 'should return mentions matching [:post_types]' do
+        other_known_mention # create
+
+        public_mentions = post.public_mentions(:post_types => other_known_mentioned_post_type)
+        expect(public_mentions.size).to eql(1)
+        expect(public_mentions.first.id).to eql(other_known_mention.id)
+      end
+
+      it 'should order by posts id' do
+        other_known_mentioned_post_2 # create
+        other_known_mentioned_post # create
+        other_known_mention # create
+        other_known_mention_2 # create
+
+        ids = [known_mentioned_post.id, other_known_mentioned_post_2.id, other_known_mentioned_post.id]
+        sorted_ids = ids.dup.sort
+        expect(ids).to eql(sorted_ids)
+
+        public_mentions = post.public_mentions
+        ids = public_mentions.map(&:id)
+        expect(ids).to eql([known_mention.id, other_known_mention_2.id, other_known_mention.id])
+      end
+    end
+  end
 
   describe '.create(data)' do
     context 'when posted on behalf of this server (original)' do
@@ -20,21 +270,46 @@ describe TentD::Model::Post do
       let(:other_follower) { Fabricate(:follower, :entity => 'https://marks.example.com') }
       let(:entity_url) { 'https://alexdoe.example.org' }
 
+      let(:post_attributes) do
+        post_attrs = Fabricate.build(:post).attributes
+        post_attrs.delete(:id)
+        post_attrs.delete(:public_id)
+        post_attrs.delete(:user_id)
+        post_attrs
+      end
+
+      it "should create post version" do
+        post_attrs = post_attributes.merge(
+          :mentions => [
+            { :entity => entity_url }
+          ]
+        )
+
+        post = nil
+        expect(lambda {
+          expect(lambda {
+            expect(lambda {
+              post = described_class.create(post_attrs)
+            }).to change(described_class, :count).by(1)
+          }).to change(TentD::Model::PostVersion, :count).by(1)
+        }).to change(TentD::Model::Mention, :count).by(1)
+
+        expect(post.mentions_dataset.count).to eql(1)
+        expect(post.latest_version.mentions_dataset.count).to eql(1)
+      end
 
       it "should divide published_at by 1000 if it's in miliseconds" do
-        post_attributes = {
+        post_attrs = post_attributes.merge(
           :published_at => Time.at(1349471384657),
-          :type => 'https://tent.io/types/post/status/v0.1.0',
-          :content => {}
-        }
-        post = described_class.create(post_attributes)
-        expect(post.published_at.to_time.to_i).to eq(1349471384)
+        )
+        post = described_class.create(post_attrs)
+        expect(post.published_at.to_time.to_i).to eql(1349471384)
       end
 
 
       it 'should send notification to all mentioned entities not already subscribed' do
         post_type = 'https://tent.io/types/post/status/v0.1.0'
-        post_attrs = Fabricate.build(:post).attributes.merge(
+        post_attrs = post_attributes.merge(
           :type => post_type,
           :mentions => [
             { :entity => subscribed_follower.entity },
@@ -69,21 +344,21 @@ describe TentD::Model::Post do
 
         it 'should return post' do
           returned_post = described_class.find_with_permissions(post.id, current_auth)
-          expect(returned_post).to eq(post)
+          expect(returned_post).to eql(post)
         end
 
       end
 
       context 'when has permission via group' do
         before do
-          group.permissions.create(:post_id => post.id)
+          TentD::Model::Permission.create(:group => group, :post => post)
           current_auth.groups = [group.public_id]
           current_auth.save
         end
 
         it 'should return post' do
           returned_post = described_class.find_with_permissions(post.id, current_auth)
-          expect(returned_post).to eq(post)
+          expect(returned_post).to eql(post)
         end
       end
 
@@ -107,7 +382,7 @@ describe TentD::Model::Post do
       p = Fabricate(:post)
       p.type = 'http://me.io/sometype/v0.1.0'
       p.save
-      expect(p.type_version).to eq('0.1.0')
+      expect(p.type_version).to eql('0.1.0')
 
       p.update type_version: '0.1.0'
 
@@ -116,7 +391,43 @@ describe TentD::Model::Post do
 
       p.type = 'http://mytype.io/v0.3.0'
       p.save
-      expect(p.type_version).to eq('0.3.0')
+      expect(p.type_version).to eql('0.3.0')
+    end
+  end
+
+  describe 'fetch_all' do
+    context 'when requested post types specifically allowed' do
+      it 'should return posts matching requested and allowed post types' do
+        status_type = 'https://tent.io/types/post/status/v0.1.0'
+        essay_type = 'https://tent.io/types/post/essay/v0.1.0'
+        status_post = Fabricate(:post, :type => status_type, :public => false)
+        essay_post = Fabricate(:post, :type => essay_type, :public => false)
+        params = Hashie::Mash.new(
+          :post_types => [status_type, essay_type].join(',')
+        )
+        current_auth = Hashie::Mash.new(
+          :post_types => [status_type]
+        )
+        res = TentD::Model::Post.fetch_all(params, current_auth)
+        expect(res.size).to eq(1)
+        expect(res.first.id).to eq(status_post.id)
+      end
+
+      it 'should return all posts matching requested types if public' do
+        status_type = 'https://tent.io/types/post/status/v0.1.0'
+        essay_type = 'https://tent.io/types/post/essay/v0.1.0'
+        status_post = Fabricate(:post, :type => status_type, :public => true)
+        essay_post = Fabricate(:post, :type => essay_type, :public => true)
+        params = Hashie::Mash.new(
+          :post_types => [status_type, essay_type].join(',')
+        )
+        current_auth = Hashie::Mash.new(
+          :post_types => [status_type]
+        )
+        res = TentD::Model::Post.fetch_all(params, current_auth)
+        expect(res.size).to eq(2)
+        expect(res.map(&:id).sort).to eq([status_post.id, essay_post.id].sort)
+      end
     end
   end
 
@@ -132,7 +443,7 @@ describe TentD::Model::Post do
       end
 
       it 'should order by received_at desc' do
-        TentD::Model::Post.all.destroy
+        TentD::Model::Post.destroy
         latest_post = Fabricate(:post, :public => !create_permissions, :received_at => Time.at(Time.now.to_i+86400)) # 1.day.from_now
         first_post = Fabricate(:post, :public => !create_permissions, :received_at => Time.at(Time.now.to_i-86400)) # 1.day.ago
 
@@ -141,12 +452,12 @@ describe TentD::Model::Post do
         end
 
         returned_post = described_class.fetch_with_permissions(params, current_auth)
-        expect(returned_post.map(&:public_id)).to eq([latest_post.public_id, first_post.public_id])
+        expect(returned_post.map(&:public_id)).to eql([latest_post.public_id, first_post.public_id])
       end
 
       context '[:since_id]' do
         it 'should only return posts with ids > :since_id' do
-          TentD::Model::Post.all.destroy!
+          TentD::Model::Post.destroy
           since_post = Fabricate(:post, :public => !create_permissions)
           post = Fabricate(:post, :public => !create_permissions)
 
@@ -157,13 +468,13 @@ describe TentD::Model::Post do
           params['since_id'] = since_post.id
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts).to eq([post])
+          expect(returned_posts).to eql([post])
         end
       end
 
       context '[:before_id]' do
         it 'should only return posts with ids < :before_id' do
-          TentD::Model::Post.all.destroy!
+          TentD::Model::Post.destroy
           post = Fabricate(:post, :public => !create_permissions)
           before_post = Fabricate(:post, :public => !create_permissions)
 
@@ -174,13 +485,13 @@ describe TentD::Model::Post do
           params['before_id'] = before_post.id
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts).to eq([post])
+          expect(returned_posts).to eql([post])
         end
       end
 
       context '[:since_time]' do
         it 'should only return posts with received_at > :since_time' do
-          TentD::Model::Post.all.destroy!
+          TentD::Model::Post.destroy
           since_post = Fabricate(:post, :public => !create_permissions,
                                  :received_at => Time.at(Time.now.to_i + (86400 * 10))) # 10.days.from_now
           post = Fabricate(:post, :public => !create_permissions,
@@ -193,12 +504,12 @@ describe TentD::Model::Post do
           params['since_time'] = since_post.received_at.to_time.to_i.to_s
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts).to eq([post])
+          expect(returned_posts).to eql([post])
         end
 
         context 'with [:order] = asc' do
           it 'should only return posts with received_at > :since_time in ascending order' do
-            TentD::Model::Post.all.destroy!
+            TentD::Model::Post.destroy
             since_post = Fabricate(:post, :public => !create_permissions,
                                    :received_at => Time.at(Time.now.to_i + (86400 * 10))) # 10.days.from_now
             post_a = Fabricate(:post, :public => !create_permissions,
@@ -216,13 +527,13 @@ describe TentD::Model::Post do
             params['order'] = 'asc'
 
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
-            expect(returned_posts).to eq([post_b])
+            expect(returned_posts).to eql([post_b])
           end
         end
 
         context 'with [:sort_by] = published_at' do
           it 'should only return posts with published_at > :since_time' do
-            TentD::Model::Post.all.destroy!
+            TentD::Model::Post.destroy
             since_post = Fabricate(:post, :public => !create_permissions,
                                    :published_at => Time.at(Time.now.to_i + (86400 * 10))) # 10.days.from_now
             post = Fabricate(:post, :public => !create_permissions,
@@ -236,14 +547,14 @@ describe TentD::Model::Post do
             params['sort_by'] = 'published_at'
 
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
-            expect(returned_posts).to eq([post])
+            expect(returned_posts).to eql([post])
           end
         end
       end
 
       context '[:before_time]' do
         it 'should only return posts with received_at < :before_time' do
-          TentD::Model::Post.all.destroy!
+          TentD::Model::Post.destroy
           post = Fabricate(:post, :public => !create_permissions,
                            :received_at => Time.at(Time.now.to_i - (86400 * 10))) # 10.days.ago
           before_post = Fabricate(:post, :public => !create_permissions,
@@ -256,12 +567,12 @@ describe TentD::Model::Post do
           params['before_time'] = before_post.received_at.to_time.to_i.to_s
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts).to eq([post])
+          expect(returned_posts).to eql([post])
         end
 
         context 'with [:sort_by] = published_at' do
           it 'should only return posts with published_at < :before_time' do
-            TentD::Model::Post.all.destroy!
+            TentD::Model::Post.destroy
             post = Fabricate(:post, :public => !create_permissions,
                              :published_at => Time.at(Time.now.to_i - (86400 * 10))) # 10.days.ago
             before_post = Fabricate(:post, :public => !create_permissions,
@@ -275,14 +586,14 @@ describe TentD::Model::Post do
             params['sort_by'] = 'published_at'
 
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
-            expect(returned_posts).to eq([post])
+            expect(returned_posts).to eql([post])
           end
         end
       end
 
       context '[:post_types]' do
         it 'should only return posts type in :post_types' do
-          TentD::Model::Post.all.destroy!
+          TentD::Model::Post.destroy
           photo_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/post/photo")
           blog_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/post/blog")
           status_post = Fabricate(:post, :public => !create_permissions, :type_base => "https://tent.io/types/post/status")
@@ -294,7 +605,7 @@ describe TentD::Model::Post do
           params['post_types'] = [blog_post, photo_post].map { |p| URI.escape(p.type.uri, "://") }.join(',')
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts.size).to eq(2)
+          expect(returned_posts.size).to eql(2)
           expect(returned_posts).to include(photo_post)
           expect(returned_posts).to include(blog_post)
         end
@@ -312,7 +623,7 @@ describe TentD::Model::Post do
           params['limit'] = limit.to_s
 
           returned_posts = described_class.fetch_with_permissions(params, current_auth)
-          expect(returned_posts.size).to eq(limit)
+          expect(returned_posts.size).to eql(limit)
         end
 
         it 'should never return more than TentD::API::MAX_PER_PAGE' do
@@ -327,7 +638,7 @@ describe TentD::Model::Post do
 
           with_constants "TentD::API::MAX_PER_PAGE" => 0 do
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
-            expect(returned_posts.size).to eq(0)
+            expect(returned_posts.size).to eql(0)
           end
         end
       end
@@ -343,7 +654,7 @@ describe TentD::Model::Post do
             end
 
             returned_posts = described_class.fetch_with_permissions(params, current_auth)
-            expect(returned_posts.size).to eq(limit)
+            expect(returned_posts.size).to eql(limit)
           end
         end
       end
@@ -430,7 +741,7 @@ describe TentD::Model::Post do
       else
         actual_value = post.send(k)
       end
-      expect(actual_value).to eq(v)
+      expect(actual_value).to eql(v)
     end
   end
 
@@ -455,7 +766,7 @@ describe TentD::Model::Post do
 
     examples = proc do
       it "should replace id with public_id" do
-        expect(post.as_json[:id]).to eq(post.public_id)
+        expect(post.as_json[:id]).to eql(post.public_id)
         expect(post.as_json).to_not have_key(:public_id)
       end
 
@@ -465,19 +776,42 @@ describe TentD::Model::Post do
 
       context 'without options' do
         it 'should only return public attributes' do
-          expect(post.as_json).to eq(public_attributes)
+          expect(post.as_json).to eql(public_attributes)
+        end
+
+        context 'when mentions exist' do
+          it 'should return public attributes with mentions' do
+            if post.kind_of?(TentD::Model::PostVersion)
+              mention = Fabricate(:mention, :mentioned_post_id => Fabricate(:post).id)
+              post.db[:post_versions_mentions].insert(
+                :mention_id => mention.id,
+                :post_version_id => post.id
+              )
+            else
+              mention = Fabricate(:mention, :post => post, :mentioned_post_id => Fabricate(:post).id)
+            end
+
+            res = post.as_json
+            mentions = res.delete(:mentions)
+            expected_attributes = public_attributes.dup
+            expected_attributes.delete(:mentions)
+
+            expect(res).to eq(expected_attributes)
+            expect(mentions.size).to eq(1)
+            expect(mentions.first).to eql({ :entity => mention.entity, :post => mention.mentioned_post_id })
+          end
         end
       end
 
       context 'with options[:permissions] = true' do
         let(:follower) { Fabricate(:follower) }
         let(:group) { Fabricate(:group) }
-        let(:entity_permission) { Fabricate(:permission, :follower_access => follower) }
-        let(:group_permission) { Fabricate(:permission, :group => group) }
-        let(:post) { Fabricate(:post, :permissions => [entity_permission, group_permission]) }
+        let(:post) { Fabricate(:post) }
+        let!(:entity_permission) { Fabricate(:permission, :follower_access => follower, :post => post) }
+        let!(:group_permission) { Fabricate(:permission, :group => group, :post => post) }
 
         it 'should return detailed permissions' do
-          expect(post.as_json(:permissions => true)).to eq(public_attributes.merge(
+          expect(post.as_json(:permissions => true)).to eql(public_attributes.merge(
             :permissions => {
               :public => post.public,
               :groups => [group.public_id],
@@ -492,7 +826,7 @@ describe TentD::Model::Post do
       context 'with options[:app] = true' do
         it 'should return app relevant data' do
           post.following = Fabricate(:following)
-          expect(post.as_json(:app => true)).to eq(public_attributes.merge(
+          expect(post.as_json(:app => true)).to eql(public_attributes.merge(
             :received_at => post.received_at.to_time.to_i,
             :updated_at => post.updated_at.to_time.to_i,
             :published_at => post.published_at.to_time.to_i,
@@ -504,7 +838,7 @@ describe TentD::Model::Post do
         it 'should return public attributes excluding specified keys' do
           expected_attributes = public_attributes.dup
           expected_attributes.delete(:published_at)
-          expect(post.as_json(:exclude => [:published_at])).to eq(expected_attributes)
+          expect(post.as_json(:exclude => [:published_at])).to eql(expected_attributes)
         end
       end
 
@@ -524,43 +858,62 @@ describe TentD::Model::Post do
             'baz' => 'FooBar'
           })
 
-          expect(post.as_json(:view => 'foo')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'foo')).to eql(public_attributes.merge(
             :content => {
               'bar' => { 'baz' => 'ChunkyBacon' }
             }
           ))
 
-          expect(post.as_json(:view => 'bar')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'bar')).to eql(public_attributes.merge(
             :content => {
               'foo' => { 'bar' => { 'baz' => 'ChunkyBacon' } },
               'baz' => 'FooBar'
             }
           ))
 
-          expect(post.as_json(:view => 'full')).to eq(public_attributes)
+          expect(post.as_json(:view => 'full')).to eql(public_attributes)
 
           expected_attributes = public_attributes.dup
           expected_attributes.delete(:content)
           expected_attributes.delete(:attachments)
-          expect(post.as_json(:view => 'meta')).to eq(expected_attributes)
+          expect(post.as_json(:view => 'meta')).to eql(expected_attributes)
         end
 
         it 'should filter attachments' do
-          first_attachment = Fabricate(:post_attachment,
-                                       :category => 'foo',
-                                       :type => 'text/plain',
-                                       :name => 'foobar.txt',
-                                       :data => 'Chunky Bacon',
-                                       :size => 4)
-          other_attachment = Fabricate(:post_attachment,
-                                       :category => 'bar',
-                                       :type => 'application/javascript',
-                                       :name => 'barbaz.js',
-                                       :data => 'alert("Chunky Bacon")',
-                                       :size => 8)
-          post.attachments << first_attachment
-          post.attachments << other_attachment
-          post.save
+          first_attachment = nil
+          other_attachment = nil
+
+          expect(lambda {
+            if post.kind_of?(TentD::Model::PostVersion)
+              base_attrs = {}
+            else
+              base_attrs = {
+                :post_id => post.id
+              }
+            end
+
+            first_attachment = Fabricate(:post_attachment, base_attrs.merge(
+                                         :category => 'foo',
+                                         :type => 'text/plain',
+                                         :name => 'foobar.txt',
+                                         :data => 'Chunky Bacon',
+                                         :size => 4))
+            other_attachment = Fabricate(:post_attachment, base_attrs.merge(
+                                         :category => 'bar',
+                                         :type => 'application/javascript',
+                                         :name => 'barbaz.js',
+                                         :data => 'alert("Chunky Bacon")',
+                                         :size => 8))
+
+            if post.kind_of?(TentD::Model::PostVersion)
+              [first_attachment, other_attachment].each do |a|
+                post.db[:post_versions_attachments].insert(
+                  :post_attachment_id => a.id,
+                  :post_version_id => post.id
+                )
+              end
+            end
+          }).to change(post.attachments_dataset, :count).by(2)
 
           post.update(:views => {
             'foo' => {
@@ -586,44 +939,47 @@ describe TentD::Model::Post do
             'baz' => 'FooBar'
           })
 
-          expect(post.as_json(:view => 'foo')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'foo')).to eql(public_attributes.merge(
             :attachments => [first_attachment],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'text')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'text')).to eql(public_attributes.merge(
             :attachments => [first_attachment],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'foobar')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'foobar')).to eql(public_attributes.merge(
             :attachments => [first_attachment],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'foojs')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'foojs')).to eql(public_attributes.merge(
             :attachments => [first_attachment, other_attachment],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'nothing')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'nothing')).to eql(public_attributes.merge(
             :attachments => [],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'invalid')).to eq(public_attributes.merge(
+          expect(post.as_json(:view => 'invalid')).to eql(public_attributes.merge(
             :attachments => [other_attachment],
             :content => {}
           ))
 
-          expect(post.as_json(:view => 'full')).to eq(public_attributes.merge(
-            :attachments => [first_attachment.as_json, other_attachment.as_json]
-          ))
+          expected = public_attributes
+          expected.delete(:attachments)
+          res = post.as_json(:view => 'full')
+          attachments = res.delete(:attachments)
+          expect(attachments.sort_by { |a| a[:id] }).to eql([first_attachment.as_json, other_attachment.as_json].sort_by { |a| a[:id] })
+          expect(res).to eql(expected)
 
           expected_attributes = public_attributes.dup
           expected_attributes.delete(:content)
           expected_attributes.delete(:attachments)
-          expect(post.as_json(:view => 'meta')).to eq(expected_attributes)
+          expect(post.as_json(:view => 'meta')).to eql(expected_attributes)
         end
       end
     end
@@ -641,14 +997,6 @@ describe TentD::Model::Post do
     post = Fabricate.build(:post)
     expect(post.save).to be_true
     expect(post.public_id).to_not be_nil
-  end
-
-  xit "should ensure public_id is unique" do
-    first_post = Fabricate(:post)
-    post = Fabricate.build(:post, :public_id => first_post.public_id)
-    post.save
-    expect(post).to be_saved
-    expect(post.public_id).to_not eq(first_post.public_id)
   end
 
   describe "can_notify?" do

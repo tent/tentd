@@ -15,14 +15,28 @@ describe TentD::API::Groups do
 
   let(:env) { Hash.new }
   let(:params) { Hash.new }
+  let(:current_user) { TentD::Model::User.current }
+  let(:other_user) { TentD::Model::User.create }
 
   describe 'GET /groups/count' do
     before { authorize!(:read_groups) }
     it 'should return number of groups' do
-      TentD::Model::Group.all.destroy
       Fabricate(:group)
+      Fabricate(:group, :user_id => other_user.id)
       json_get '/groups/count', params, env
       expect(last_response.body).to eq(1.to_json)
+    end
+  end
+
+  describe 'HEAD /groups' do
+    before { authorize!(:read_groups) }
+    it 'should return number of groups' do
+      Fabricate(:group)
+      Fabricate(:group)
+      Fabricate(:group, :user_id => other_user.id)
+      head '/groups', params, env
+      expect(last_response.status).to eq(200)
+      expect(last_response.headers['Count']).to eql('2')
     end
   end
 
@@ -32,15 +46,15 @@ describe TentD::API::Groups do
 
       it 'should return all groups' do
         Fabricate(:group, :name => 'chunky-bacon')
+        Fabricate(:group, :name => 'chunky-other', :user_id => other_user.id)
 
         with_constants "TentD::API::PER_PAGE" => TentD::Model::Group.count + 1 do
           json_get '/groups', params, env
-          expect(JSON.parse(last_response.body).size).to eq(TentD::Model::Group.count)
+          expect(JSON.parse(last_response.body).size).to eq(TentD::Model::Group.where(:user_id => current_user.id).count)
         end
       end
 
       it 'should order by id desc' do
-        TentD::Model::Group.all.destroy
         first_group = Fabricate(:group)
         last_group = Fabricate(:group)
 
@@ -52,7 +66,6 @@ describe TentD::API::Groups do
 
       context 'with params' do
         it 'should filter by before_id' do
-          TentD::Model::Group.all.destroy
           group = Fabricate(:group)
           before_group = Fabricate(:group)
 
@@ -98,6 +111,35 @@ describe TentD::API::Groups do
             expect(JSON.parse(last_response.body).size).to eq(0)
           end
         end
+
+        it 'should set pagination in header' do
+          group1 = Fabricate(:group)
+          group2 = Fabricate(:group)
+
+          with_constants "TentD::API::MAX_PER_PAGE" => 2 do
+            json_get "/groups", params, env
+            expect_pagination_header(last_response, {
+              :path => "/groups",
+              :next => {
+                :before_id => group1.public_id
+              },
+              :prev => {
+                :since_id => group2.public_id
+              }
+            })
+
+            head "/groups", params, env
+            expect_pagination_header(last_response, {
+              :path => "/groups",
+              :next => {
+                :before_id => group1.public_id
+              },
+              :prev => {
+                :since_id => group2.public_id
+              }
+            })
+          end
+        end
       end
     end
 
@@ -105,6 +147,7 @@ describe TentD::API::Groups do
       it 'should return 403' do
         get '/groups', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -122,6 +165,16 @@ describe TentD::API::Groups do
       it "should render 404 if :id doesn't exist" do
         get "/groups/invalid-id", params, env
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+      end
+
+      context 'when group belongs to another user' do
+        it 'should return 404' do
+          group = Fabricate(:group, :user_id => other_user.id)
+          get "/groups/#{group.public_id}", params, env
+          expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+        end
       end
     end
 
@@ -129,6 +182,7 @@ describe TentD::API::Groups do
       it 'should return 403' do
         get '/groups/group-id', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -150,6 +204,16 @@ describe TentD::API::Groups do
       it 'should return 404 unless group with :id exists' do
         json_put '/groups/invalid-id', params, env
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+      end
+
+      context 'when group belongs to another user' do
+        it 'should return 404' do
+          group = Fabricate(:group, :user_id => other_user.id)
+          json_put "/groups/#{group.public_id}", group, env
+          expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+        end
       end
     end
 
@@ -157,6 +221,7 @@ describe TentD::API::Groups do
       it 'should return 403' do
         json_put '/groups/group-id', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -167,19 +232,28 @@ describe TentD::API::Groups do
 
       it 'should create group' do
         expect(lambda { json_post "/groups", { :name => 'bacon-bacon' }, env }).
-          to change(TentD::Model::Group, :count).by(1)
+          to change(TentD::Model::Group.where(:user_id => current_user.id), :count).by(1)
+      end
+
+      it 'should return existing group when public_id taken' do
+        group = Fabricate(:group)
+        expect(lambda {
+          json_post "/groups", { :name => 'bacon-bacon', :public_id => group.public_id }, env
+          expect(last_response.status).to eq(200)
+          expect(Yajl::Parser.parse(last_response.body)['id']).to eq(group.public_id)
+        }).to_not change(TentD::Model::Group.where(:user_id => current_user.id), :count)
       end
 
       it 'should create group with specified public_id' do
-        TentD::Model::Group.all.destroy!
+        TentD::Model::Group.destroy
         data = {
           :id => 'public-id',
           :name => 'bacon-bacon'
         }
         expect(lambda { json_post "/groups", data, env }).
-          to change(TentD::Model::Group, :count).by(1)
+          to change(TentD::Model::Group.where(:user_id => current_user.id), :count).by(1)
 
-        group = TentD::Model::Group.last
+        group = TentD::Model::Group.order(:id.asc).last
         expect(group.name).to eq(data[:name])
         expect(group.public_id).to eq(data[:id])
       end
@@ -189,6 +263,7 @@ describe TentD::API::Groups do
       it 'should return 403' do
         json_post '/groups', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end
@@ -201,6 +276,10 @@ describe TentD::API::Groups do
         group = Fabricate(:group, :name => 'foo-bar-baz')
         expect(lambda { delete "/groups/#{group.public_id}", params, env }).
           to change(TentD::Model::Group, :count).by(-1)
+
+        deleted_group = TentD::Model::Group.unfiltered.first(:id => group.id)
+        expect(deleted_group).to_not be_nil
+        expect(deleted_group.deleted_at).to_not be_nil
       end
 
       it 'should returh 404 if group does not exist' do
@@ -208,6 +287,18 @@ describe TentD::API::Groups do
         expect(lambda { delete "/groups/invalid-id", params, env }).
           to change(TentD::Model::Group, :count).by(0)
         expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+      end
+
+      context 'when group belongs to another user' do
+        let!(:group) { Fabricate(:group, :user_id => other_user.id) }
+
+        it 'should return 404' do
+          expect(lambda { delete "/groups/#{group.public_id}", params, env }).
+            to change(TentD::Model::Group, :count).by(0)
+          expect(last_response.status).to eq(404)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+        end
       end
     end
 
@@ -215,6 +306,7 @@ describe TentD::API::Groups do
       it 'should return 403' do
         delete '/groups/group-id', params, env
         expect(last_response.status).to eq(403)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
   end

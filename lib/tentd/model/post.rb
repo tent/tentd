@@ -2,93 +2,45 @@ require 'securerandom'
 
 module TentD
   module Model
-    class Post
-      include DataMapper::Resource
-      include Permissible
-      include PermissiblePost
+    class Post < Sequel::Model(:posts)
+      DELETED_POST_TYPE = TentType.new('https://tent.io/types/post/delete/v0.1.0')
+
       include RandomPublicId
       include Serializable
       include TypeProperties
-      include UserScoped
+      include Permissible
+      include PermissiblePost
 
-      storage_names[:default] = "posts"
+      plugin :paranoia
+      plugin :serialization
+      serialize_attributes :pg_array, :licenses
+      serialize_attributes :json, :content, :views
 
-      property :id, Serial
-      property :entity, Text, :lazy => false, :unique_index => :upublic_id
-      property :public, Boolean, :default => false
-      property :licenses, Array, :default => []
-      property :content, Json, :default => {}
-      property :views, Json, :default => {}
-      property :published_at, DateTime, :default => lambda { |*args| Time.now }
-      property :received_at, DateTime, :default => lambda { |*args| Time.now }
-      property :updated_at, DateTime
-      property :deleted_at, ParanoidDateTime
-      property :app_name, Text, :lazy => false
-      property :app_url, Text, :lazy => false
-      property :original, Boolean, :default => false
+      one_to_many :permissions
+      one_to_many :attachments, :class => 'TentD::Model::PostAttachment'
+      one_to_many :mentions
+      one_to_many :versions, :class => 'TentD::Model::PostVersion'
 
-      has n, :permissions, 'TentD::Model::Permission', :constraint => :destroy
-      has n, :attachments, 'TentD::Model::PostAttachment', :constraint => :destroy
-      has n, :mentions, 'TentD::Model::Mention', :constraint => :destroy
-      belongs_to :app, 'TentD::Model::App', :required => false
-      belongs_to :following, 'TentD::Model::Following', :required => false
+      many_to_one :app
+      many_to_one :following
+      many_to_one :user
 
-      has n, :versions, 'TentD::Model::PostVersion', :constraint => :destroy
-
-      after :create, :create_version!
-
-      def create_version!(post = self)
-        attrs = post.attributes
-        attrs.delete(:id)
-        latest = post.versions.all(:order => :version.desc, :fields => [:version]).first
-        attrs[:version] = latest ? latest.version + 1 : 1
-        version = post.versions.create(attrs)
+      def before_create
+        self.public_id ||= random_id
+        self.user_id ||= User.current.id
+        self.received_at ||= Time.now
+        self.published_at ||= Time.now
+        super
       end
 
-      def latest_version(options = {})
-        versions.all({ :order => :version.desc }.merge(options)).first
+      def before_save
+        self.updated_at = Time.now
+        super
       end
 
-      def update(data)
-        mentions = data.delete(:mentions)
-        last_version = latest_version(:fields => [:id])
-        res = super(data)
-
-        create_version! # after update hook doe not fire
-
-        current_version = latest_version(:fields => [:id])
-
-        if mentions.to_a.any?
-          Mention.all(:post_id => self.id).update(:post_id => nil, :post_version_id => last_version.id)
-          mentions.each do |mention|
-            next unless mention[:entity]
-            self.mentions.create(:entity => mention[:entity], :mentioned_post_id => mention[:post], :original_post => self.original, :post_version_id => current_version.id)
-          end
-        end
-
-        res
-      end
-
-      def self.create(data, options={})
-        data[:published_at] = Time.at(data[:published_at].to_time.to_i / 1000) if data[:published_at] && ((data[:published_at].to_time.to_i - Time.now.to_i) > 1000000000)
-        mentions = data.delete(:mentions)
-        post = super(data)
-
-        mentions.to_a.each do |mention|
-          next unless mention[:entity]
-          post.mentions.create(:entity => mention[:entity], :mentioned_post_id => mention[:post], :original_post => post.original, :post_version_id => post.latest_version(:fields => [:id]).id)
-        end
-
-        if post.mentions.to_a.any? && post.original && !options[:dont_notify_mentions]
-          post.mentions.each do |mention|
-            follower = Follower.first(:entity => mention.entity)
-            next if follower && NotificationSubscription.first(:follower => follower, :type_base => post.type.base)
-
-            Notifications.notify_entity(:entity => mention.entity, :post_id => post.id)
-          end
-        end
-
-        post
+      def after_create
+        create_version!
+        super
       end
 
       def self.public_attributes
@@ -100,25 +52,171 @@ module TentD
       end
 
       def self.propagate_entity(user_id, entity, old_entity = nil)
-        Post.all(:original => true, :user_id => user_id).update(:entity => entity)
-        Mention.all(:entity => old_entity).update(:entity => entity) if old_entity
+        where(:original => true, :user_id => user_id).update(:entity => entity)
+        Mention.from(:mentions, :posts).where(:posts__user_id => user_id, :mentions__entity => old_entity).update(:entity => entity) if old_entity
+      end
+
+      def self.create(data, options={})
+        if data[:published_at] && ((data[:published_at].to_time.to_i - Time.now.to_i) > 1000000000)
+          # time given in milliseconds instead of seconds
+          data[:published_at] = Time.at(data[:published_at].to_time.to_i / 1000) 
+        end
+
+        mentions = data.delete(:mentions)
+        post = super(data)
+
+        mentions.to_a.uniq.each do |mention|
+          next unless mention[:entity]
+          mention = Mention.create(
+            :post_id => post.id,
+            :entity => mention[:entity],
+            :mentioned_post_id => mention[:post],
+            :original_post => post.original,
+          )
+          mention.db[:post_versions_mentions].insert(
+            :post_version_id => post.latest_version(:fields => [:id]).id,
+            :mention_id => mention.id
+          )
+        end
+
+        if post.mentions_dataset.any? && post.original && !options[:dont_notify_mentions]
+          post.notify_mentions
+        end
+
+        post
+      end
+
+      def update(data, attachments = nil)
+        mentions = data.delete(:mentions)
+        last_version = latest_version(:fields => [:id])
+
+        res = super(data)
+        create_version!
+
+        current_version = latest_version(:fields => [:id])
+
+        if mentions_dataset.any?
+          query = <<SQL
+          INSERT INTO post_versions_mentions (mention_id, post_version_id)
+          SELECT mentions.id AS mention_id, ? AS post_version_id
+          FROM mentions
+          WHERE mentions.post_id = ?;
+SQL
+          mentions_dataset.db[:post_versions_mentions].with_sql(query, latest_version.id, id).insert
+          mentions_dataset.where(:post_id => id).count
+          mentions_dataset.update(:post_id => nil)
+          mentions.to_a.each do |mention|
+            next unless mention[:entity]
+            m = Mention.create(
+              :post_id => self.id,
+              :entity => mention[:entity],
+              :mentioned_post_id => mention[:post],
+              :original_post => self.original,
+            )
+            Mention.db[:post_versions_mentions].insert(
+              :mention_id => m.id,
+              :post_version_id => current_version.id
+            )
+          end
+        end
+
+        res
+      end
+
+      def notify_mentions(post_id = self.id)
+        mentions.each do |mention|
+          follower = Follower.first(:user_id => User.current.id, :entity => mention.entity)
+          next if follower && NotificationSubscription.first(:user_id => User.current.id, :follower => follower, :type_base => self.type.base)
+
+          Notifications.notify_entity(:entity => mention.entity, :post_id => post_id)
+        end
+      end
+
+      def public_mentions(params = {})
+        sql = []
+        sql_bindings = []
+
+        sql << "SELECT mentions.*, mentioned_posts.type_base, mentioned_posts.type_version FROM mentions"
+        sql << "INNER JOIN posts ON posts.id = mentions.post_id"
+        sql << "INNER JOIN posts AS mentioned_posts ON (mentioned_posts.public_id = mentions.mentioned_post_id AND mentioned_posts.entity = mentions.entity)"
+
+        sql << "WHERE posts.id = ?"
+        sql_bindings << id
+
+        sql << "AND posts.user_id = ?"
+        sql_bindings << user_id
+
+        sql << "AND mentioned_posts.user_id = ?"
+        sql_bindings << user_id
+
+        sql << "AND mentioned_posts.public = ?"
+        sql_bindings << true
+
+        if params.has_key?(:before_id)
+          sql << "AND mentioned_posts.id < ?"
+          sql_bindings << params[:before_id]
+        end
+
+        if params.has_key?(:since_id)
+          sql << "AND mentioned_posts.id > ?"
+          sql_bindings << params[:since_id]
+        end
+
+        if params[:post_types]
+          sql << "AND mentioned_posts.type_base IN ?"
+          sql_bindings << params[:post_types].split(',').map { |uri| TentType.new(uri).base }
+        end
+
+        sql << "ORDER BY mentioned_posts.id"
+
+        sql << "LIMIT ?"
+        sql_bindings << [(params[:limit] ? params[:limit].to_i : API::PER_PAGE), API::MAX_PER_PAGE].min
+
+        sql = sql.join(' ')
+
+        query = Mention.with_sql(sql, *sql_bindings)
+        params[:return_count] ? query.count : query.all
+      end
+
+      def latest_version(options = {})
+        q = versions_dataset
+        if fields = options.delete(:fields)
+          q = q.select(*fields)
+        end
+        q.order(:version.desc).first(options)
+      end
+
+      def create_version!(post = self)
+        attrs = post.attributes
+        attrs.delete(:id)
+        latest = post.versions_dataset.select(:version).order(:version.desc).first
+        attrs[:version] = latest ? latest.version + 1 : 1
+        version = PostVersion.create(attrs.merge(:post_id => post.id))
       end
 
       def can_notify?(app_or_follow)
         return true if public && original
         case app_or_follow
         when AppAuthorization
-          app_or_follow.scopes && app_or_follow.scopes.map(&:to_sym).include?(:read_posts) ||
-          app_or_follow.post_types && app_or_follow.post_types.include?(type.base)
+          (app_or_follow.scopes && app_or_follow.scopes.map(&:to_sym).include?(:read_posts)) ||
+          (app_or_follow.post_types && app_or_follow.post_types.include?(type.base))
         when Follower
           return false unless original
-          q = permissions.all(:follower_access_id => app_or_follow.id)
-          q += permissions.all(:group_public_id => app_or_follow.groups) if app_or_follow.groups.any?
+          q = permissions_dataset
+          if app_or_follow.groups.any?
+            q = q.where({ :follower_access_id => app_or_follow.id, :group_public_id => app_or_follow.groups }.sql_or)
+          else
+            q = q.where(:follower_access_id => app_or_follow.id)
+          end
           q.any?
         when Following
           return false unless original
-          q = permissions.all(:following => app_or_follow)
-          q += permissions.all(:group_public_id => app_or_follow.groups) if app_or_follow.groups.any?
+          q = permissions_dataset
+          if app_or_follow.groups.any?
+            q = q.where({ :following => app_or_follow, :group_public_id => app_or_follow.groups }.sql_or)
+          else
+            q = q.where(:following => app_or_follow)
+          end
           q.any?
         else
           false

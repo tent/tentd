@@ -20,6 +20,8 @@ module TentD
     autoload :Authorizable, 'tentd/api/authorizable'
     autoload :Router, 'tentd/api/router'
     autoload :Middleware, 'tentd/api/middleware'
+    autoload :PaginationHeader, 'tentd/api/pagination_header'
+    autoload :CountHeader, 'tentd/api/count_header'
     include Router
 
     mount Apps

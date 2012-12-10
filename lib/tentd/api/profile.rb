@@ -17,10 +17,17 @@ module TentD
         end
       end
 
+      class GetOne < Middleware
+        def action(env)
+          env.response = Model::ProfileInfo.get_profile_type(env.params.delete(:type_uri), env.params, env.authorized_scopes, env.current_auth)
+          env
+        end
+      end
+
       class Update < Middleware
         def action(env)
           data = env.params.data
-          type = URI.unescape(env.params.type_url)
+          type = URI.unescape(env.params.type_uri)
           raise Unauthorized unless ['all', type].find { |t| env.current_auth.profile_info_types.include?(t) }
           env.updated_info = Model::ProfileInfo.update_profile(type, data)
           env
@@ -45,11 +52,15 @@ module TentD
         b.use Get
       end
 
-      put '/profile/:type_url' do |b|
+      put '/profile/:type_uri' do |b|
         b.use AuthorizeWrite
         b.use Update
         b.use Get
         b.use Notify
+      end
+
+      get '/profile/:type_uri' do |b|
+        b.use GetOne
       end
     end
   end

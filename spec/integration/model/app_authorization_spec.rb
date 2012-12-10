@@ -2,16 +2,45 @@ require 'spec_helper'
 
 describe TentD::Model::AppAuthorization do
   let(:app_authorization) { Fabricate(:app_authorization, :app => Fabricate(:app)) }
+  let(:current_user) { TentD::Model::User.current }
+  let(:other_user) { TentD::Model::User.create }
 
   describe '.follow_url' do
+    let(:entity) { 'https://johndoe.example.org' }
+
     it 'should find app authorization with follow_ui scope and follow_url' do
       Fabricate(:app_authorization, :app => Fabricate(:app), :scopes => %w{ follow_ui }, :follow_url => 'https://follow.example.org/awesome-ui')
       app_auth = Fabricate(:app_authorization, :app => Fabricate(:app), :scopes => %w{ read_posts follow_ui write_posts }, :follow_url => 'https://follow.example.com')
-      entity = 'https://johndoe.example.org'
 
       follow_url = described_class.follow_url(entity)
-      expect(follow_url).to eq("#{app_auth.follow_url}?entity=#{URI.encode_www_form_component(entity)}")
+      expect(follow_url).to eql("#{app_auth.follow_url}?entity=#{URI.encode_www_form_component(entity)}")
     end
+
+    it 'should not find app authorization with follow_ui scope for another user' do
+      app_auth = Fabricate(:app_authorization, :app => Fabricate(:app, :user_id => other_user.id), :scopes => %w{ read_posts follow_ui write_posts }, :follow_url => 'https://follow.example.com')
+
+      follow_url = described_class.follow_url(entity)
+      expect(follow_url).to be_nil
+    end
+  end
+
+  it 'should only allow a single app authorization to have a follow_url' do
+    app = Fabricate(:app)
+
+    auth = Fabricate(:app_authorization,
+      :app => app,
+      :follow_url => 'https://example.com/ui',
+      :scopes => %w( follow_ui )
+    )
+
+    auth2 = Fabricate(:app_authorization,
+      :app => app,
+      :follow_url => 'https://example.com/ui2',
+      :scopes => %w( follow_ui )
+    )
+
+    expect(auth.reload.scopes).to be_empty
+    expect(auth2.reload.scopes).to eql(['follow_ui'])
   end
 
   describe '#as_json' do
@@ -31,13 +60,13 @@ describe TentD::Model::AppAuthorization do
       let(:options) { { :app => true } }
 
       it 'should return everything except mac stuff' do
-        expect(app_authorization.as_json(options)).to eq(app_attributes)
+        expect(app_authorization.as_json(options)).to eql(app_attributes)
       end
 
       context 'and options[:authorization_token]' do
         before { options[:authorization_token] = true }
         it 'should return token code' do
-          expect(app_authorization.as_json(options)).to eq(app_attributes.merge(
+          expect(app_authorization.as_json(options)).to eql(app_attributes.merge(
             :token_code => app_authorization.token_code
           ))
         end
@@ -47,7 +76,7 @@ describe TentD::Model::AppAuthorization do
         before { options[:mac] = true }
 
         it 'should return mac stuff' do
-          expect(app_authorization.as_json(options)).to eq(app_attributes.merge(
+          expect(app_authorization.as_json(options)).to eql(app_attributes.merge(
             :mac_key_id => app_authorization.mac_key_id,
             :mac_key => app_authorization.mac_key,
             :mac_algorithm => app_authorization.mac_algorithm

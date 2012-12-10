@@ -3,54 +3,68 @@ require 'securerandom'
 
 module TentD
   module Model
-    class Follower
-      include DataMapper::Resource
-      include Permissible
+    class Follower < Sequel::Model(:followers)
       include RandomPublicId
       include Serializable
-      include UserScoped
+      include Permissible
 
-      storage_names[:default] = 'followers'
+      plugin :paranoia
+      plugin :serialization
+      serialize_attributes :pg_array, :groups, :licenses
+      serialize_attributes :json, :profile
 
-      property :id, Serial
-      property :groups, Array, :lazy => false, :default => []
-      property :entity, Text, :required => true, :lazy => false
-      property :public, Boolean, :default => true
-      property :profile, Json, :default => {}
-      property :licenses, Array, :lazy => false, :default => []
-      property :notification_path, Text, :lazy => false, :required => true
-      property :mac_key_id, String, :default => lambda { |*args| 's:' + SecureRandom.hex(4) }, :unique => true
-      property :mac_key, String, :default => lambda { |*args| SecureRandom.hex(16) }
-      property :mac_algorithm, String, :default => 'hmac-sha-256'
-      property :mac_timestamp_delta, Integer
-      property :created_at, DateTime
-      property :updated_at, DateTime
-      property :deleted_at, ParanoidDateTime
-
-      has n, :notification_subscriptions, 'TentD::Model::NotificationSubscription', :constraint => :destroy
+      one_to_many :notification_subscriptions
 
       # permissions describing who can see them
-      has n, :visibility_permissions, 'TentD::Model::Permission', :child_key => [ :follower_visibility_id ], :constraint => :destroy
+      one_to_many :visibility_permissions, :key => :follower_visibility_id, :class => 'TentD::Model::Permission'
 
       # permissions describing what they have access to
-      has n, :access_permissions, 'TentD::Model::Permission', :child_key => [ :follower_access_id ], :constraint => :destroy
+      one_to_many :access_permissions, :key => :follower_access_id, :class => 'TentD::Model::Permission'
+
+      def before_create
+        self.public_id ||= random_id
+        self.mac_key_id ||= 's:' + SecureRandom.hex(4)
+        self.mac_key ||= SecureRandom.hex(16)
+        self.mac_algorithm ||= 'hmac-sha-256'
+        self.user_id ||= User.current.id
+        self.created_at = Time.now
+        super
+      end
+
+      def before_save
+        self.updated_at = Time.now
+        super
+      end
+
+      def permissible_foreign_key
+        :follower_access_id
+      end
+
+      def self.public_attributes
+        [:entity, :created_at]
+      end
 
       def self.create_follower(data, authorized_scopes = [])
-        if existing_followers = all(:entity => data.entity)
-          existing_followers.destroy
+        if follower = where(:entity => data.entity).order(:id.desc).first
+          follower.update(:mac_key => SecureRandom.hex(16))
+        else
+          if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
+            follower = create(data.slice(:public_id, :entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
+            if data.permissions
+              follower.assign_permissions(data.permissions)
+            end
+          else
+            follower = create(data.slice('entity', 'licenses', 'profile', 'notification_path'))
+          end
+
+          (data.types || ['all']).each do |type_url|
+            NotificationSubscription.create(
+              :follower => follower,
+              :type => type_url
+            )
+          end
         end
 
-        if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
-          follower = create(data.slice(:public_id, :entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
-          if data.permissions
-            follower.assign_permissions(data.permissions, :visibility_permissions)
-          end
-        else
-          follower = create(data.slice('entity', 'licenses', 'profile', 'notification_path'))
-        end
-        (data.types || ['all']).each do |type_url|
-          follower.notification_subscriptions.create(:type => type_url)
-        end
         follower
       end
 
@@ -67,9 +81,12 @@ module TentD
         end
         follower.update(data.slice(*whitelist))
         if data['types']
-          follower.notification_subscriptions.destroy
+          follower.notification_subscriptions_dataset.destroy
           data['types'].each do |type_url|
-            follower.notification_subscriptions.create(:type => type_url)
+            NotificationSubscription.create(
+              :follower_id => follower.id,
+              :type => type_url
+            )
           end
         end
         follower
@@ -77,10 +94,6 @@ module TentD
 
       def self.update_entity(follower_id)
         first(:id => follower_id).update_entity
-      end
-
-      def self.public_attributes
-        [:entity]
       end
 
       def update_entity
@@ -98,12 +111,16 @@ module TentD
       end
 
       def propagate_entity(new_entity, old_entity)
-        Post.all(:entity => old_entity, :original => false).update(:entity => entity)
-        Mention.all(:entity => old_entity, :original_post => false).update(:entity => entity)
+        Post.where(:user_id => user_id, :entity => old_entity, :original => false).update(:entity => entity)
+        Mention.from(:mentions, :posts).where(:posts__user_id => user_id, :mentions__entity => old_entity).update(:entity => entity)
       end
 
-      def permissible_foreign_key
-        :follower_access_id
+      def public?
+        !!self.public
+      end
+
+      def auth_details
+        attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
       end
 
       def core_profile
@@ -114,17 +131,13 @@ module TentD
         core_profile.servers
       end
 
-      def auth_details
-        attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
-      end
-
       def as_json(options = {})
         attributes = super
 
         attributes.merge!(:profile => profile) if options[:app]
 
         if options[:app] || options[:self]
-          types = notification_subscriptions.all.map { |s| s.type.uri }
+          types = notification_subscriptions.map { |s| s.type.uri }
           attributes.merge!(:licenses => licenses, :types => types, :notification_path => notification_path)
         end
 

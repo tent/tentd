@@ -6,7 +6,7 @@ module TentD
       class GetActualId < Middleware
         def action(env)
           if env.params.app_id
-            if app = Model::App.first(:public_id => env.params.app_id)
+            if app = Model::App.first(:user_id => Model::User.current.id, :public_id => env.params.app_id)
               env.params.app_id = app.id
             else
               env.params.app_id = nil
@@ -14,7 +14,7 @@ module TentD
           end
 
           if env.params.auth_id
-            if app_auth = Model::AppAuthorization.first(:public_id => env.params.auth_id)
+            if app_auth = Model::AppAuthorization.qualify.join(:apps, :apps__id => :app_authorizations__app_id).first(:apps__user_id => Model::User.current.id, :app_authorizations__public_id => env.params.auth_id)
               env.params.auth_id = app_auth.id
             else
               env.params.auth_id = nil
@@ -61,7 +61,7 @@ module TentD
 
       class GetAll < Middleware
         def action(env)
-          env.response = Model::App.all
+          env.response = Model::App.where(:user_id => Model::User.current.id).all
           env
         end
       end
@@ -97,14 +97,14 @@ module TentD
             end
           end
 
-          if app = Model::App.first(:id => env.params.app_id)
+          if app = Model::App.first(:user_id => Model::User.current.id, :id => env.params.app_id)
             env.authorized_scopes << :authorization_token
 
             data = env.params.data
             data.post_types = data.post_types.to_a.map { |url| URI.decode(url) }
             data.profile_info_types = data.profile_info_types.to_a.map { |url| URI.decode(url) }
             data.public_id = data.id if data.id
-            authorization = app.authorizations.create_from_params(data.slice(
+            attributes = data.slice(
               :post_types,
               :profile_info_types,
               :scopes,
@@ -116,7 +116,8 @@ module TentD
               :public_id
             ).merge(
               :app_id => env.params.app_id
-            ))
+            )
+            authorization = Model::AppAuthorization.create_from_params(attributes)
             env.response = authorization
           end
           env
@@ -125,8 +126,12 @@ module TentD
 
       class AuthorizationTokenExchange < Middleware
         def action(env)
-          if authorization = Model::AppAuthorization.first(:app_id => env.params.app_id, :token_code => env.params.data.code)
-            env.response = authorization.token_exchange!
+          authorization = Model::AppAuthorization.where(
+            :app_id => env.params.app_id,
+            :token_code => env.params.data.code
+          ).where("expires_at IS NULL OR expires_at > ?", Time.now.to_i).first
+          if authorization
+            env.response = authorization.token_exchange!(env.params.data.slice(:tent_expires_at))
           else
             raise Unauthorized
           end
@@ -156,7 +161,7 @@ module TentD
 
       class Destroy < Middleware
         def action(env)
-          if (app = Model::App.get(env.params.app_id)) && app.destroy
+          if (app = Model::App.first(:id => env.params.app_id)) && app.destroy
             env.response = ''
           end
           env
