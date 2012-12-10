@@ -163,7 +163,7 @@ SQL
         end
 
         if params[:post_types]
-          sql << "AND mentioned_posts.type_base IN(?)"
+          sql << "AND mentioned_posts.type_base IN ?"
           sql_bindings << params[:post_types].split(',').map { |uri| TentType.new(uri).base }
         end
 
