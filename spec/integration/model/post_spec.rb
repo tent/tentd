@@ -135,120 +135,104 @@ describe TentD::Model::Post do
   end
 
   describe '#public_mentions' do
-    let!(:post) { Fabricate(:post) }
+    let!(:post) { Fabricate(:post, :public => true) }
 
-    let!(:known_mentioned_entity) { 'https://known.example.com' }
-    let!(:known_mentioned_post) { Fabricate(:post, :public => true, :entity => known_mentioned_entity) }
-    let!(:known_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => known_mentioned_post.public_id, :entity => known_mentioned_post.entity) }
+    let!(:known_post) { Fabricate(:post, :public => true, :original => false) }
+    let!(:known_mention) { Fabricate(:mention, :post_id => known_post.id, :mentioned_post_id => post.public_id, :entity => post.entity) }
 
-    let(:known_private_mentioned_entity) { 'https://known_private.example.com' }
-    let(:known_private_mentioned_post) { Fabricate(:post, :public => false, :entity => known_private_mentioned_entity) }
-    let(:known_private_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => known_private_mentioned_post.public_id, :entity => known_private_mentioned_post.entity) }
+    let!(:known_private_post) { Fabricate(:post, :public => false, :original => false) }
+    let!(:known_private_mention) { Fabricate(:mention, :post_id => known_private_post.id, :mentioned_post_id => post.public_id, :entity => post.entity) }
 
-    let(:unknown_mentioned_entity) { 'https://unknown.example.com' }
-    let(:unknown_mentioned_post) { Fabricate(:post, :public => true, :entity => unknown_mentioned_entity, :user_id => other_user.id) }
-    let(:unknown_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => unknown_mentioned_post.public_id, :entity => unknown_mentioned_post.entity) }
+    let!(:unknown_post) { Fabricate(:post, :public => true, :original => false, :user_id => other_user.id) }
+    let!(:unknown_mention) { Fabricate(:mention, :post_id => unknown_post.id, :mentioned_post_id => post.public_id, :entity => post.entity) }
 
-    it 'should return mentions referencing known public posts' do
-      known_private_mention # create
-      unknown_mention # create
-      expect(post.mentions_dataset.count > 1).to be_true
+    let!(:other_known_post_type) { 'https://tent.io/types/post/photo/v0.1.0' }
+    let!(:other_known_post) { Fabricate(:post, :public => true, :original => false, :type => other_known_post_type) }
+    let!(:other_known_mention) { Fabricate(:mention, :post_id => other_known_post.id, :mentioned_post_id => post.public_id, :entity => post.entity) }
 
-      public_mentions = post.public_mentions
-      expect(public_mentions.size).to eql(1)
-      mention = public_mentions.first
-      expect(mention.id).to eql(known_mention.id)
-    end
+    it 'should return public mentions of post' do
+      mentions = post.public_mentions
+      expect(mentions.size).to eql(2)
 
-    it 'should serialize with entity, post, and type properties' do
-      public_mentions = post.public_mentions
-      expect(public_mentions.size).to eql(1)
-      mention = public_mentions.first
-      expect(mention.id).to eql(known_mention.id)
-
-      expect(mention[:type_base]).to eql(known_mentioned_post.type_base)
-      expect(mention[:type_version]).to eql(known_mentioned_post.type_version)
-      expect(mention.as_json).to eql(
-        :entity => mention.entity,
-        :post => mention.mentioned_post_id,
-        :type => "#{mention[:type_base]}/v#{mention[:type_version]}"
-      )
-    end
-
-    it 'should return API::PER_PAGE mentions' do
-      with_constants "TentD::API::PER_PAGE" => 0 do
-        public_mentions = post.public_mentions
-        expect(public_mentions.size).to eql(0)
-      end
-    end
-
-    it 'should return at most API::MAX_PER_PAGE mentions' do
-      with_constants "TentD::API::MAX_PER_PAGE" => 0 do
-        public_mentions = post.public_mentions
-        expect(public_mentions.size).to eql(0)
-      end
+      expect(mentions.map(&:as_json)).to eql([
+        {
+          :entity => known_post.entity,
+          :post => known_post.public_id,
+          :type => known_post.type.uri
+        },
+        {
+          :entity => other_known_post.entity,
+          :post => other_known_post.public_id,
+          :type => other_known_post.type.uri
+        }
+      ])
     end
 
     context 'with params' do
-      let(:other_known_mentioned_post_type) { 'https://tent.io/types/post/photo/v0.1.0' }
-      let(:other_known_mentioned_entity) { 'https://other_known.example.com' }
-      let(:other_known_mentioned_post) { Fabricate(:post, :public => true, :entity => other_known_mentioned_entity, :type => other_known_mentioned_post_type) }
-      let(:other_known_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => other_known_mentioned_post.public_id, :entity => other_known_mentioned_post.entity) }
+      context '[:before_id]' do
+        it 'should return mentions where post id < :before_id' do
+          mentions = post.public_mentions(:before_id => other_known_post.id)
+          expect(mentions.size).to eql(1)
 
-      let(:other_known_mentioned_post_type_2) { 'https://tent.io/types/post/essay/v0.1.0' }
-      let(:other_known_mentioned_entity_2) { 'https://other_known2.example.com' }
-      let(:other_known_mentioned_post_2) { Fabricate(:post, :public => true, :entity => other_known_mentioned_entity_2, :type => other_known_mentioned_post_type_2) }
-      let(:other_known_mention_2) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => other_known_mentioned_post_2.public_id, :entity => other_known_mentioned_post_2.entity) }
-
-      it 'should return [:limit] mentions' do
-        public_mentions = post.public_mentions(:limit => 0)
-        expect(public_mentions.size).to eql(0)
+          expect(mentions.map(&:as_json)).to eql([
+            {
+              :entity => known_post.entity,
+              :post => known_post.public_id,
+              :type => known_post.type.uri
+            }
+          ])
+        end
       end
 
-      it 'should return mentions with post_id < [:before_id]' do
-        other_known_mention # create
+      context '[:since_id]' do
+        it 'should return mentions where post id > :since_id' do
+          mentions = post.public_mentions(:since_id => known_post.id)
+          expect(mentions.size).to eql(1)
 
-        public_mentions = post.public_mentions(:before_id => other_known_mentioned_post.id)
-        expect(public_mentions.size).to eql(1)
-        expect(public_mentions.first.id).to eql(known_mention.id)
+          expect(mentions.map(&:as_json)).to eql([
+            {
+              :entity => other_known_post.entity,
+              :post => other_known_post.public_id,
+              :type => other_known_post.type.uri
+            }
+          ])
+        end
       end
 
-      it 'should return mentions with post_id > [:since_id]' do
-        other_known_mention # create
+      context '[:post_types]' do
+        it 'should only return mentions where post type is in :post_types' do
+          mentions = post.public_mentions(:post_types => other_known_post_type)
+          expect(mentions.size).to eql(1)
 
-        public_mentions = post.public_mentions(:since_id => known_mentioned_post.id)
-        expect(public_mentions.size).to eql(1)
-        expect(public_mentions.first.id).to eql(other_known_mention.id)
+          expect(mentions.map(&:as_json)).to eql([
+            {
+              :entity => other_known_post.entity,
+              :post => other_known_post.public_id,
+              :type => other_known_post.type.uri
+            }
+          ])
+        end
       end
 
-      it 'should return count if [:return_count] param' do
-        other_known_mention # create
+      context '[:limit]' do
+        it 'should only return :limit mentions' do
+          mentions = post.public_mentions(:limit => 1)
+          expect(mentions.size).to eql(1)
+        end
 
-        count = post.public_mentions(:return_count => true)
-        expect(count).to eql(2)
-      end
+        it 'should return API::MAX_PER_PAGE when :limit too large' do
+          with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+            mentions = post.public_mentions(:limit => 2)
+            expect(mentions.size).to eql(1)
+          end
+        end
 
-      it 'should return mentions matching [:post_types]' do
-        other_known_mention # create
-
-        public_mentions = post.public_mentions(:post_types => other_known_mentioned_post_type)
-        expect(public_mentions.size).to eql(1)
-        expect(public_mentions.first.id).to eql(other_known_mention.id)
-      end
-
-      it 'should order by posts id' do
-        other_known_mentioned_post_2 # create
-        other_known_mentioned_post # create
-        other_known_mention # create
-        other_known_mention_2 # create
-
-        ids = [known_mentioned_post.id, other_known_mentioned_post_2.id, other_known_mentioned_post.id]
-        sorted_ids = ids.dup.sort
-        expect(ids).to eql(sorted_ids)
-
-        public_mentions = post.public_mentions
-        ids = public_mentions.map(&:id)
-        expect(ids).to eql([known_mention.id, other_known_mention_2.id, other_known_mention.id])
+        it 'should return API::PER_PAGE when no :limit given' do
+          with_constants "TentD::API::PER_PAGE" => 1 do
+            mentions = post.public_mentions
+            expect(mentions.size).to eql(1)
+          end
+        end
       end
     end
   end

@@ -610,24 +610,20 @@ describe TentD::API::Posts do
   end
 
   describe 'GET/HEAD /posts/:post_id/mentions' do
-    let(:post) { Fabricate(:post, :public => false) }
+    let(:post) { Fabricate(:post, :public => true) }
 
-    let!(:known_mentioned_entity) { 'https://known.example.com' }
-    let!(:known_mentioned_post) { Fabricate(:post, :public => true, :original => false, :entity => known_mentioned_entity) }
-    let!(:known_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => known_mentioned_post.public_id, :entity => known_mentioned_post.entity) }
+    let!(:known_post) { Fabricate(:post, :public => true, :original => false) }
+    let!(:known_mention) { Fabricate(:mention, :post_id => known_post.id, :mentioned_post_id => post.public_id, :entity => post.entity) }
 
-    let(:known_private_mentioned_entity) { 'https://known_private.example.com' }
-    let(:known_private_mentioned_post) { Fabricate(:post, :public => false, :original => false, :entity => known_private_mentioned_entity) }
-    let(:known_private_mention) { Fabricate(:mention, :post_id => post.id, :original => false, :mentioned_post_id => known_private_mentioned_post.public_id, :entity => known_private_mentioned_post.entity) }
+    let!(:known_private_post) { Fabricate(:post, :public => false, :original => false) }
+    let!(:known_private_mention) { Fabricate(:mention, :post_id => known_private_post.id, :mentioned_post_id => post.public_id, :entity => post.entity) }
 
-    let(:unknown_mentioned_entity) { 'https://unknown.example.com' }
-    let(:unknown_mentioned_post) { Fabricate(:post, :public => true, :original => false, :entity => unknown_mentioned_entity, :user_id => other_user.id) }
-    let(:unknown_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => unknown_mentioned_post.public_id, :entity => unknown_mentioned_post.entity) }
+    let!(:unknown_post) { Fabricate(:post, :public => true, :original => false, :user_id => other_user.id) }
+    let!(:unknown_mention) { Fabricate(:mention, :post_id => unknown_post.id, :mentioned_post_id => post.public_id, :entity => post.entity) }
 
-    let(:other_known_mentioned_post_type) { 'https://tent.io/types/post/photo/v0.1.0' }
-    let(:other_known_mentioned_entity) { 'https://other_known.example.com' }
-    let(:other_known_mentioned_post) { Fabricate(:post, :public => true, :original => false, :entity => other_known_mentioned_entity, :type => other_known_mentioned_post_type) }
-    let(:other_known_mention) { Fabricate(:mention, :post_id => post.id, :mentioned_post_id => other_known_mentioned_post.public_id, :entity => other_known_mentioned_post.entity) }
+    let!(:other_known_post_type) { 'https://tent.io/types/post/photo/v0.1.0' }
+    let!(:other_known_post) { Fabricate(:post, :public => true, :original => false, :type => other_known_post_type) }
+    let!(:other_known_mention) { Fabricate(:mention, :post_id => other_known_post.id, :mentioned_post_id => post.public_id, :entity => post.entity) }
 
     context 'when authorized' do
       let(:authorized_post_types) { ['all'] }
@@ -636,36 +632,32 @@ describe TentD::API::Posts do
       context 'with params' do
         context 'with [:before_id] param' do
           it 'should return mentions with id < :before_id' do
-            other_known_mention # create
-
             params = {
-              :before_id => other_known_mentioned_post.public_id
+              :before_id => other_known_post.public_id
             }
             json_get "/posts/#{post.public_id}/mentions", params, env
             expect(last_response.status).to eq(200)
 
             body = Yajl::Parser.parse(last_response.body)
             expect(body.size).to eql(1)
-            expect(body.first['post']).to eql(known_mentioned_post.public_id)
+            expect(body.first['post']).to eql(known_post.public_id)
           end
 
           it 'should return mentions with id < :before_id where entity = :before_id_entity' do
-            other_known_mention # create
-
             params = {
-              :before_id => other_known_mentioned_post.public_id,
-              :before_id_entity => other_known_mentioned_post.entity
+              :before_id => other_known_post.public_id,
+              :before_id_entity => other_known_post.entity
             }
             json_get "/posts/#{post.public_id}/mentions", params, env
             expect(last_response.status).to eq(200)
 
             body = Yajl::Parser.parse(last_response.body)
             expect(body.size).to eql(1)
-            expect(body.first['post']).to eql(known_mentioned_post.public_id)
+            expect(body.first['post']).to eql(known_post.public_id)
 
             params = {
-              :before_id => other_known_mentioned_post.public_id,
-              :before_id_entity => post.entity
+              :before_id => other_known_post.public_id,
+              :before_id_entity => 'https://foobar.example.com'
             }
             json_get "/posts/#{post.public_id}/mentions", params, env
             expect(last_response.status).to eq(200)
@@ -680,33 +672,33 @@ describe TentD::API::Posts do
             other_known_mention # create
 
             params = {
-              :since_id => known_mentioned_post.public_id
+              :since_id => known_post.public_id
             }
             json_get "/posts/#{post.public_id}/mentions", params, env
             expect(last_response.status).to eq(200)
 
             body = Yajl::Parser.parse(last_response.body)
             expect(body.size).to eql(1)
-            expect(body.first['post']).to eql(other_known_mentioned_post.public_id)
+            expect(body.first['post']).to eql(other_known_post.public_id)
           end
 
           it 'should return mentions with id > :since_id where entity = :since_id_entity' do
             other_known_mention # create
 
             params = {
-              :since_id => known_mentioned_post.public_id,
-              :since_id_entity => known_mentioned_post.entity
+              :since_id => known_post.public_id,
+              :since_id_entity => known_post.entity
             }
             json_get "/posts/#{post.public_id}/mentions", params, env
             expect(last_response.status).to eq(200)
 
             body = Yajl::Parser.parse(last_response.body)
             expect(body.size).to eql(1)
-            expect(body.first['post']).to eql(other_known_mentioned_post.public_id)
+            expect(body.first['post']).to eql(other_known_post.public_id)
 
             params = {
-              :since_id => known_mentioned_post.public_id,
-              :since_id_entity => post.entity
+              :since_id => known_post.public_id,
+              :since_id_entity => 'https://foobar.example.com'
             }
             json_get "/posts/#{post.public_id}/mentions", params, env
             expect(last_response.status).to eq(200)
@@ -735,14 +727,14 @@ describe TentD::API::Posts do
             other_known_mention # create
 
             params = {
-              :post_types => other_known_mentioned_post_type
+              :post_types => other_known_post_type
             }
             json_get "/posts/#{post.public_id}/mentions", params, env
             expect(last_response.status).to eq(200)
 
             body = Yajl::Parser.parse(last_response.body)
             expect(body.size).to eql(1)
-            expect(body.first['post']).to eql(other_known_mentioned_post.public_id)
+            expect(body.first['post']).to eql(other_known_post.public_id)
           end
         end
       end
@@ -752,10 +744,13 @@ describe TentD::API::Posts do
         expect(last_response.status).to eq(200)
 
         body = Yajl::Parser.parse(last_response.body)
-        expect(body.size).to eql(1)
-        expect(body.first['entity']).to eql(known_mention.entity)
-        expect(body.first['post']).to eql(known_mentioned_post.public_id)
-        expect(body.first['type']).to eql(known_mentioned_post.type.uri)
+        expect(body.size).to eql(2)
+        expect(body.first['entity']).to eql(known_post.entity)
+        expect(body.first['post']).to eql(known_post.public_id)
+        expect(body.first['type']).to eql(known_post.type.uri)
+        expect(body.last['entity']).to eql(other_known_post.entity)
+        expect(body.last['post']).to eql(other_known_post.public_id)
+        expect(body.last['type']).to eql(other_known_post.type.uri)
       end
 
       it 'should set pagination in header' do
@@ -802,6 +797,7 @@ describe TentD::API::Posts do
     end
 
     context 'when not authorized' do
+      let(:post) { Fabricate(:post, :public => false) }
       it 'should return 404' do
         json_get "/posts/#{post.public_id}/mentions", nil, env
         expect(last_response.status).to eq(404)
