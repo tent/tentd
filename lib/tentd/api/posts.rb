@@ -10,6 +10,7 @@ module TentD
             env.params[key] = nil
             memo
           }
+          return env unless id_mapping.keys.any?
           posts = Model::Post.select(:id, :public_id, :entity).where(:user_id => Model::User.current.id, :public_id => id_mapping.keys).all
           id_mapping.each_pair do |public_id, key|
             entity = env.params["#{key}_entity"]
