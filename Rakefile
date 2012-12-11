@@ -7,8 +7,6 @@ RSpec::Core::RakeTask.new(:spec) do |spec|
 end
 task :default => :spec
 
-namespace :db do
-  task :migrate do
-    %x{bundle exec sequel -m ./db/migrations #{ENV['DATABASE_URL']}}
-  end
-end
+lib = File.expand_path('../lib', __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require 'tentd/tasks/db'
