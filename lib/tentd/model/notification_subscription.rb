@@ -104,7 +104,7 @@ module TentD
         res = client.post.create(post.as_json(:view => view), :url => path)
         raise NotificationError.new("[#{res.to_hash[:url].to_s}] #{res.status}: #{res.body}") unless (200...300).include?(res.status)
         res
-      rescue Faraday::Error::ConnectionFailed, Errno::ETIMEDOUT => e
+      rescue Faraday::Error::ConnectionFailed, Faraday::Error::TimeoutError, Errno::ETIMEDOUT => e
         url = res ? res.to_hash[:url].to_s : ""
         raise NotificationError.new(:message => "[#{url}] #{e.message}", :backtrace => e.backtrace)
       end
@@ -117,7 +117,7 @@ module TentD
         res = client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions, :view => view), :url => subject.notification_path)
         raise NotificationError.new("[#{res.to_hash[:url].to_s}] #{res.status}: #{res.body}") unless (200...300).include?(res.status)
         res
-      rescue Faraday::Error::ConnectionFailed, Errno::ETIMEDOUT => e
+      rescue Faraday::Error::ConnectionFailed, Faraday::Error::TimeoutError, Errno::ETIMEDOUT => e
         url = res ? res.to_hash[:url].to_s : ""
         raise NotificationError.new(:message => "[#{url}] #{e.message}", :backtrace => e.backtrace)
       end
