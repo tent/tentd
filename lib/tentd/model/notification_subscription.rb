@@ -111,7 +111,7 @@ module TentD
 
       def notify_about(post_id, view='full')
         post = Post.first(:id => post_id)
-        return unless post
+        return unless post && subject
         client = TentClient.new(subject.notification_servers, subject.auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
         permissions = subject.respond_to?(:scopes) && subject.scopes.to_a.include?(:read_permissions)
         res = client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions, :view => view), :url => subject.notification_path)
