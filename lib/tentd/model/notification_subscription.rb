@@ -104,6 +104,9 @@ module TentD
         res = client.post.create(post.as_json(:view => view), :url => path)
         raise NotificationError.new("[#{res.to_hash[:url].to_s}] #{res.status}: #{res.body}") unless (200...300).include?(res.status)
         res
+      rescue Faraday::Error::ConnectionFailed, Errno::ETIMEDOUT => e
+        url = res ? res.to_hash[:url].to_s : ""
+        raise NotificationError.new(:message => "[#{url}] #{e.message}", :backtrace => e.backtrace)
       end
 
       def notify_about(post_id, view='full')
