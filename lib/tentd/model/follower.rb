@@ -36,6 +36,11 @@ module TentD
         super
       end
 
+      def after_destroy
+        notification_subscriptions_dataset.destroy
+        super
+      end
+
       def permissible_foreign_key
         :follower_access_id
       end

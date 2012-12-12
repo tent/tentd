@@ -434,4 +434,16 @@ describe TentD::Model::Follower do
       end
     end
   end
+
+  describe '#destroy' do
+    let!(:follower) { Fabricate(:follower) }
+    let!(:subscription) { Fabricate(:notification_subscription, :follower => follower) }
+
+    it 'should also destroy notification subscription' do
+      expect(lambda {
+        follower.destroy
+      }).to change(TentD::Model::NotificationSubscription, :count).by(-1)
+      expect(subscription.class.first(:id => subscription.id)).to be_nil
+    end
+  end
 end
