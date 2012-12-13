@@ -27,6 +27,7 @@ module TentD
         self.mac_key ||= SecureRandom.hex(16)
         self.mac_algorithm ||= 'hmac-sha-256'
         self.user_id ||= User.current.id
+        self.public = true if self.public.nil?
         self.created_at = Time.now
         super
       end

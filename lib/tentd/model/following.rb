@@ -18,6 +18,7 @@ module TentD
       def before_create
         self.public_id ||= random_id
         self.user_id ||= User.current.id
+        self.public = true if self.public.nil?
         self.created_at = Time.now
         super
       end
