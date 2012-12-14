@@ -182,6 +182,10 @@ module TentD
           end
         end
 
+        def sort_reversed?(params, sort_direction)
+          super || (!params.since_time.nil? && sort_direction.downcase != 'asc')
+        end
+
         def get_sort_column(params)
           sort_column = case params['sort_by'].to_s
           when 'published_at'

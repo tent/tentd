@@ -973,14 +973,19 @@ describe TentD::API::Posts do
         since_post = Fabricate(:post, :public => post_public?)
         since_post.received_at = Time.at(Time.now.to_i + 86400) # 1.day.from_now
         post = Fabricate(:post, :public => post_public?)
-        post.received_at = Time.at(Time.now.to_i + (86400 * 2)) # 2.days.from_now
+        post.received_at = Time.at(Time.now.to_i + (86400 * 2)) # 3.days.from_now
         post.save
+        post2 = Fabricate(:post, :public => post_public?)
+        post2.received_at = Time.at(Time.now.to_i + (86400 * 3)) # 2.days.from_now
+        post2.save
 
-        json_get "/posts?since_time=#{since_post.received_at.to_time.to_i}", params, env
-        body = JSON.parse(last_response.body)
-        expect(body.size).to eq(1)
-        body_ids = body.map { |i| i['id'] }
-        expect(body_ids.first).to eq(post.public_id)
+        with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+          json_get "/posts?since_time=#{since_post.received_at.to_time.to_i}", params, env
+          body = JSON.parse(last_response.body)
+          expect(body.size).to eq(1)
+          body_ids = body.map { |i| i['id'] }
+          expect(body_ids.first).to eq(post.public_id)
+        end
       end
 
       it "should filter by params[:before_time]" do
