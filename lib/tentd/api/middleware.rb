@@ -24,6 +24,8 @@ module TentD
           raise
         elsif defined?(Airbrake)
           Airbrake.notify_or_ignore(e, :rack_env => env)
+        else
+          puts $!.inspect, $@
         end
         error_response(422, 'Invalid Attributes')
       rescue Sequel::ValidationFailed
