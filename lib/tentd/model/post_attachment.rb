@@ -21,7 +21,9 @@ module TentD
       end
 
       def as_json(options = {})
-        super
+        attrs = super
+        attrs.delete(:id)
+        attrs
       end
     end
   end
