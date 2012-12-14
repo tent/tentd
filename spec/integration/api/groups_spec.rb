@@ -81,14 +81,17 @@ describe TentD::API::Groups do
         it 'should filter by since_id' do
           since_group = Fabricate(:group)
           group = Fabricate(:group)
+          other_group = Fabricate(:group)
 
-          params[:since_id] = since_group.public_id
-          json_get '/groups', params, env
-          expect(last_response.status).to eq(200)
+          with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+            params[:since_id] = since_group.public_id
+            json_get '/groups', params, env
+            expect(last_response.status).to eq(200)
 
-          body = JSON.parse(last_response.body)
-          body_ids = body.map { |i| i['id'] }
-          expect(body_ids).to eq([group.public_id])
+            body = JSON.parse(last_response.body)
+            body_ids = body.map { |i| i['id'] }
+            expect(body_ids).to eq([group.public_id])
+          end
         end
 
         it 'should support limit' do

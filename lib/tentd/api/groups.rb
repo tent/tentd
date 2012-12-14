@@ -50,19 +50,21 @@ module TentD
           query = query.where { id < env.params.before_id } if env.params.before_id
           query = query.where { id > env.params.since_id } if env.params.since_id
 
-          limit = env.params.limit ? [env.params.limit.to_i, MAX_PER_PAGE].min : PER_PAGE
+          limit = [(env.params.limit ? env.params.limit.to_i : PER_PAGE), MAX_PER_PAGE].min
           query = query.limit(limit) if limit != 0
+          reversed = !env.params.since_id.nil? && env.params.order.to_s.downcase != 'asc'
 
           if env.params.return_count
             env.response = limit.to_i == 0 ? 0 : query.count
           else
-            if env.params.order == 'asc'
+            if env.params.order.to_s.downcase == 'asc' || reversed
               query = query.order(:id.asc)
             else
               query = query.order(:id.desc)
             end
 
             env.response = limit.to_i == 0 ? [] : query.all
+            env.response.reverse! if reversed
           end
           env
         end

@@ -625,6 +625,10 @@ describe TentD::API::Posts do
     let!(:other_known_post) { Fabricate(:post, :public => true, :original => false, :type => other_known_post_type) }
     let!(:other_known_mention) { Fabricate(:mention, :post_id => other_known_post.id, :mentioned_post_id => post.public_id, :entity => post.entity) }
 
+    let(:other2_known_post_type) { 'https://tent.io/types/post/photo/v0.1.0' }
+    let(:other2_known_post) { Fabricate(:post, :public => true, :original => false, :type => other2_known_post_type) }
+    let(:other2_known_mention) { Fabricate(:mention, :post_id => other2_known_post.id, :mentioned_post_id => post.public_id, :entity => post.entity) }
+
     context 'when authorized' do
       let(:authorized_post_types) { ['all'] }
       before { authorize!(:read_posts) }
@@ -669,22 +673,22 @@ describe TentD::API::Posts do
 
         context 'with [:since_id] param' do
           it 'should return mentions with id > :since_id' do
-            other_known_mention # create
+            other2_known_mention # create
 
-            params = {
-              :since_id => known_post.public_id
-            }
-            json_get "/posts/#{post.public_id}/mentions", params, env
-            expect(last_response.status).to eq(200)
+            with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+              params = {
+                :since_id => known_post.public_id
+              }
+              json_get "/posts/#{post.public_id}/mentions", params, env
+              expect(last_response.status).to eq(200)
 
-            body = Yajl::Parser.parse(last_response.body)
-            expect(body.size).to eql(1)
-            expect(body.first['post']).to eql(other_known_post.public_id)
+              body = Yajl::Parser.parse(last_response.body)
+              expect(body.size).to eql(1)
+              expect(body.first['post']).to eql(other_known_post.public_id)
+            end
           end
 
           it 'should return mentions with id > :since_id where entity = :since_id_entity' do
-            other_known_mention # create
-
             params = {
               :since_id => known_post.public_id,
               :since_id_entity => known_post.entity
@@ -897,12 +901,35 @@ describe TentD::API::Posts do
       it "should filter by params[:since_id]" do
         since_post = Fabricate(:post, :public => post_public?)
         post = Fabricate(:post, :public => post_public?)
+        other_post = Fabricate(:post, :public => post_public?)
 
-        json_get "/posts?since_id=#{since_post.public_id}", params, env
-        body = JSON.parse(last_response.body)
-        expect(body.size).to eq(1)
-        body_ids = body.map { |i| i['id'] }
-        expect(body_ids.first).to eq(post.public_id)
+        with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+          json_get "/posts?since_id=#{since_post.public_id}", params, env
+          body = JSON.parse(last_response.body)
+          expect(body.size).to eq(1)
+          body_ids = body.map { |i| i['id'] }
+          expect(body_ids.first).to eq(post.public_id)
+        end
+      end
+
+      it "should filter by both since_id and before_id" do
+        post1 = Fabricate(:post, :public => post_public?)
+        post2 = Fabricate(:post, :public => post_public?)
+        post3 = Fabricate(:post, :public => post_public?)
+        post4 = Fabricate(:post, :public => post_public?)
+
+        with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+          params = {
+            :since_id => post1.public_id,
+            :before_id => post4.public_id
+          }
+
+          json_get "/posts", params, env
+          expect(last_response.status).to eql(200)
+          body = Yajl::Parser.parse(last_response.body)
+          ids = body.map { |i| i['id'] }
+          expect(ids).to eql([post2.public_id])
+        end
       end
 
       it "should return an empty array when since_id doesn't exist" do
@@ -914,14 +941,20 @@ describe TentD::API::Posts do
       end
 
       it "should filter by params[:before_id]" do
-        post = Fabricate(:post, :public => post_public?)
-        before_post = Fabricate(:post, :public => post_public?)
+        post1 = Fabricate(:post, :public => post_public?)
+        post2 = Fabricate(:post, :public => post_public?)
+        post3 = Fabricate(:post, :public => post_public?)
 
-        json_get "/posts?before_id=#{before_post.public_id}", params, env
-        body = JSON.parse(last_response.body)
-        expect(body.size).to eq(1)
-        body_ids = body.map { |i| i['id'] }
-        expect(body_ids.first).to eq(post.public_id)
+        with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+          params = {
+            :before_id => post3.public_id
+          }
+          json_get "/posts", params, env
+          expect(last_response.status).to eql(200)
+          body = Yajl::Parser.parse(last_response.body)
+          body_ids = body.map { |i| i['id'] }
+          expect(body_ids).to eq([post2.public_id])
+        end
       end
 
       it "should filter by both params[:since_id] and params[:before_id]" do

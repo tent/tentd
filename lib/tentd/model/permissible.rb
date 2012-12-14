@@ -225,7 +225,11 @@ module TentD
             if params.return_count
               with_sql(query.join(' '), *query_bindings).all.first[:count]
             else
-              with_sql(query.join(' '), *query_bindings).all
+              res = with_sql(query.join(' '), *query_bindings).all
+              if !params['since_id'].nil? && sort_direction.downcase != 'asc'
+                res.reverse!
+              end
+              res
             end
           end
         end
@@ -233,7 +237,7 @@ module TentD
         private
 
         def get_sort_direction(params)
-          if params['order'].to_s.downcase == 'asc'
+          if params['order'].to_s.downcase == 'asc' || !params['since_id'].nil?
             'ASC'
           else
             'DESC'
