@@ -184,7 +184,11 @@ module TentD
           if params.return_count
             with_sql(query.join(' '), *query_bindings).all.first[:count]
           else
-            with_sql(query.join(' '), *query_bindings).all
+            res = with_sql(query.join(' '), *query_bindings).all
+            if sort_reversed?(params)
+              res.reverse!
+            end
+            res
           end
         end
 
@@ -226,7 +230,7 @@ module TentD
               with_sql(query.join(' '), *query_bindings).all.first[:count]
             else
               res = with_sql(query.join(' '), *query_bindings).all
-              if sort_reversed?(params, sort_direction)
+              if sort_reversed?(params)
                 res.reverse!
               end
               res
@@ -236,12 +240,12 @@ module TentD
 
         private
 
-        def sort_reversed?(params, sort_direction)
-          !params.since_id.nil? && sort_direction.downcase != 'asc'
+        def sort_reversed?(params)
+          params.since_id && params.order.to_s.downcase != 'asc'
         end
 
         def get_sort_direction(params)
-          if params['order'].to_s.downcase == 'asc' || sort_reversed?(params, 'desc')
+          if params['order'].to_s.downcase == 'asc' || sort_reversed?(params)
             'ASC'
           else
             'DESC'

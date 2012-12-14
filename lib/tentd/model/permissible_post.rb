@@ -68,6 +68,8 @@ module TentD
               query_conditions << "(#{table_name}.#{sort_column} >= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
               query_bindings << params.since_id
               query_bindings << params.since_id
+
+              _params.since_id = params.since_id
             end
 
             if params.before_id
@@ -133,6 +135,8 @@ module TentD
               query << "AND (#{table_name}.#{sort_column} >= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
               query_bindings << params.since_id
               query_bindings << params.since_id
+
+              _params.since_id = params.since_id
             end
 
             if params.before_id
@@ -182,8 +186,8 @@ module TentD
           end
         end
 
-        def sort_reversed?(params, sort_direction)
-          super || (!params.since_time.nil? && sort_direction.downcase != 'asc')
+        def sort_reversed?(params)
+          super || (params.since_time && params.order.to_s.downcase != 'asc')
         end
 
         def get_sort_column(params)

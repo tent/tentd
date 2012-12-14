@@ -913,22 +913,23 @@ describe TentD::API::Posts do
       end
 
       it "should filter by both since_id and before_id" do
-        post1 = Fabricate(:post, :public => post_public?)
-        post2 = Fabricate(:post, :public => post_public?)
-        post3 = Fabricate(:post, :public => post_public?)
-        post4 = Fabricate(:post, :public => post_public?)
+        post1 = Fabricate(:post, :public => post_public?, :received_at => Time.at(Time.now.to_i - 4))
+        post2 = Fabricate(:post, :public => post_public?, :received_at => Time.at(Time.now.to_i - 3))
+        post3 = Fabricate(:post, :public => post_public?, :received_at => Time.at(Time.now.to_i - 2))
+        post4 = Fabricate(:post, :public => post_public?, :received_at => Time.at(Time.now.to_i - 1))
+        post5 = Fabricate(:post, :public => post_public?, :received_at => Time.at(Time.now.to_i - 0))
 
-        with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+        with_constants "TentD::API::MAX_PER_PAGE" => 2 do
           params = {
             :since_id => post1.public_id,
-            :before_id => post4.public_id
+            :before_id => post5.public_id
           }
 
           json_get "/posts", params, env
           expect(last_response.status).to eql(200)
           body = Yajl::Parser.parse(last_response.body)
           ids = body.map { |i| i['id'] }
-          expect(ids).to eql([post2.public_id])
+          expect(ids).to eql([post3.public_id, post2.public_id])
         end
       end
 
