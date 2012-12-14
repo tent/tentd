@@ -20,7 +20,9 @@ module TentD
       rescue Unauthorized
         error_response(403, 'Unauthorized')
       rescue Sequel::DatabaseError => e
-        if defined?(Airbrake)
+        if ENV['RACK_ENV'] == 'test'
+          raise
+        elsif defined?(Airbrake)
           Airbrake.notify_or_ignore(e, :rack_env => env)
         end
         error_response(422, 'Invalid Attributes')
