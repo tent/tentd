@@ -553,6 +553,12 @@ module TentD
         b.use GetAttachment
       end
 
+      get '/posts/:post_id_entity/:post_id/attachments/:attachment_name' do |b|
+        b.use GetActualId
+        b.use GetOne
+        b.use GetAttachment
+      end
+
       get '/posts' do |b|
         b.use GetActualId
         b.use GetFeed
