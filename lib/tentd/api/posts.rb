@@ -343,6 +343,31 @@ module TentD
         end
       end
 
+      class CreatePlaceholderAttachments < Middleware
+        def action(env)
+          return env unless env.params.data.attachments.kind_of?(Array) && env.response && !env.params.attachments
+          post = env.response
+          version = post.latest_version(:fields => [:id])
+          env.params.data.attachments.each do |attachment|
+            a = Model::PostAttachment.create(
+              :post => post,
+              :type => attachment.type,
+              :category => attachment.category.to_s,
+              :name => attachment.name,
+              :data => '',
+              :size => attachment[:size]
+            )
+
+            a.db[:post_versions_attachments].insert(
+              :post_attachment_id => a.id,
+              :post_version_id => version.id
+            )
+          end
+          env.response.reload
+          env
+        end
+      end
+
       class Notify < Middleware
         def action(env)
           return env if authorize_env?(env, :write_posts) && env.params.data && env.params.data.id && env.current_auth.kind_of?(Model::AppAuthorization)
@@ -376,7 +401,7 @@ module TentD
             if following = Model::Following.first(:id => post.following_id)
               client = TentClient.new(following.core_profile.servers.first, following.auth_details.merge(:skip_serialization => true, :faraday_adapter => TentD.faraday_adapter))
               res = client.post.attachment.get(post.public_id, env.params.attachment_name, type)
-              return [res.status, res.headers, res.body]
+              return [res.status, res.headers, [res.body]]
             else
               raise NotFound
             end
@@ -538,12 +563,14 @@ module TentD
       post '/posts' do |b|
         b.use CreatePost
         b.use CreateAttachments
+        b.use CreatePlaceholderAttachments
         b.use Notify
       end
 
       post '/notifications/:following_id' do |b|
         b.use CreatePost
         b.use CreateAttachments
+        b.use CreatePlaceholderAttachments
         b.use Notify
         b.use TriggerUpdates
       end

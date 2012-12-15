@@ -1343,34 +1343,64 @@ describe TentD::API::Posts do
       end
     end
 
-    context 'as follower' do
-      before { authorize!(:entity => 'https://smith.example.com') }
+    context 'as follow' do
+      let(:entity) { 'https://smith.example.com' }
+      let(:follower) { Fabricate(:follower, :entity => entity) }
+      let(:following) { Fabricate(:following, :entity => entity) }
+      before { authorize!(:entity => entity) }
       let(:post_attributes) {
         p.attributes.merge(:id => rand(36 ** 6).to_s(36), :type => p.type.uri)
       }
 
-      it 'should allow a post from the follower' do
-        json_post "/posts", post_attributes, env
-        body = JSON.parse(last_response.body)
-        post = TentD::Model::Post.order(:id.asc).last
-        expect(body['id']).to eq(post.public_id)
-        expect(post.public_id).to eq(post_attributes[:id])
-      end
+      [:follower, :following].each do |follow_type|
+        it "should allow a post from #{follow_type}" do
+          follow = send(follow_type)
+          env['current_auth'] = follow
 
-      it "should silently allow a duplicate post from a follower" do
-        json_post "/posts", post_attributes, env
-        expect(last_response.status).to eq(200)
-        json_post "/posts", post_attributes, env
-        expect(last_response.status).to eq(200)
-      end
+          json_post "/posts", post_attributes, env
+          body = JSON.parse(last_response.body)
+          post = TentD::Model::Post.order(:id.asc).last
+          expect(body['id']).to eq(post.public_id)
+          expect(post.public_id).to eq(post_attributes[:id])
+        end
 
-      it "should not allow a post that isn't from the follower" do
-        post_attributes = p.attributes
-        post_attributes.delete(:id)
-        post_attributes[:type] = p.type.uri
-        json_post "/posts", post_attributes.merge(:entity => 'example.org'), env
-        expect(last_response.status).to eq(403)
-        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
+        it "should accept attachments from #{follow_type}" do
+          post_attributes[:attachments] = [{ :size => 12, :name => 'foo.txt', :type => 'text/plain', :category => 'foo' }]
+          expect(lambda {
+            expect(lambda {
+              expect(lambda {
+                json_post('/posts', post_attributes, env)
+              }).to change(TentD::Model::Post, :count).by(1)
+            }).to change(TentD::Model::PostVersion, :count).by(1)
+          }).to change(TentD::Model::PostAttachment, :count).by(1)
+          body = JSON.parse(last_response.body)
+          post = TentD::Model::Post.order(:id.desc).first
+          expect(body['id']).to eq(post.public_id)
+          expect(post.attachments.map(&:id)).to eq(post.latest_version.attachments.map(&:id))
+          expect(post.attachments.map(&:size)).to eq([12])
+        end
+
+        it "should silently allow a duplicate post from a #{follow_type}" do
+          follow = send(follow_type)
+          env['current_auth'] = follow
+
+          json_post "/posts", post_attributes, env
+          expect(last_response.status).to eq(200)
+          json_post "/posts", post_attributes, env
+          expect(last_response.status).to eq(200)
+        end
+
+        it "should not allow a post that isn't from the #{follow_type}" do
+          follow = send(follow_type)
+          env['current_auth'] = follow
+
+          post_attributes = p.attributes
+          post_attributes.delete(:id)
+          post_attributes[:type] = p.type.uri
+          json_post "/posts", post_attributes.merge(:entity => 'example.org'), env
+          expect(last_response.status).to eq(403)
+          expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' })
+        end
       end
 
       it "should notify subscribed apps of post" do
@@ -1665,7 +1695,7 @@ describe TentD::API::Posts do
               it 'should get attachment via proxy' do
                 http_stubs.get("/posts/#{post.public_id}/attachments/foo") { |env|
                   expect(env[:request_headers]['Authorization']).to match(/#{following.mac_key_id}/)
-                  [200, {  'Content-Type' => attachment.type }, [Base64.decode64(attachment.data)]]
+                  [200, {  'Content-Type' => attachment.type }, Base64.decode64(attachment.data)]
                 }
                 json_get("/posts/#{post.public_id}/attachments/foo", {}, env)
                 expect(last_response.status).to eql(200)
