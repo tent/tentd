@@ -136,6 +136,7 @@ module TentD
 
           if existing_following
             env.following = existing_following
+            env.notify = false
           else
             env.following = Model::Following.create(:entity => env.params.data.entity,
                                                     :groups => env.params.data.groups.to_a.map { |g| g['id'] },
@@ -234,6 +235,7 @@ module TentD
 
       class Notify < Middleware
         def action(env)
+          return env if env.has_key?(:notify) && !env.notify
           return env unless following = env.notify_instance
           post = Model::Post.create(
             :type => 'https://tent.io/types/post/following/v0.1.0',
