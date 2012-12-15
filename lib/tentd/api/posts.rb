@@ -354,7 +354,6 @@ module TentD
               :type => attachment.type,
               :category => attachment.category.to_s,
               :name => attachment.name,
-              :data => '',
               :size => attachment[:size]
             )
 
