@@ -9,6 +9,7 @@ module TentD
 
     class TriggerWorker
       include Sidekiq::Worker
+      sidekiq_options :queue => 'entity'
 
       def perform(msg)
         Model::NotificationSubscription.notify_all(msg['type'], msg['post_id'])
@@ -17,6 +18,7 @@ module TentD
 
     class NotifyWorker
       include Sidekiq::Worker
+      sidekiq_options :retry => 5, :backtrace => false
 
       def perform(msg)
         Model::NotificationSubscription.notify(msg['subscription_id'], msg['post_id'])
@@ -25,6 +27,7 @@ module TentD
 
     class NotifyEntityWorker
       include Sidekiq::Worker
+      sidekiq_options :retry => 5, :backtrace => false, :queue => 'entity'
 
       def perform(msg)
         Model::NotificationSubscription.notify_entity(msg['entity'], msg['post_id'])
@@ -33,6 +36,7 @@ module TentD
 
     class UpdateFollowingProfileWorker
       include Sidekiq::Worker
+      sidekiq_options :queue => 'maintenance'
 
       def perform(msg)
         Model::Following.update_profile(msg['following_id'])
@@ -41,6 +45,7 @@ module TentD
 
     class UpdateFollowerEntityWorker
       include Sidekiq::Worker
+      sidekiq_options :queue => 'maintenance'
 
       def perform(msg)
         Model::Follower.update_entity(msg['follower_id'])
@@ -49,6 +54,7 @@ module TentD
 
     class ProfileInfoUpdateWorker
       include Sidekiq::Worker
+      sidekiq_options :queue => 'maintenance'
 
       def perform(msg)
         Model::ProfileInfo.create_update_post(msg['profile_info_id'], :entity_changed => msg['entity_changed'], :old_entity => msg['old_entity'])
@@ -57,6 +63,7 @@ module TentD
 
     class PropagateEntityWorker
       include Sidekiq::Worker
+      sidekiq_options :queue => 'maintenance'
 
       def perform(msg)
         Model::Post.propagate_entity(msg['user_id'], msg['entity'], msg['old_entity'])
