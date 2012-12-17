@@ -18,7 +18,7 @@ module TentD
 
     class NotifyWorker
       include Sidekiq::Worker
-      sidekiq_options :retry => 5, :backtrace => false
+      sidekiq_options :retry => 5, :backtrace => 0
 
       def perform(msg)
         Model::NotificationSubscription.notify(msg['subscription_id'], msg['post_id'])
@@ -27,7 +27,7 @@ module TentD
 
     class NotifyEntityWorker
       include Sidekiq::Worker
-      sidekiq_options :retry => 5, :backtrace => false, :queue => 'entity'
+      sidekiq_options :retry => 5, :backtrace => 0, :queue => 'entity'
 
       def perform(msg)
         Model::NotificationSubscription.notify_entity(msg['entity'], msg['post_id'])
