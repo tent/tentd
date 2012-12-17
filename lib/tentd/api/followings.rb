@@ -160,7 +160,8 @@ module TentD
             when 200...300
               env.follow_data = res.body
             else
-              return [res.status, res.headers, [res.body]]
+              body = res.body.kind_of?(String) ? res.body : res.body.to_json
+              return [res.status, res.headers, [body]]
             end
           end
           env
