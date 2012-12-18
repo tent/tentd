@@ -51,7 +51,7 @@ module TentD
       end
 
       def self.create_follower(data, authorized_scopes = [])
-        if follower = where(:entity => data.entity).order(:id.desc).first
+        if follower = where(:user_id => User.current.id, :entity => data.entity).order(:id.desc).first
           follower.update(:mac_key => SecureRandom.hex(16))
         else
           if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
