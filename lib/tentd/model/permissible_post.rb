@@ -156,7 +156,7 @@ module TentD
             end
 
             if params.post_types
-              params.post_types = params.post_types.split(',').map { |url| URI.unescape(url) }
+              params.post_types = parse_array_param(params.post_types)
               if params.post_types.any?
                 query << "AND #{table_name}.type_base IN ?"
                 query_bindings << params.post_types.map { |t| TentType.new(t).base }
@@ -199,6 +199,10 @@ module TentD
           else
             'received_at'
           end
+        end
+
+        def parse_array_param(value)
+          (value.kind_of?(String) ? value.split(',') : value).map { |url| URI.unescape(url) }
         end
 
         def mentions_relationship_foreign_key

@@ -74,6 +74,17 @@ describe TentD::API::Posts do
       end
     end
 
+    context 'with post_types param' do
+      it 'should return count of posts' do
+        with_constants "TentD::API::PER_PAGE" => 1 do
+          params[:post_types] = ['type-uri-a', 'type-uri-b'].join(',')
+          head '/posts', params, env
+          expect(last_response.status).to eq(200)
+          expect(last_response.headers['Count']).to eql('0')
+        end
+      end
+    end
+
     context 'when read_posts scope authorized' do
       let(:authorized_post_types) { ['all'] }
       before { authorize!(:read_posts) }
