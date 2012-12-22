@@ -10,7 +10,7 @@ module TentD
           status, headers, body = @app.call(env)
           headers.merge!(
             'Access-Control-Allow-Origin' => '*',
-            'Access-Control-Allow-Headers' => 'Content-Type, Authorization',
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization, Count, Link',
           ) if env['HTTP_ORIGIN']
           [status, headers, body]
         end
