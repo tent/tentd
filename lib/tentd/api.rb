@@ -42,7 +42,8 @@ module TentD
         headers = {
           'Access-Control-Allow-Origin' => '*',
           'Access-Control-Allow-Methods' => 'GET, POST, HEAD, PUT, DELETE, PATCH, OPTIONS',
-          'Access-Control-Allow-Headers' => 'Content-Type, Authorization, Count, Link',
+          'Access-Control-Allow-Headers' => 'Content-Type, Authorization',
+          'Access-Control-Expose-Headers' => 'Count, Link',
           'Access-Control-Max-Age' => '2592000' # 30 days
         }
         [200, headers, []]
