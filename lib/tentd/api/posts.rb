@@ -80,7 +80,7 @@ module TentD
 
       class CountHeader < API::CountHeader
         def get_count(env)
-          GetFeed.new(@app).call(env)[2][0]
+          GetFeed.new(@app).call(env)
         end
       end
 
@@ -170,7 +170,7 @@ module TentD
 
       class VersionsCountHeader < API::CountHeader
         def get_count(env)
-          GetVersions.new(@app).call(env)[2][0]
+          GetVersions.new(@app).call(env)
         end
       end
 
@@ -430,7 +430,7 @@ module TentD
       class MentionsCountHeader < API::CountHeader
         def get_count(env)
           env.response = env.post
-          GetMentions.new(@app).call(env)[2][0]
+          GetMentions.new(@app).call(env)
         end
       end
 

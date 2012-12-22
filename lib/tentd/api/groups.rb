@@ -72,7 +72,7 @@ module TentD
 
       class CountHeader < API::CountHeader
         def get_count(env)
-          GetAll.new(@app).call(env)[2][0]
+          GetAll.new(@app).call(env)
         end
       end
 

@@ -4,12 +4,16 @@ module TentD
       def action(env)
         count_env = env.dup
         count_env.params.return_count = true
-        count = get_count(count_env)
+        status, headers, response = get_count(count_env)
 
-        env['response.headers'] ||= {}
-        env['response.headers']['Count'] = count
+        if (200...400).include?(status)
+          env['response.headers'] ||= {}
+          env['response.headers']['Count'] = Array(response)[0]
 
-        env
+          env
+        else
+          [status, headers, response]
+        end
       end
 
       def get_count(env)
