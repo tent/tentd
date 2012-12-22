@@ -361,6 +361,15 @@ describe TentD::API::Posts do
             expect(last_response.status).to eq(200)
             expect(JSON.parse(last_response.body)['id']).to eq(post.public_id)
           end
+
+          context 'when post deleted' do
+            it 'should respond 404' do
+              post = Fabricate(:post, :public => false, :type_base => post_type, :deleted_at => Time.now)
+              json_get "/posts/#{post.public_id}", params, env
+              expect(last_response.status).to eq(404)
+              expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' })
+            end
+          end
         end
 
         context 'when no post exists with :id' do
@@ -910,7 +919,7 @@ describe TentD::API::Posts do
       end
 
       it "should filter by params[:since_id]" do
-        since_post = Fabricate(:post, :public => post_public?)
+        since_post = Fabricate(:post, :public => post_public?, :deleted_at => Time.now)
         post = Fabricate(:post, :public => post_public?)
         other_post = Fabricate(:post, :public => post_public?)
 

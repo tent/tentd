@@ -29,7 +29,7 @@ module TentD
             memo
           }
           return env unless id_mapping.keys.any?
-          followings = Model::Following.select(:id, :public_id).where(:user_id => Model::User.current.id, :public_id => id_mapping.keys).all
+          followings = Model::Following.unfiltered.select(:id, :public_id).where(:user_id => Model::User.current.id, :public_id => id_mapping.keys).all
           followings.each do |following|
             key = id_mapping[following.public_id]
             env.params[key] = following.id

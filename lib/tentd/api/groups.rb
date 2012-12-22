@@ -21,7 +21,7 @@ module TentD
         def action(env)
           [:group_id, :before_id, :since_id].select { |k| env.params.has_key?(k) }.each do |id_key|
             if env.params[id_key]
-              if g = Model::Group.first(:user_id => Model::User.current.id, :public_id => env.params[id_key])
+              if g = Model::Group.unfiltered.first(:user_id => Model::User.current.id, :public_id => env.params[id_key])
                 env.params[id_key] = g.id
               else
                 env.params[id_key] = nil

@@ -93,7 +93,7 @@ describe TentD::API::Followings do
 
       context '[:since_id]' do
         it 'should only return followings with id > :since_id' do
-          since_following = Fabricate(:following, :public => !create_permissions?)
+          since_following = Fabricate(:following, :public => !create_permissions?, :deleted_at => Time.now)
           following = Fabricate(:following, :public => !create_permissions?)
 
           if create_permissions?

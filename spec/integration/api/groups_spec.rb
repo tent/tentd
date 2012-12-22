@@ -79,7 +79,7 @@ describe TentD::API::Groups do
         end
 
         it 'should filter by since_id' do
-          since_group = Fabricate(:group)
+          since_group = Fabricate(:group, :deleted_at => Time.now)
           group = Fabricate(:group)
           other_group = Fabricate(:group)
 
