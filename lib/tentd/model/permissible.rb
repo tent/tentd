@@ -72,6 +72,7 @@ module TentD
       module ClassMethods
         def query_with_permissions(current_auth, params=Hashie::Mash.new)
           query = []
+          query_conditions = []
           query_bindings = []
 
           if params._select
@@ -96,32 +97,38 @@ module TentD
             else
               query << ")"
             end
-            query << "WHERE (public = ? OR permissions.#{visibility_permissions_relationship_foreign_key} = #{table_name}.id)"
+            query_conditions << "(public = ? OR permissions.#{visibility_permissions_relationship_foreign_key} = #{table_name}.id)"
             query_bindings << true
           else
-            query << "WHERE public = ?"
+            query_conditions << "public = ?"
             query_bindings << true
           end
 
-          query << "AND user_id = ?"
+          query_conditions << "user_id = ?"
           query_bindings << User.current.id
 
-          query << "AND #{table_name}.deleted_at IS NULL"
+          query_conditions << "#{table_name}.deleted_at IS NULL"
 
           if columns.include?(:original)
-            query << "AND original = ?"
+            query_conditions << "original = ?"
             query_bindings << true
           end
 
           if block_given?
-            yield query, query_bindings
+            yield query, query_conditions, query_bindings
           end
         end
 
-        def find_with_permissions(id, current_auth)
-          query_with_permissions(current_auth) do |query, query_bindings|
-            query << "AND #{table_name}.id = ?"
+        def find_with_permissions(id, current_auth, &block)
+          query_with_permissions(current_auth) do |query, query_conditions, query_bindings|
+            query_conditions << "#{table_name}.id = ?"
             query_bindings << id
+
+            if block_given?
+              yield query, query_conditions, query_bindings
+            end
+
+            query << "WHERE #{query_conditions.join(' AND ')}"
 
             query << "LIMIT 1"
 
@@ -129,53 +136,25 @@ module TentD
           end
         end
 
-        def fetch_all(params, &block)
+        def fetch_query(params, query, query_conditions, query_bindings, &block)
           params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
-
-          query = []
-          query_conditions = []
-          query_bindings = []
-
-          if params.return_count
-            query << "SELECT COUNT(#{table_name}.*) FROM #{table_name}"
-          else
-            query << "SELECT #{table_name}.* FROM #{table_name}"
-          end
 
           return [] if params.has_key?(:since_id) && params.since_id.nil?
           return [] if params.has_key?(:before_id) && params.before_id.nil?
 
-          if params.since_id
-            query_conditions << "#{table_name}.id > ?"
-            query_bindings << params.since_id.to_i
-          end
-
-          if params.before_id
-            query_conditions << "#{table_name}.id < ?"
-            query_bindings << params.before_id.to_i
-          end
-
-          if params.entity
-            query_conditions << "#{table_name}.entity IN ?"
-            query_bindings << Array(params.entity)
-          end
+          build_fetch_params(params, query_conditions, query_bindings)
 
           if block_given?
             yield params, query, query_conditions, query_bindings
           end
 
-          query_conditions << "#{table_name}.user_id = ?"
-          query_bindings << User.current.id
-
-          query_conditions << "#{table_name}.deleted_at IS NULL"
-
-          order_part = query.last =~ /^order/i ? query.pop : nil
+          order = query.last =~ /\Aorder/i ? query.pop : nil
           query << "WHERE #{query_conditions.join(' AND ')}"
-          query << order_part if order_part
+          query << order if order
 
           unless params.return_count
             sort_direction = get_sort_direction(params)
-            query << "ORDER BY id #{sort_direction}" unless query.find { |q| q =~ /^order/i }
+            query << "ORDER BY id #{sort_direction}" unless order
 
             query << "LIMIT ?"
             query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min
@@ -192,53 +171,55 @@ module TentD
           end
         end
 
+        def fetch_all(params, &block)
+          params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
+
+          query = []
+
+          if params.return_count
+            query << "SELECT COUNT(#{table_name}.*) FROM #{table_name}"
+          else
+            query << "SELECT #{table_name}.* FROM #{table_name}"
+          end
+
+          fetch_query(params, query, [], []) do |params, query, query_conditions, query_bindings|
+            if block_given?
+              yield params, query, query_conditions, query_bindings
+            end
+
+            query_conditions << "#{table_name}.user_id = ?"
+            query_bindings << User.current.id
+
+            query_conditions << "#{table_name}.deleted_at IS NULL"
+          end
+        end
+
         def fetch_with_permissions(params, current_auth, &block)
           params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
 
-          query_with_permissions(current_auth, params) do |query, query_bindings|
-            return [] if params.has_key?(:since_id) && params.since_id.nil?
-            return [] if params.has_key?(:before_id) && params.before_id.nil?
-
-            if params.since_id
-              query << "AND #{table_name}.id > ?"
-              query_bindings << params.since_id.to_i
-            end
-
-            if params.before_id
-              query << "AND #{table_name}.id < ?"
-              query_bindings << params.before_id.to_i
-            end
-
-            if params.entity
-              query << "AND #{table_name}.entity IN ?"
-              query_bindings << Array(params.entity)
-            end
-
-            if block_given?
-              yield params, query, query_bindings
-            end
-
-            unless params.return_count
-              sort_direction = get_sort_direction(params)
-              query << "ORDER BY id #{sort_direction}" unless query.find { |q| q =~ /^order/i }
-
-              query << "LIMIT ?"
-              query_bindings << [(params.limit ? params.limit.to_i : TentD::API::PER_PAGE), TentD::API::MAX_PER_PAGE].min
-            end
-
-            if params.return_count
-              with_sql(query.join(' '), *query_bindings).all.first[:count]
-            else
-              res = with_sql(query.join(' '), *query_bindings).all
-              if sort_reversed?(params)
-                res.reverse!
-              end
-              res
-            end
+          query_with_permissions(current_auth, params) do |query, query_conditions, query_bindings|
+            fetch_query(params, query, query_conditions, query_bindings, &block)
           end
         end
 
         private
+
+        def build_fetch_params(params, query_conditions, query_bindings)
+          if params.since_id
+            query_conditions << "#{table_name}.id > ?"
+            query_bindings << params.since_id.to_i
+          end
+
+          if params.before_id
+            query_conditions << "#{table_name}.id < ?"
+            query_bindings << params.before_id.to_i
+          end
+
+          if params.entity
+            query_conditions << "#{table_name}.entity IN ?"
+            query_bindings << Array(params.entity)
+          end
+        end
 
         def sort_reversed?(params)
           params.since_id && params.order.to_s.downcase != 'asc'

@@ -494,6 +494,16 @@ describe TentD::API::Followings do
           json_get "/followings/#{following.public_id}", params, env
           expect(JSON.parse(last_response.body)['id']).to eql(following.public_id)
         end
+
+        it 'should not return following if not confirmed' do
+          following = Fabricate(:following, :public => false, :confirmed => false)
+          TentD::Model::Permission.create(
+            :following_id => following.id,
+            current_auth.permissible_foreign_key => current_auth.id
+          )
+          json_get "/followings/#{following.public_id}", params, env
+          expect(last_response.status).to eql(404)
+        end
       end
 
       context 'via group' do

@@ -6,12 +6,12 @@ module TentD
       end
 
       module ClassMethods
-        def fetch_with_permissions(params, current_auth)
-          super do |params, query, query_bindings|
-            if params.type_base
-              query << "AND type_base IN(?)"
-              query_bindings << Array(params.type_base)
-            end
+        private
+
+        def build_fetch_params(params, query_conditions, query_bindings)
+          if params.type_base
+            query_conditions << "type_base IN(?)"
+            query_bindings << Array(params.type_base)
           end
         end
       end

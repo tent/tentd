@@ -56,62 +56,11 @@ module TentD
           %w(before_id since_id).each { |key| _params.delete(key) }
           super(_params) do |_params, query, query_conditions, query_bindings|
             query_with_public_and_private_types(allowed_post_types, post_types, query_conditions, query_bindings)
-
-            if params.post_id
-              query_conditions << "#{table_name}.post_id = ?"
-              query_bindings << params.post_id
-            end
-
-            sort_column = get_sort_column(params)
-
-            if params.since_id
-              query_conditions << "(#{table_name}.#{sort_column} >= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
-              query_bindings << params.since_id
-              query_bindings << params.since_id
-
-              _params.since_id = params.since_id
-            end
-
-            if params.before_id
-              query_conditions << "(#{table_name}.#{sort_column} <= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
-              query_bindings << params.before_id
-              query_bindings << params.before_id
-            end
-
-            if params.since_time
-              query_conditions << "#{table_name}.#{sort_column} > ?"
-              query_bindings << Time.at(params.since_time.to_i)
-            end
-
-            if params.before_time
-              query_conditions << "#{table_name}.#{sort_column} < ?"
-              query_bindings << Time.at(params.before_time.to_i)
-            end
-
-            if params.mentioned_post || params.mentioned_entity
-              select = query.shift
-              query.unshift "INNER JOIN mentions ON mentions.#{mentions_relationship_foreign_key} = #{table_name}.id"
-              query.unshift select
-
-              if params.mentioned_entity
-                query_conditions << "mentions.entity = ?"
-                query_bindings << params.mentioned_entity
-              end
-
-              if params.mentioned_post
-                query_conditions << "mentions.mentioned_post_id = ?"
-                query_bindings << params.mentioned_post
-              end
-            end
+            build_common_fetch_posts_query(_params, params, query, query_conditions, query_bindings)
 
             if params.original
               query_conditions << "#{table_name}.original = ?"
               query_bindings << true
-            end
-
-            unless params.return_count
-              sort_direction = get_sort_direction(params)
-              query << "ORDER BY #{table_name}.#{sort_column} #{sort_direction}"
             end
           end
         end
@@ -123,66 +72,72 @@ module TentD
 
           _params = params.dup
           %w(before_id since_id).each { |key| _params.delete(key) }
-          super(_params, current_auth) do |_params, query, query_bindings|
-            if params.post_id
-              query << "AND #{table_name}.post_id = ?"
-              query_bindings << params.post_id
-            end
-
-            sort_column = get_sort_column(params)
-
-            if params.since_id
-              query << "AND (#{table_name}.#{sort_column} >= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
-              query_bindings << params.since_id
-              query_bindings << params.since_id
-
-              _params.since_id = params.since_id
-            end
-
-            if params.before_id
-              query << "AND (#{table_name}.#{sort_column} <= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
-              query_bindings << params.before_id
-              query_bindings << params.before_id
-            end
-
-            if params.since_time
-              query << "AND #{table_name}.#{sort_column} > ?"
-              query_bindings << Time.at(params.since_time.to_i)
-            end
-
-            if params.before_time
-              query << "AND #{table_name}.#{sort_column} < ?"
-              query_bindings << Time.at(params.before_time.to_i)
-            end
+          super(_params, current_auth) do |_params, query, query_conditions, query_bindings|
+            build_common_fetch_posts_query(_params, params, query, query_conditions, query_bindings)
 
             if params.post_types
               params.post_types = parse_array_param(params.post_types)
               if params.post_types.any?
-                query << "AND #{table_name}.type_base IN ?"
+                query_conditions << "#{table_name}.type_base IN ?"
                 query_bindings << params.post_types.map { |t| TentType.new(t).base }
               end
             end
+          end
+        end
 
-            if params.mentioned_post || params.mentioned_entity
-              select = query.shift
-              query.unshift "INNER JOIN mentions ON mentions.#{mentions_relationship_foreign_key} = #{table_name}.id"
-              query.unshift select
+        private
 
-              if params.mentioned_entity
-                query << "AND mentions.entity = ?"
-                query_bindings << params.mentioned_entity
-              end
+        def build_common_fetch_posts_query(_params, params, query, query_conditions, query_bindings)
+          if params.post_id
+            query_conditions << "#{table_name}.post_id = ?"
+            query_bindings << params.post_id
+          end
 
-              if params.mentioned_post
-                query << "AND mentions.mentioned_post_id = ?"
-                query_bindings << params.mentioned_post
-              end
+          sort_column = get_sort_column(params)
+
+          if params.since_id
+            query_conditions << "(#{table_name}.#{sort_column} >= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
+            query_bindings << params.since_id
+            query_bindings << params.since_id
+
+            _params.since_id = params.since_id
+          end
+
+          if params.before_id
+            query_conditions << "(#{table_name}.#{sort_column} <= (SELECT #{sort_column} FROM #{table_name} WHERE id = ?) AND #{table_name}.id != ?)"
+            query_bindings << params.before_id
+            query_bindings << params.before_id
+          end
+
+          if params.since_time
+            query_conditions << "#{table_name}.#{sort_column} > ?"
+            query_bindings << Time.at(params.since_time.to_i)
+          end
+
+          if params.before_time
+            query_conditions << "#{table_name}.#{sort_column} < ?"
+            query_bindings << Time.at(params.before_time.to_i)
+          end
+
+          if params.mentioned_post || params.mentioned_entity
+            select = query.shift
+            query.unshift "INNER JOIN mentions ON mentions.#{mentions_relationship_foreign_key} = #{table_name}.id"
+            query.unshift select
+
+            if params.mentioned_entity
+              query_conditions << "mentions.entity = ?"
+              query_bindings << params.mentioned_entity
             end
 
-            unless params.return_count
-              sort_direction = get_sort_direction(params)
-              query << "ORDER BY #{table_name}.#{sort_column} #{sort_direction}"
+            if params.mentioned_post
+              query_conditions << "mentions.mentioned_post_id = ?"
+              query_bindings << params.mentioned_post
             end
+          end
+
+          unless params.return_count
+            sort_direction = get_sort_direction(params)
+            query << "ORDER BY #{table_name}.#{sort_column} #{sort_direction}"
           end
         end
 
