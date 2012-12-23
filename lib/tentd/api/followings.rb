@@ -286,7 +286,7 @@ module TentD
         b.use PaginationHeader
       end
 
-      get %r{/followings/(\w+)/(.+)} do |b|
+      get %r{/followings/([-\w]+)/(.+)} do |b|
         b.use RewriteProxyCaptureParams
         b.use GetActualId
         b.use GetOne

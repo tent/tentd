@@ -18,7 +18,7 @@ module TentD
 
       def before_create
         self.public_id ||= random_id
-        self.mac_key_id ||= 'a:' + SecureRandom.hex(4)
+        self.mac_key_id ||= 'a:' + random_id
         self.mac_key ||= SecureRandom.hex(16)
         self.mac_algorithm ||= 'hmac-sha-256'
         self.user_id ||= User.current.id
