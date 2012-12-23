@@ -683,15 +683,19 @@ describe TentD::API::Posts do
       context 'with params' do
         context 'with [:before_id] param' do
           it 'should return mentions with id < :before_id' do
+            other2_known_post # create
             params = {
-              :before_id => other_known_post.public_id
+              :before_id => other2_known_post.public_id
             }
-            json_get "/posts/#{post.public_id}/mentions", params, env
-            expect(last_response.status).to eq(200)
 
-            body = Yajl::Parser.parse(last_response.body)
-            expect(body.size).to eql(1)
-            expect(body.first['post']).to eql(known_post.public_id)
+            with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+              json_get "/posts/#{post.public_id}/mentions", params, env
+              expect(last_response.status).to eq(200)
+
+              body = Yajl::Parser.parse(last_response.body)
+              expect(body.size).to eql(1)
+              expect(body.first['post']).to eql(other_known_post.public_id)
+            end
           end
 
           it 'should return mentions with id < :before_id where entity = :before_id_entity' do

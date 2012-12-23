@@ -171,7 +171,15 @@ SQL
           sql_bindings << params[:post_types].split(',').map { |uri| TentType.new(uri).base }
         end
 
-        sql << "ORDER BY posts.id"
+        if params.has_key?(:before_id)
+          sort_reversed = true
+          sort_direction = 'DESC'
+        else
+          sort_reversed = false
+          sort_direction = 'ASC'
+        end
+
+        sql << "ORDER BY posts.id #{sort_direction}"
 
         sql << "LIMIT ?"
         sql_bindings << [(params[:limit] ? params[:limit].to_i : API::PER_PAGE), API::MAX_PER_PAGE].min
@@ -179,7 +187,13 @@ SQL
         sql = sql.join(' ')
 
         query = Mention.with_sql(sql, *sql_bindings)
-        params[:return_count] ? query.count : query.all
+        if params[:return_count]
+          query.count
+        else
+          res = query.all
+          res.reverse! if sort_reversed
+          res
+        end
       end
 
       def latest_version(options = {})
