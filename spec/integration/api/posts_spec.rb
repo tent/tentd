@@ -552,6 +552,8 @@ describe TentD::API::Posts do
 
       it 'should order by version' do
         version_12 = Fabricate(:post_version, :post_id => post.id, :public_id => post.public_id, :version => 12)
+        other_post = Fabricate(:post)
+        other_post_version = Fabricate(:post_version, :post_id => other_post.id, :public_id => other_post.public_id, :version => 10)
         version_8  = Fabricate(:post_version, :post_id => post.id, :public_id => post.public_id, :version => 8)
 
         get "/posts/#{post.public_id}/versions", params, env

@@ -26,7 +26,7 @@ module TentD
 
         def slice_params(params)
           params = Hashie::Mash.new(params) unless params.kind_of?(Hashie::Mash)
-          params.slice(:before_version, :since_version, :until_version, :limit, :return_count, :order)
+          params.slice(:post_id, :before_version, :since_version, :until_version, :limit, :return_count, :order)
         end
 
         private
@@ -36,6 +36,9 @@ module TentD
         end
 
         def build_common_fetch_post_versions_query(params, query, query_conditions, query_bindings)
+          query_conditions << "#{table_name}.post_id = ?"
+          query_bindings << params.post_id
+
           if params.since_version
             query_conditions << "#{table_name}.version > ?"
             query_bindings << params.since_version
