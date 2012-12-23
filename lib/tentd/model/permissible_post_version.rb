@@ -31,6 +31,10 @@ module TentD
 
         private
 
+        def sort_reversed?(params)
+          params.since_version && params.order.to_s.downcase != 'asc'
+        end
+
         def build_common_fetch_post_versions_query(params, query, query_conditions, query_bindings)
           if params.since_version
             query_conditions << "#{table_name}.version > ?"

@@ -455,15 +455,20 @@ describe TentD::API::Posts do
       context 'with params' do
         context '[:since_version]' do
           it 'should return versions > :since_version' do
-            latest_post_version = post.create_version!
+            since_post_version = post.latest_version
+            post_version = post.create_version!
+            other_post_version = post.create_version!
 
-            params = { :since_version => post_version.version }
-            get "/posts/#{post.public_id}/versions", params, env
-            expect(last_response.status).to eql(200)
+            params = { :since_version => since_post_version.version }
 
-            body = Yajl::Parser.parse(last_response.body)
-            expect(body.size).to eql(1)
-            expect(body.first['version']).to eql(latest_post_version.version)
+            with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+              get "/posts/#{post.public_id}/versions", params, env
+              expect(last_response.status).to eql(200)
+
+              body = Yajl::Parser.parse(last_response.body)
+              expect(body.size).to eql(1)
+              expect(body.first['version']).to eql(post_version.version)
+            end
           end
         end
 
