@@ -156,6 +156,11 @@ SQL
           sql_bindings << params[:before_id]
         end
 
+        if params.has_key?(:until_id)
+          sql << "AND posts.id < ?"
+          sql_bindings << params[:until_id]
+        end
+
         if params.has_key?(:since_id)
           sql << "AND posts.id > ?"
           sql_bindings << params[:since_id]

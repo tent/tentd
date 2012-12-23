@@ -210,6 +210,11 @@ module TentD
             query_bindings << params.since_id.to_i
           end
 
+          if params.until_id
+            query_conditions << "#{table_name}.id > ?"
+            query_bindings << params.until_id
+          end
+
           if params.before_id
             query_conditions << "#{table_name}.id < ?"
             query_bindings << params.before_id.to_i

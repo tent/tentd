@@ -5,7 +5,7 @@ module TentD
 
       class GetActualId < Middleware
         def action(env)
-          id_mapping = [:post_id, :since_id, :before_id].select { |key| env.params.has_key?(key) }.inject({}) { |memo, key|
+          id_mapping = [:post_id, :since_id, :before_id, :until_id].select { |key| env.params.has_key?(key) }.inject({}) { |memo, key|
             memo[env.params[key]] = key
             env.params[key] = nil
             memo
@@ -422,7 +422,7 @@ module TentD
         def action(env)
           return env unless post = env.response
           env.post = post
-          env.response = post.public_mentions(env.params.slice(:before_id, :since_id, :limit, :post_types, :return_count))
+          env.response = post.public_mentions(env.params.slice(:before_id, :since_id, :until_id, :limit, :post_types, :return_count))
           env
         end
       end

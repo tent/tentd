@@ -479,6 +479,27 @@ describe TentD::API::Posts do
           end
         end
 
+        context '[:until_version]' do
+          it 'should return versions > :until_version' do
+            until_post_version = post.latest_version
+            other_post_version = post.create_version!
+            post_version = post.create_version!
+            before_post_version = post.create_version!
+
+            params = {
+              :before_version => before_post_version.version,
+              :until_version => until_post_version.version
+            }
+
+            with_constants "TentD::API::MAX_PER_PAGE" => 3 do
+              json_get "/posts/#{post.public_id}/versions", params, env
+              expect(last_response.status).to eql(200)
+              body_versions = Yajl::Parser.parse(last_response.body).map { |i| i['version'] }
+              expect(body_versions).to eql([post_version.version, other_post_version.version])
+            end
+          end
+        end
+
         context '[:order] = asc' do
           it 'should return versions in asc order' do
             version_12 = Fabricate(:post_version, :post_id => post.id, :public_id => post.public_id, :version => 12)
@@ -632,6 +653,12 @@ describe TentD::API::Posts do
   describe 'GET/HEAD /posts/:post_id/mentions' do
     let(:post) { Fabricate(:post, :public => true) }
 
+    create_post_and_mention = lambda { |post_attrs={}, mention_attrs={}|
+      post = Fabricate(:post, { :public => true, :original => false}.merge(post_attrs))
+      mention = Fabricate(:mention, { :post_id => post.id, :mentioned_post_id => post.public_id, :entity => post.entity }.merge(mention_attrs))
+      [post, mention]
+    }
+
     let!(:known_post) { Fabricate(:post, :public => true, :original => false) }
     let!(:known_mention) { Fabricate(:mention, :post_id => known_post.id, :mentioned_post_id => post.public_id, :entity => post.entity) }
 
@@ -688,6 +715,35 @@ describe TentD::API::Posts do
 
             body = Yajl::Parser.parse(last_response.body)
             expect(body.size).to eql(0)
+          end
+        end
+
+        context 'with [:until_id] param' do
+          it 'should return mentions with id < :until_id' do
+            other2_known_mention # create
+            until_post, until_mention = create_post_and_mention.call
+
+            params = {
+              :until_id => until_post.public_id,
+              :until_id_entity => until_post.entity,
+
+              :since_id => known_post.public_id,
+              :since_id_entity => known_post.entity
+            }
+
+            with_constants "TentD::API::MAX_PER_PAGE" => 3 do
+              json_get "/posts/#{post.public_id}/mentions", params, env
+              expect(last_response.status).to eq(200)
+              body_ids = Yajl::Parser.parse(last_response.body).map { |i| i['post'] }
+              expect(body_ids).to eql([other_known_post.public_id, other2_known_post.public_id])
+            end
+
+            with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+              json_get "/posts/#{post.public_id}/mentions", params, env
+              expect(last_response.status).to eq(200)
+              body_ids = Yajl::Parser.parse(last_response.body).map { |i| i['post'] }
+              expect(body_ids).to eql([other_known_post.public_id])
+            end
           end
         end
 
@@ -929,6 +985,32 @@ describe TentD::API::Posts do
           expect(body.size).to eq(1)
           body_ids = body.map { |i| i['id'] }
           expect(body_ids.first).to eq(post.public_id)
+        end
+      end
+
+      it "should filter by params[:until_id]" do
+        until_post = Fabricate(:post, :public => post_public?)
+        post = Fabricate(:post, :public => post_public?)
+        other_post = Fabricate(:post, :public => post_public?)
+        before_post = Fabricate(:post, :public => post_public?)
+
+        params[:before_id] = before_post.public_id
+        params[:until_id] = until_post.public_id
+
+        with_constants "TentD::API::MAX_PER_PAGE" => 3 do
+          json_get "/posts", params, env
+          body = JSON.parse(last_response.body)
+          expect(body.size).to eq(2)
+          body_ids = body.map { |i| i['id'] }
+          expect(body_ids).to eq([other_post.public_id, post.public_id])
+        end
+
+        with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+          json_get "/posts", params, env
+          body = JSON.parse(last_response.body)
+          expect(body.size).to eq(1)
+          body_ids = body.map { |i| i['id'] }
+          expect(body_ids).to eq([other_post.public_id])
         end
       end
 

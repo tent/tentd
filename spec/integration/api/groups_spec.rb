@@ -94,6 +94,34 @@ describe TentD::API::Groups do
           end
         end
 
+        it 'should filter by until_id' do
+          until_group = Fabricate(:group)
+          other_group = Fabricate(:group)
+          group = Fabricate(:group)
+          before_group = Fabricate(:group)
+
+          params[:until_id] = until_group.public_id
+          params[:before_id] = before_group.public_id
+
+          with_constants "TentD::API::MAX_PER_PAGE" => 3 do
+            json_get '/groups', params, env
+            expect(last_response.status).to eq(200)
+
+            body = JSON.parse(last_response.body)
+            body_ids = body.map { |i| i['id'] }
+            expect(body_ids).to eq([group.public_id, other_group.public_id])
+          end
+
+          with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+            json_get '/groups', params, env
+            expect(last_response.status).to eq(200)
+
+            body = JSON.parse(last_response.body)
+            body_ids = body.map { |i| i['id'] }
+            expect(body_ids).to eq([group.public_id])
+          end
+        end
+
         it 'should support limit' do
           2.times { Fabricate(:group) }
           params[:limit] = 1

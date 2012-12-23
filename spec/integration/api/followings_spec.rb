@@ -91,6 +91,36 @@ describe TentD::API::Followings do
         end
       end
 
+      context '[:until_id]' do
+        it 'should return followings with id > :until_id' do
+          until_following = Fabricate(:following, :public => !create_permissions?)
+          other_following = Fabricate(:following, :public => !create_permissions?)
+          following = Fabricate(:following, :public => !create_permissions?)
+          before_following = Fabricate(:following, :public => !create_permissions?)
+
+          if create_permissions?
+            [until_following, other_following, following, before_following].each { |f| @create_permission.call(f) }
+          end
+
+          params[:until_id] = until_following.public_id
+          params[:before_id] = before_following.public_id
+
+          with_constants "TentD::API::MAX_PER_PAGE" => 3 do
+            json_get "/followings", params, env
+            expect(last_response.status).to eql(200)
+            body_ids = Yajl::Parser.parse(last_response.body).map { |i| i['id'] }
+            expect(body_ids).to eql([following.public_id, other_following.public_id])
+          end
+
+          with_constants "TentD::API::MAX_PER_PAGE" => 1 do
+            json_get "/followings", params, env
+            expect(last_response.status).to eql(200)
+            body_ids = Yajl::Parser.parse(last_response.body).map { |i| i['id'] }
+            expect(body_ids).to eql([following.public_id])
+          end
+        end
+      end
+
       context '[:since_id]' do
         it 'should only return followings with id > :since_id' do
           since_following = Fabricate(:following, :public => !create_permissions?, :deleted_at => Time.now)

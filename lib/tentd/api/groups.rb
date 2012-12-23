@@ -19,7 +19,7 @@ module TentD
 
       class GetActualId < Middleware
         def action(env)
-          [:group_id, :before_id, :since_id].select { |k| env.params.has_key?(k) }.each do |id_key|
+          [:group_id, :before_id, :since_id, :until_id].select { |k| env.params.has_key?(k) }.each do |id_key|
             if env.params[id_key]
               if g = Model::Group.unfiltered.first(:user_id => Model::User.current.id, :public_id => env.params[id_key])
                 env.params[id_key] = g.id
@@ -49,6 +49,7 @@ module TentD
           query = Model::Group.where(:user_id => Model::User.current.id)
           query = query.where { id < env.params.before_id } if env.params.before_id
           query = query.where { id > env.params.since_id } if env.params.since_id
+          query = query.where { id > env.params.until_id } if env.params.until_id
 
           limit = [(env.params.limit ? env.params.limit.to_i : PER_PAGE), MAX_PER_PAGE].min
           query = query.limit(limit) if limit != 0

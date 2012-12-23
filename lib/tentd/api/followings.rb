@@ -23,7 +23,7 @@ module TentD
       class GetActualId < Middleware
         def action(env)
           return env if env.skip_id_lookup
-          id_mapping = [:following_id, :since_id, :before_id].select { |key| env.params.has_key?(key) }.inject({}) { |memo, key|
+          id_mapping = [:following_id, :since_id, :before_id, :until_id].select { |key| env.params.has_key?(key) }.inject({}) { |memo, key|
             memo[env.params[key]] = key
             env.params[key] = nil
             memo
