@@ -400,7 +400,9 @@ module TentD
             if following = Model::Following.first(:id => post.following_id)
               client = TentClient.new(following.core_profile.servers.first, following.auth_details.merge(:skip_serialization => true, :faraday_adapter => TentD.faraday_adapter))
               res = client.post.attachment.get(post.public_id, env.params.attachment_name, type)
-              return [res.status, res.headers, [res.body]]
+              headers = res.headers
+              filter_proxy_response_headers(headers)
+              return [res.status, headers, [res.body]]
             else
               raise NotFound
             end

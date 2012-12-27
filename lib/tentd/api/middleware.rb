@@ -62,6 +62,11 @@ module TentD
       def error_response(status, error, headers = {})
         [status, headers.merge('Content-Type' => MEDIA_TYPE), [{ 'error' => error }.to_json]]
       end
+
+      def filter_proxy_response_headers(headers)
+        blacklist = %w[ transfer-encoding connection status ]
+        blacklist.each { |key| headers.delete(key) }
+      end
     end
   end
 end

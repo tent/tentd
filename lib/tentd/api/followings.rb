@@ -216,8 +216,7 @@ module TentD
           path = env.params.delete(:proxy_path).sub(%r{\A/}, '')
           res = client.http.get(path, env.params, whitelisted_headers(env))
           headers = res.headers
-          blacklist = %w[ transfer-encoding connection status ]
-          blacklist.each { |key| headers.delete(key) }
+          filter_proxy_response_headers(headers)
           [res.status, headers, [res.body]]
         end
 
