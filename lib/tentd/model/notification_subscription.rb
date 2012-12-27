@@ -41,7 +41,34 @@ module TentD
               :view => subscription.type_view
             )
           end
-        elsif !post.original
+        else
+          if post.original
+            # Notify follower subscriptions
+            NotificationSubscription.join(
+              :followers,
+              :notification_subscriptions__follower_id => :followers__id
+            ).join(
+              Permission,
+              :permissions__follower_access_id => :followers__id
+            ).join(
+              :posts,
+              :permissions__post_id => :posts__id
+            ).where(
+              :notification_subscriptions__type_base => [TentType.new(type).base, 'all'],
+              :permissions__post_id => post.id,
+              :followers__deleted_at => nil,
+              :posts__deleted_at => nil
+            ).select(
+              :notification_subscriptions__id,
+              :notification_subscriptions__app_authorization_id,
+              :notification_subscriptions__follower_id
+            ).all.each do |subscription|
+              next unless post.can_notify?(subscription.subject)
+              Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
+            end
+          end
+
+          # Notify app authorization subscriptions
           q = NotificationSubscription.select(
             :id, :app_authorization_id
           ).where(
@@ -56,29 +83,6 @@ module TentD
               :post_id => post_id,
               :view => subscription.type_view
             )
-          end
-        else
-          NotificationSubscription.join(
-            :followers,
-            :notification_subscriptions__follower_id => :followers__id
-          ).join(
-            Permission,
-            :permissions__follower_access_id => :followers__id
-          ).join(
-            :posts,
-            :permissions__post_id => :posts__id
-          ).where(
-            :notification_subscriptions__type_base => [TentType.new(type).base, 'all'],
-            :permissions__post_id => post.id,
-            :followers__deleted_at => nil,
-            :posts__deleted_at => nil
-          ).select(
-            :notification_subscriptions__id,
-            :notification_subscriptions__app_authorization_id,
-            :notification_subscriptions__follower_id
-          ).all.each do |subscription|
-            next unless post.can_notify?(subscription.subject)
-            Notifications.notify(:subscription_id => subscription.id, :post_id => post_id, :view => subscription.type_view)
           end
         end
       end

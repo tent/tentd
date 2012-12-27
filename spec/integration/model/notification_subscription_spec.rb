@@ -96,9 +96,9 @@ describe TentD::Model::NotificationSubscription do
         expect(subscription.notify_about(post.id)).to be_true
       end
 
-      context 'when post not original' do
+      notify_app_examples = proc do
         context 'when permissible via post type' do
-          let(:post) { Fabricate(:post, :public => false, :original => false) }
+          let(:post) { Fabricate(:post, :public => post_public?, :original => post_original?) }
           let!(:subscription) {
             Fabricate(:notification_subscription,
               :type_base => post.type_base,
@@ -129,6 +129,34 @@ describe TentD::Model::NotificationSubscription do
             described_class.notify_all(post.type.uri, post.id)
             http_stubs.verify_stubbed_calls
           end
+        end
+      end
+
+      context 'when post is original' do
+        let(:post_original?) { true }
+
+        context 'when post is public' do
+          let(:post_public?) { true }
+          context &notify_app_examples
+        end
+
+        context 'when post is private' do
+          let(:post_public?) { false }
+          context &notify_app_examples
+        end
+      end
+
+      context 'when post not original' do
+        let(:post_original?) { false }
+
+        context 'when post is public' do
+          let(:post_public?) { true }
+          context &notify_app_examples
+        end
+
+        context 'when post is private' do
+          let(:post_public?) { false }
+          context &notify_app_examples
         end
       end
     end
