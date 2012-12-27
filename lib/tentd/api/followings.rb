@@ -215,7 +215,10 @@ module TentD
           env.params.delete(:following_id)
           path = env.params.delete(:proxy_path).sub(%r{\A/}, '')
           res = client.http.get(path, env.params, whitelisted_headers(env))
-          [res.status, res.headers, [res.body]]
+          headers = res.headers
+          blacklist = %w[ transfer-encoding connection status ]
+          blacklist.each { |key| headers.delete(key) }
+          [res.status, headers, [res.body]]
         end
 
         def whitelisted_headers(env)
