@@ -33,7 +33,7 @@ module TentD
 
     class HelloWorld < Middleware
       def action(env)
-        [200, { 'Link' => %(<%s>; rel="%s") % [File.join(env['SCRIPT_NAME'], 'profile'), PROFILE_REL] }, ['Tent!']]
+        [200, { 'Link' => %(<%s>; rel="%s") % [File.join(env['SCRIPT_NAME'], 'profile'), PROFILE_REL], 'Content-Type' => 'text/plain' }, ['Tent!']]
       end
     end
 

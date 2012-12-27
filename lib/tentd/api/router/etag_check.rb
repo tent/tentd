@@ -9,6 +9,7 @@ module TentD
         def call(env)
           status, headers, body = @app.call(env)
           if !headers['ETag'].nil? && headers['ETag'] == env['HTTP_IF_NONE_MATCH'] && %w(GET HEAD).include?(env['REQUEST_METHOD'])
+            headers.delete('Content-Type')
             [304, headers, []]
           else
             [status, headers, body]
