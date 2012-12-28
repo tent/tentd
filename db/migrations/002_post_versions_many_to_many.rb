@@ -1,8 +1,8 @@
 Sequel.migration do
   up do
     create_table(:post_versions_attachments) do
-      foreign_key :post_version_id, :post_versions, :key=>[:id], :on_delete=> :cascade, :on_update=> :cascade
       foreign_key :post_attachment_id, :post_attachments, :key=>[:id], :on_delete=> :cascade, :on_update=> :cascade
+      foreign_key :post_version_id, :post_versions, :key=>[:id], :on_delete=> :cascade, :on_update=> :cascade
 
       index [:post_version_id], :name=>:index_post_versions_attachments_post_version
       index [:post_attachment_id], :name=>:index_post_versions_attachments_attachment
@@ -10,8 +10,8 @@ Sequel.migration do
     end
 
     create_table(:post_versions_mentions) do
-      foreign_key :post_version_id, :post_versions, :key=>[:id], :on_delete=> :cascade, :on_update=> :cascade
       foreign_key :mention_id, :mentions, :key=>[:id], :on_delete=> :cascade, :on_update=> :cascade
+      foreign_key :post_version_id, :post_versions, :key=>[:id], :on_delete=> :cascade, :on_update=> :cascade
 
       index [:post_version_id], :name=>:index_post_versions_mentions_post_version
       index [:mention_id], :name=>:index_post_versions_mentions_mention_id
