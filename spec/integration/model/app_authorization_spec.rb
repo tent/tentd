@@ -43,6 +43,24 @@ describe TentD::Model::AppAuthorization do
     expect(auth2.reload.scopes).to eql(['follow_ui'])
   end
 
+  describe '#destroy' do
+    let(:notification_subscription) { Fabricate(:notification_subscription, :app_authorization => app_authorization) }
+
+    it 'should delete app authorization' do
+      app_authorization # create
+      expect(lambda {
+        app_authorization.destroy
+      }).to change(TentD::Model::AppAuthorization, :count).by(-1)
+    end
+
+    it 'should delete notification subscription' do
+      notification_subscription # create
+      expect(lambda {
+        app_authorization.destroy
+      }).to change(TentD::Model::NotificationSubscription, :count).by(-1)
+    end
+  end
+
   describe '#as_json' do
     let(:app_attributes) do
       {

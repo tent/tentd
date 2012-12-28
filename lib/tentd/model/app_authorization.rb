@@ -40,6 +40,11 @@ module TentD
         super
       end
 
+      def after_destroy
+        notification_subscriptions_dataset.destroy
+        super
+      end
+
       def self.follow_url(entity)
         app_auth = qualify.join(:apps, :apps__id => :app_authorizations__app_id).where(:apps__user_id => User.current.id).where(Sequel.~(:app_authorizations__follow_url => nil)).order(:app_authorizations__id.desc).where("app_authorizations.scopes @> ARRAY['follow_ui']").first
         return unless app_auth

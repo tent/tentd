@@ -31,6 +31,11 @@ module TentD
         super
       end
 
+      def after_destroy
+        authorizations_dataset.destroy
+        super
+      end
+
       def self.create_from_params(params={})
         create(params.slice(*public_attributes))
       end

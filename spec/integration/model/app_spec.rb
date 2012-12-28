@@ -3,6 +3,26 @@ require 'spec_helper'
 describe TentD::Model::App do
   let(:app) { Fabricate(:app) }
 
+  describe '#destroy' do
+    let!(:app_authorization) { Fabricate(:app_authorization, :app => app) }
+    let(:notification_subscription) { Fabricate(:notification_subscription, :app_authorization => app_authorization) }
+
+    it 'should destroy app authorizations' do
+      expect(lambda {
+        expect(lambda {
+          app.destroy
+        }).to change(described_class, :count).by(-1)
+      }).to change(TentD::Model::AppAuthorization, :count).by(-1)
+    end
+
+    it 'should destroy notification subscriptions' do
+      notification_subscription # create
+      expect(lambda {
+        app.destroy
+      }).to change(TentD::Model::NotificationSubscription, :count).by(-1)
+    end
+  end
+
   describe '#as_json' do
     let(:public_attributes) do
       {
