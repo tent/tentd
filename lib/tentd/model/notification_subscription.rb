@@ -27,6 +27,7 @@ module TentD
       def self.notify_all(type, post_id)
         post = Post.select(:id, :original, :public, :user_id, :type_base).first(:id => post_id)
         return unless post
+        TentD::Streaming.deliver_post(post_id)
         if post.original && post.public
           NotificationSubscription.select(
             :id, :app_authorization_id, :follower_id

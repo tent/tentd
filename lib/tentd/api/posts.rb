@@ -66,6 +66,8 @@ module TentD
       class GetFeed < Middleware
         def action(env)
           env.params.delete('post_id')
+          env.can_stream = true
+
           if authorize_env?(env, :read_posts)
             if env.params.return_count && !env.params.mentioned_entity
               env.params.original = true

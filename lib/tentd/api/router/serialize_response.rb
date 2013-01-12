@@ -18,6 +18,16 @@ module TentD
           [status, headers, [response.to_s]]
         end
 
+        def serialize_response(env)
+          object = env.response
+          if object.kind_of?(Array)
+            r = object.map { |i| i.as_json(serialization_options(env)) }
+            r.to_json
+          else
+            object.to_json(serialization_options(env))
+          end
+        end
+
         private
 
         def serialize_error_response(status, headers, response)
@@ -27,16 +37,6 @@ module TentD
           end
 
           [status, headers.merge('Content-Type' => MEDIA_TYPE), { :error => response }.to_json]
-        end
-
-        def serialize_response(env)
-          object = env.response
-          if object.kind_of?(Array)
-            r = object.map { |i| i.as_json(serialization_options(env)) }
-            r.to_json
-          else
-            object.to_json(serialization_options(env))
-          end
         end
 
         def serialization_options(env)

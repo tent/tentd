@@ -220,6 +220,11 @@ module TentD
             query_bindings << params.before_id.to_i
           end
 
+          if params.id
+            query_conditions << "#{table_name}.id = ?"
+            query_bindings << params.id.to_i
+          end
+
           if params.entity
             query_conditions << "#{table_name}.entity IN ?"
             query_bindings << Array(params.entity)
