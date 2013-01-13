@@ -1,3 +1,5 @@
+require 'thread'
+
 # Fix Puma treating empty BodyProxies as non-empty
 module Rack
   class BodyProxy
@@ -26,21 +28,55 @@ module TentD
 
     def self.start_post_stream(env)
       user = TentD::Model::User.current
-
+      stream = PostStream.new
+      listener.connected_streams << stream
+          
       Thread.new do 
         TentD::Model::User.current = user
         begin
-          PostStream.new(env).run
+          stream.run(env)
         rescue Errno::EPIPE
           # client disconnected
         end
       end
     end
 
-    class PostStream < Struct.new(:env)
-      include TentD::API::Authorizable
+    def self.listener
+      @listener ||= begin
+        DatabaseListener.new.tap do |l|
+          Thread.new do
+            l.run
+          end
+        end
+      end
+    end
+
+    class DatabaseListener
+      attr_reader :connected_streams
+
+      def initialize
+        @connected_streams = []
+      end
 
       def run
+        db = Sequel.connect(ENV['DATABASE_URL'], :logger => Logger.new(STDOUT))
+        db.listen(TentD::Streaming::POSTGRES_CHANNEL, loop: true) do |channel, backend, payload|
+          @connected_streams.each do |s|
+            s.queue << payload
+          end
+        end
+      end
+    end
+
+    class PostStream < Struct.new(:env)
+      include TentD::API::Authorizable
+      attr_reader :queue
+
+      def initialize
+        @queue = Queue.new
+      end
+
+      def run(env)
         socket = env['puma.socket']
         auth = env.current_auth
         
@@ -53,10 +89,9 @@ module TentD
           socket.write "#{k}: #{v}\r\n"
         end
         socket.write "\r\n"
-        
-        db = Sequel.connect(ENV['DATABASE_URL'], :logger => Logger.new(STDOUT))
-        db.listen(TentD::Streaming::POSTGRES_CHANNEL, loop: true) do |channel, backend, payload|
-          post_id = payload
+
+        loop do
+          post_id = @queue.pop
 
           if authorize_env?(env, :read_posts)
             q = Model::Post.where(:id => post_id)
