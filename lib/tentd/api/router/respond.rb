@@ -8,7 +8,7 @@ module TentD
         end
         
         def call(env)
-          if @stream.matches?(env)
+          if env.start_post_stream
             @stream.call(env)
           else
             @serialize.call(env)

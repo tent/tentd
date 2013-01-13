@@ -66,15 +66,17 @@ module TentD
       class GetFeed < Middleware
         def action(env)
           env.params.delete('post_id')
-          env.can_stream = true
-
-          if authorize_env?(env, :read_posts)
-            if env.params.return_count && !env.params.mentioned_entity
-              env.params.original = true
-            end
-            env.response = Model::Post.fetch_all(env.params, env.current_auth)
+          if env.stream_requested
+            env.start_post_stream = true
           else
-            env.response = Model::Post.fetch_with_permissions(env.params, env.current_auth)
+            if authorize_env?(env, :read_posts)
+              if env.params.return_count && !env.params.mentioned_entity
+                env.params.original = true
+              end
+              env.response = Model::Post.fetch_all(env.params, env.current_auth)
+            else
+              env.response = Model::Post.fetch_with_permissions(env.params, env.current_auth)
+            end
           end
           env
         end

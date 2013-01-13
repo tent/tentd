@@ -6,7 +6,11 @@ module TentD
       class SerializeResponse
         def call(env)
           response = if env.response
-            env.response.kind_of?(String) ? env.response : serialize_response(env)
+            begin
+              env.response.kind_of?(String) ? env.response : TentD::API::Serializer.serialize(env.response, env)
+            rescue Exception => e
+              puts e.inspect, e.backtrace.join("\n")
+            end
           end
           status = env['response.status'] || (response ? 200 : 404)
           headers = if env['response.type'] || status == 200 && response && !response.empty?

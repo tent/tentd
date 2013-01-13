@@ -22,6 +22,7 @@ module TentD
     autoload :Middleware, 'tentd/api/middleware'
     autoload :PaginationHeader, 'tentd/api/pagination_header'
     autoload :CountHeader, 'tentd/api/count_header'
+    autoload :Serializer, 'tentd/api/serializer'
     include Router
 
     mount Apps
