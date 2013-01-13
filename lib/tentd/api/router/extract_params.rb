@@ -34,7 +34,7 @@ module TentD
             keys.zip(values) { |k,v| Array === params[k] ? params[k] << v : params[k] = v if v }
           end
 
-          if StreamResponse.matches?(env)
+          if TentD::Streaming.requests_stream?(env)
             env.stream_requested = true
           end
 

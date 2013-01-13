@@ -30,8 +30,6 @@ module TentD
       autoload :EtagCheck, 'tentd/api/router/etag_check'
 
       autoload :Respond, 'tentd/api/router/respond'
-      autoload :SerializeResponse, 'tentd/api/router/serialize_response'
-      autoload :StreamResponse, 'tentd/api/router/stream_response'
 
       def self.included(base)
         base.extend(ClassMethods)
