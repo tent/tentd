@@ -72,8 +72,8 @@ module TentD
 
           if post
             serialized = TentD::API::Serializer.serialize(post, env)
-            socket.write "#{serialized.length}\n"
-            socket.write "#{serialized}\n"
+            socket.write "#{serialized.bytesize}\r\n"
+            socket.write "#{serialized}\r\n"
           end
         end
       end
