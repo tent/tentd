@@ -19,7 +19,7 @@ module TentD
       class StreamResponse
         include Authorizable
 
-        LENGTH_PREFIXED_JSON_TYPE = 'application/vnd.tent.v0+length-prefixed-json'.freeze
+        LENGTH_PREFIXED_JSON_TYPE = 'application/vnd.tent.v0+length-prefixed-json-stream'.freeze
         
         def matches?(env)
           env['HTTP_ACCEPT'] == LENGTH_PREFIXED_JSON_TYPE
