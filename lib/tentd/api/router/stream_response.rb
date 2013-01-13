@@ -52,7 +52,11 @@ module TentD
 
           Thread.new do 
             TentD::Model::User.current = user
-            stream_response(env)
+            begin
+              stream_response(env)
+            rescue Errno::EPIPE
+              # client disconnected
+            end
           end
 
           [-1, {}, []]
@@ -61,38 +65,37 @@ module TentD
         def stream_response(env)
           socket = env['puma.socket']
           
-          serialize = SerializeResponse.new
-          begin
-            socket.write "HTTP/1.1 200 OK\r\n"
-            headers = { "Content-Type" => LENGTH_PREFIXED_JSON_TYPE }
-            headers.merge env['response.headers']
-            headers.each do |k,v|
-              socket.write "#{k}: #{v}\r\n"
-            end
-            socket.write "\r\n"
+          headers = { "Content-Type" => LENGTH_PREFIXED_JSON_TYPE }
+          headers.merge env['response.headers']
+
+          serializer = SerializeResponse.new
+          
+          # Just a tad hackish
+          socket.write "HTTP/1.1 200 OK\r\n"
+          headers.each do |k,v|
+            socket.write "#{k}: #{v}\r\n"
+          end
+          socket.write "\r\n"
+          
+          db = Sequel.connect(ENV['DATABASE_URL'], :logger => Logger.new(STDOUT))
+          db.listen(TentD::Streaming::POSTGRES_CHANNEL, loop: true) do |channel, backend, payload|
+            post_id = payload
+
+            params = env.params.dup
+            params[:id] = post_id
             
-            db = Sequel.connect(ENV['DATABASE_URL'], :logger => Logger.new(STDOUT))
-            db.listen(TentD::Streaming::POSTGRES_CHANNEL, loop: true) do |channel, backend, payload|
-              post_id = payload
-
-              params = env.params.dup
-              params[:id] = post_id
-              
-              if env.current_auth # TODO: mirror API of GET /posts
-                post = Model::Post.fetch_all(params, env.current_auth).first
-              else
-                post = Model::Post.fetch_with_permissions(params, env.current_auth).first
-              end
-
-              if post
-                env.response = post
-                serialized = serialize.serialize_response(env)
-                socket.write "#{serialized.length}\n"
-                socket.write "#{serialized}\n"
-              end
-
+            if env.current_auth # TODO: mirror API of GET /posts
+              post = Model::Post.fetch_all(params, env.current_auth).first
+            else
+              post = Model::Post.fetch_with_permissions(params, env.current_auth).first
             end
-          rescue Errno::EPIPE
+
+            if post
+              env.response = post
+              serialized = serializer.serialize_response(env)
+              socket.write "#{serialized.length}\n"
+              socket.write "#{serialized}\n"
+            end
           end
         end
 
