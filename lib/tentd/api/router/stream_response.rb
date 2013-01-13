@@ -17,6 +17,8 @@ module TentD
   class API
     module Router
       class StreamResponse
+        include Authorizable
+
         LENGTH_PREFIXED_JSON_TYPE = 'application/vnd.tent.v0+length-prefixed-json'.freeze
         
         def matches?(env)
@@ -64,12 +66,13 @@ module TentD
 
         def stream_response(env)
           socket = env['puma.socket']
+          auth = env.current_auth
           
           headers = { "Content-Type" => LENGTH_PREFIXED_JSON_TYPE }
           headers.merge env['response.headers']
 
           serializer = SerializeResponse.new
-          
+
           # Just a tad hackish
           socket.write "HTTP/1.1 200 OK\r\n"
           headers.each do |k,v|
@@ -81,13 +84,16 @@ module TentD
           db.listen(TentD::Streaming::POSTGRES_CHANNEL, loop: true) do |channel, backend, payload|
             post_id = payload
 
-            params = env.params.dup
-            params[:id] = post_id
-            
-            if env.current_auth # TODO: mirror API of GET /posts
-              post = Model::Post.fetch_all(params, env.current_auth).first
+            if authorize_env?(env, :read_posts)
+              q = Model::Post.where(:id => post_id)
+
+              unless env.current_auth.post_types.include?('all')
+                q = q.where(:type_base => auth.post_types.map { |t| TentType.new(t).base })
+              end
+
+              post = q.first
             else
-              post = Model::Post.fetch_with_permissions(params, env.current_auth).first
+              post = Model::Post.find_with_permissions(post_id, auth)
             end
 
             if post
