@@ -30,6 +30,7 @@ module TentD
         begin
           stream.run(env)
         rescue Errno::EPIPE
+        rescue Errno::ECONNRESET
           # client disconnected
         end
       end
