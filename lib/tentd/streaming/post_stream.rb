@@ -12,7 +12,7 @@ module TentD
         socket = env['puma.socket']
         auth = env.current_auth
         
-        headers = { "Content-Type" => LENGTH_PREFIXED_JSON_TYPE }
+        headers = { "Content-Type" => LENGTH_PREFIXED_JSON_TYPE, "Transfer-Encoding" => "chunked" }
         headers.merge env['response.headers'] || {}
 
         # Just a tad hackish
@@ -38,10 +38,12 @@ module TentD
           end
 
           if post
-            serialized = TentD::API::Serializer.serialize(post, env)
-            socket.write "#{serialized.bytesize}\r\n"
-            socket.write "#{serialized}\r\n"
+            serialized = TentD::API::Serializer.serialize(post, env).force_encoding('BINARY')
+            socket.write "#{serialized.size.to_s(16)}\r\n#{serialized}\r\n"
           end
+
+          # close chunked:
+          # socket.write("0\r\n\r\n")
         end
       end
     end
