@@ -41,6 +41,7 @@ describe TentD::API::Followers do
 
   def stub_challenge!
     http_stubs.get('/tent/notifications/asdf') { |env|
+      raise ArgumentError, "Invalid accept header" if env[:request_headers]['Accept'] != 'text/plain'
       [200, {}, env[:params]['challenge']]
     }
   end
