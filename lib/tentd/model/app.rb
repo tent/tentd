@@ -51,6 +51,10 @@ module TentD
         [:name, :description, :url, :icon, :scopes, :redirect_uris, :created_at]
       end
 
+      def self.optional_attributes
+        [:icon]
+      end
+
       def auth_details
         attributes.slice(:mac_key_id, :mac_key, :mac_algorithm)
       end
@@ -62,6 +66,10 @@ module TentD
           [:mac_key, :mac_key_id, :mac_algorithm].each { |key|
             attributes[key] = send(key)
           }
+        end
+
+        self.class.optional_attributes.each do |property|
+          attributes.delete(property) if attributes[property].nil?
         end
 
         attributes[:authorizations] = authorizations.map { |a| a.as_json(options.merge(:self => nil)) }
