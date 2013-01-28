@@ -387,11 +387,19 @@ describe TentD::API::Apps do
             "read_posts" => "Can read your posts"
           }
 
+          # should not update these attributes
+          data[:mac_key_id] = 'a:' + SecureRandom.hex(4)
+          data[:mac_key] = SecureRandom.hex(16)
+
           json_put "/apps/#{app.public_id}", data, env
           expect(last_response.status).to eq(200)
           app.reload
           data.slice(:name, :scopes, :url, :icon, :redirect_uris).each_pair do |key, val|
             expect(app.send(key).to_json).to eq(val.to_json)
+          end
+
+          data.slice(:mac_key_id, :mac_key).each_pair do |key, val|
+            expect(app.send(key).to_json).to_not eql(val.to_json)
           end
         end
 
@@ -419,6 +427,21 @@ describe TentD::API::Apps do
           json_put "/apps/#{(TentD::Model::App.count + 1) * 100}", params, env
           expect(last_response.status).to eq(404)
           expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found'})
+        end
+      end
+
+      context 'when write_secrets scope authorized' do
+        before { authorize!(:write_apps, :write_secrets) }
+        it 'should update mac auth properties' do
+          data = Fabricate.build(:app).attributes.slice(:name, :url, :icon, :redirect_uris, :scopes)
+          data[:mac_key_id] = 'a:' + SecureRandom.hex(4)
+          data[:mac_key] = SecureRandom.hex(16)
+          json_put "/apps/#{_app.public_id}", data, env
+          expect(last_response.status).to eql(200)
+          _app.reload
+          data.each_pair do |key, val|
+            expect(_app.send(key).to_json).to eq(val.to_json)
+          end
         end
       end
     end

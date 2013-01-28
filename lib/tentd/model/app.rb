@@ -40,10 +40,14 @@ module TentD
         create(params.slice(*public_attributes))
       end
 
-      def self.update_from_params(id, params)
+      def self.update_from_params(id, params, authorized_scopes=[])
         app = first(:id => id)
         return unless app
-        app.update(params.slice(*public_attributes))
+        allowed_write_attributes = public_attributes
+        if authorized_scopes.include?(:write_secrets)
+          allowed_write_attributes += [:mac_key_id, :mac_algorithm, :mac_key]
+        end
+        app.update(params.slice(*allowed_write_attributes))
         app
       end
 

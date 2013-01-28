@@ -141,7 +141,7 @@ module TentD
 
       class Update < Middleware
         def action(env)
-          if app = Model::App.update_from_params(env.params.app_id, env.params.data)
+          if app = Model::App.update_from_params(env.params.app_id, env.params.data, env.authorized_scopes)
             env.response = app
           end
           env
