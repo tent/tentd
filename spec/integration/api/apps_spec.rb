@@ -657,6 +657,32 @@ describe TentD::API::Apps do
       end
     end
 
+    context 'when authorized via identity' do
+      before {
+        env['current_auth'] = _app
+      }
+
+      it 'should delete app authorization' do
+        expect(lambda {
+          expect(lambda {
+            delete "/apps/#{_app.public_id}/authorizations/#{app_auth.public_id}", params, env
+          }).to_not change(TentD::Model::App, :count)
+        }).to change(TentD::Model::AppAuthorization, :count).by(-1)
+        expect(last_response.status).to eql(200)
+      end
+
+      it "should not delete another app's authorization" do
+        other_app = Fabricate(:app)
+        other_app_auth = Fabricate(:app_authorization, :app => other_app)
+        expect(lambda {
+          expect(lambda {
+            delete "/apps/#{other_app.public_id}/authorizations/#{other_app_auth.public_id}", params, env
+          }).to_not change(TentD::Model::App, :count)
+        }).to_not change(TentD::Model::AppAuthorization, :count)
+        expect(last_response.status).to eql(403)
+      end
+    end
+
     context 'when not authorized' do
       it 'it should return 403' do
         expect(lambda {
