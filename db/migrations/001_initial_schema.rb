@@ -42,8 +42,8 @@ Sequel.migration do
       column :user_id, "integer", :null=>false
       
       index [:user_id], :name=>:index_apps_user
-      index [:mac_key_id], :name=>:unique_apps_mac_key_id, :unique=>true
-      index [:public_id], :name=>:unique_apps_upublic_id, :unique=>true
+      index [:mac_key_id, :user_id], :name=>:unique_apps_mac_key_id, :unique=>true
+      index [:public_id, :user_id], :name=>:unique_apps_upublic_id, :unique=>true
     end
     
     create_table(:followers) do
@@ -65,8 +65,8 @@ Sequel.migration do
       column :user_id, "integer", :null=>false
       
       index [:user_id], :name=>:index_followers_user
-      index [:mac_key_id], :name=>:unique_followers_mac_key_id, :unique=>true
-      index [:public_id], :name=>:unique_followers_upublic_id, :unique=>true
+      index [:mac_key_id, :user_id], :name=>:unique_followers_mac_key_id, :unique=>true
+      index [:public_id, :user_id], :name=>:unique_followers_upublic_id, :unique=>true
     end
     
     create_table(:followings) do
@@ -89,7 +89,7 @@ Sequel.migration do
       column :user_id, "integer", :null=>false
       
       index [:user_id], :name=>:index_followings_user
-      index [:public_id], :name=>:unique_followings_upublic_id, :unique=>true
+      index [:public_id, :user_id], :name=>:unique_followings_upublic_id, :unique=>true
     end
     
     create_table(:groups) do
@@ -102,7 +102,7 @@ Sequel.migration do
       column :user_id, "integer", :null=>false
       
       index [:user_id], :name=>:index_groups_user
-      index [:public_id], :name=>:unique_groups_upublic_id, :unique=>true
+      index [:public_id, :user_id], :name=>:unique_groups_upublic_id, :unique=>true
     end
     
     create_table(:notification_subscriptions) do
@@ -210,7 +210,7 @@ Sequel.migration do
       index [:app_id], :name=>:index_posts_app
       index [:following_id], :name=>:index_posts_following
       index [:user_id], :name=>:index_posts_user
-      index [:public_id, :entity], :name=>:unique_posts_upublic_id, :unique=>true
+      index [:public_id, :entity, :user_id], :name=>:unique_posts_upublic_id, :unique=>true
     end
     
     create_table(:profile_info) do
