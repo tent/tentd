@@ -56,7 +56,15 @@ module TentD
       end
 
       def serialize_params(params)
-        params.inject([]) { |m, (k,v)| m << "#{k}=#{URI.encode_www_form_component(v)}"; m }.join('&')
+        params.inject([]) { |m, (k,v)| m << "#{k}=#{URI.encode_www_form_component(serialize_param_value(v))}"; m }.join('&')
+      end
+
+      def serialize_param_value(value)
+        if value.kind_of?(Array)
+          value.join(',')
+        else
+          value
+        end
       end
 
       def error_response(status, error, headers = {})
