@@ -63,6 +63,7 @@ module TentD
           whitelist.concat([:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
         end
         attributes = params.slice(*whitelist)
+        assign_permissions(params[:permissions])
         update(attributes)
       end
 

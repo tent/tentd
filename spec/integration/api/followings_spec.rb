@@ -852,7 +852,7 @@ describe TentD::API::Followings do
         data = following.attributes
         data[:groups] = ['group-id-1', 'group-id-2']
         data[:entity] = "https://entity-name.example.org"
-        data[:public] = true
+        data[:permissions] = { :public => true }
         data[:profile] = { 'type-uri' => { 'foo' => 'bar' } }
         data[:licenses] = ['https://license.example.org']
         data[:mac_key_id] = SecureRandom.hex(4)
@@ -883,6 +883,8 @@ describe TentD::API::Followings do
         whitelist.each { |key|
           expect(following.send(key).to_json).to eql(data[key].to_json)
         }
+
+        expect(following.public).to eql(data[:permissions][:public])
 
         blacklist.each { |key|
           expect(following.send(key).to_json).to_not eql(data[key].to_json)
