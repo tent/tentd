@@ -32,7 +32,7 @@ describe TentD::Model::Following do
     context 'with options[:groups]' do
       it 'should return groups' do
         expect(following.as_json(:groups => true)).to eql(public_attributes.merge(
-          :groups => following.groups
+          :groups => following.groups.map { |g| { :id => g } }
         ))
       end
     end
@@ -48,7 +48,7 @@ describe TentD::Model::Following do
         expect(following.as_json(:permissions => true)).to eql(public_attributes.merge(
           :permissions => {
             :public => following.public,
-            :groups => [group.public_id],
+            :groups => [{ :id => group.public_id }],
             :entities => {
               follower.entity => true
             }

@@ -798,7 +798,7 @@ describe TentD::Model::Post do
           expect(post.as_json(:permissions => true)).to eql(public_attributes.merge(
             :permissions => {
               :public => post.public,
-              :groups => [group.public_id],
+              :groups => [{ :id => group.public_id }],
               :entities => {
                 follower.entity => true
               }

@@ -17,7 +17,7 @@ module TentD
           end
 
           {
-            :groups => groups.uniq,
+            :groups => groups.uniq.map { |g| { :id => g } },
             :entities => Hash[entities.uniq.map { |e| [e, true] }],
             :public => self.public
           }

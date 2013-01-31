@@ -429,7 +429,7 @@ describe TentD::Model::Follower do
     context 'with options[:groups]' do
       it 'should return groups' do
         expect(follower.as_json(:groups => true)).to eql(public_attributes.merge(
-          :groups => follower.groups.uniq
+          :groups => follower.groups.uniq.map { |g| { :id => g } }
         ))
       end
     end

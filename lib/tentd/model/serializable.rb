@@ -29,7 +29,7 @@ module TentD
         end
 
         if options[:groups] && respond_to?(:groups)
-          attrs[:groups] = groups.to_a.uniq
+          attrs[:groups] = groups.to_a.uniq.map { |g| { :id => g } }
         end
 
         if self.class.associations.include?(:attachments)
