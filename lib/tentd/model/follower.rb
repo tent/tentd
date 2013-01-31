@@ -50,6 +50,10 @@ module TentD
         [:entity, :created_at]
       end
 
+      def self.optional_attributes
+        [:licenses]
+      end
+
       def self.create_follower(data, authorized_scopes = [])
         if follower = where(:user_id => User.current.id, :entity => data.entity).order(:id.desc).first
           follower.update(:mac_key => SecureRandom.hex(16))
@@ -145,6 +149,10 @@ module TentD
         if options[:app] || options[:self]
           types = notification_subscriptions.map { |s| s.type.uri }
           attributes.merge!(:licenses => licenses, :types => types, :notification_path => notification_path)
+        end
+
+        self.class.optional_attributes.each do |property|
+          attributes.delete(property) if attributes[property].nil?
         end
 
         attributes

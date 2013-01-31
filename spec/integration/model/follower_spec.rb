@@ -414,6 +414,19 @@ describe TentD::Model::Follower do
           :notification_path => follower.notification_path
         ))
       end
+
+      context 'when licenses nil' do
+        let(:follower) { Fabricate(:follower, :licenses => nil) }
+        it "should exclude licenses" do
+          expect(follower.as_json(:app => true)).to eql(public_attributes.merge(
+            :profile => follower.profile,
+            :types => [],
+            :created_at => follower.created_at.to_i,
+            :updated_at => follower.updated_at.to_i,
+            :notification_path => follower.notification_path
+          ))
+        end
+      end
     end
 
     context 'with options[:self]' do
