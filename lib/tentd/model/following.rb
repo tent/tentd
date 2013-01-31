@@ -58,7 +58,7 @@ module TentD
       end
 
       def update_from_params(params, authorized_scopes = [])
-        whitelist = [:remote_id, :entity, :groups, :public, :licenses, :profile]
+        whitelist = [:groups]
         if authorized_scopes.include?(:write_secrets)
           whitelist.concat([:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
         end

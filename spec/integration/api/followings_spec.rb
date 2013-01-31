@@ -876,8 +876,8 @@ describe TentD::API::Followings do
         json_put "/followings/#{following.public_id}", data, env
         expect(last_response.status).to eql(200)
 
-        whitelist = [:groups, :entity, :public, :profile, :licenses]
-        blacklist = [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
+        whitelist = [:groups]
+        blacklist = [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta, :entity, :profile, :licenses]
 
         following.reload
         whitelist.each { |key|
@@ -898,7 +898,7 @@ describe TentD::API::Followings do
           json_put "/followings/#{following.public_id}", data, env
           expect(last_response.status).to eql(200)
 
-          whitelist = [:groups, :entity, :public, :profile, :licenses]
+          whitelist = [:groups]
           whitelist.concat [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
 
           following.reload
