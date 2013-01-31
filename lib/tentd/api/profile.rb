@@ -6,6 +6,10 @@ module TentD
       class AuthorizeWrite < Middleware
         def action(env)
           authorize_env!(env, :write_profile)
+          type = TentType.new(env.params.type_uri)
+          raise Unauthorized unless env.current_auth.profile_info_types.any? { |t|
+            t == 'all' || TentType.new(t).base == type.base
+          }
           env
         end
       end
@@ -28,7 +32,6 @@ module TentD
         def action(env)
           data = env.params.data
           type = URI.unescape(env.params.type_uri)
-          raise Unauthorized unless ['all', type].find { |t| env.current_auth.profile_info_types.include?(t) }
           env.updated_info = Model::ProfileInfo.update_profile(type, data)
           env
         end
