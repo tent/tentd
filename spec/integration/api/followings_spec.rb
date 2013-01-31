@@ -848,9 +848,11 @@ describe TentD::API::Followings do
     context 'when write_followings scope authorized' do
       before { authorize!(:write_followings) }
       let(:following) { Fabricate(:following, :public => false) }
+      let(:group1) { Fabricate(:group) }
+      let(:group2) { Fabricate(:group) }
       let(:data) do
         data = following.attributes
-        data[:groups] = ['group-id-1', 'group-id-2']
+        data[:groups] = [group1, group2].map { |group| group.as_json }.concat([{ :id => 'bogus-group', :name => 'Bogus' }])
         data[:entity] = "https://entity-name.example.org"
         data[:permissions] = { :public => true }
         data[:profile] = { 'type-uri' => { 'foo' => 'bar' } }
@@ -876,14 +878,10 @@ describe TentD::API::Followings do
         json_put "/followings/#{following.public_id}", data, env
         expect(last_response.status).to eql(200)
 
-        whitelist = [:groups]
         blacklist = [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta, :entity, :profile, :licenses]
 
         following.reload
-        whitelist.each { |key|
-          expect(following.send(key).to_json).to eql(data[key].to_json)
-        }
-
+        expect(following.groups).to eql([group1.public_id, group2.public_id])
         expect(following.public).to eql(data[:permissions][:public])
 
         blacklist.each { |key|
@@ -900,13 +898,13 @@ describe TentD::API::Followings do
           json_put "/followings/#{following.public_id}", data, env
           expect(last_response.status).to eql(200)
 
-          whitelist = [:groups]
-          whitelist.concat [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
+          whitelist = [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
 
           following.reload
           whitelist.each { |key|
             expect(following.send(key).to_json).to eql(data[key].to_json)
           }
+          expect(following.groups).to eql([group1.public_id, group2.public_id])
         end
       end
 

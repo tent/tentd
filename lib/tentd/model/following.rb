@@ -7,6 +7,7 @@ module TentD
       include RandomPublicId
       include Serializable
       include Permissible
+      include Groupable
 
       plugin :paranoia
       plugin :serialization
@@ -58,13 +59,13 @@ module TentD
       end
 
       def update_from_params(params, authorized_scopes = [])
-        whitelist = [:groups]
         if authorized_scopes.include?(:write_secrets)
-          whitelist.concat([:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta])
+          whitelist = [:mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta]
+          attributes = params.slice(*whitelist)
+          update(attributes)
         end
-        attributes = params.slice(*whitelist)
+        assign_groups(params[:groups])
         assign_permissions(params[:permissions])
-        update(attributes)
       end
 
       def confirm_from_params(params)

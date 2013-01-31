@@ -16,6 +16,7 @@ module TentD
     require 'tentd/model/permissible_post'
     require 'tentd/model/permissible_post_version'
     require 'tentd/model/permissible_profile_info'
+    require 'tentd/model/groupable'
     require 'tentd/model/serializable'
     require 'tentd/model/random_public_id'
     require 'tentd/model/type_properties'
