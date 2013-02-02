@@ -106,7 +106,7 @@ module TentD
           path = 'posts'
         end
         res = client.post.create(post.as_json(:view => view), :url => path)
-        raise NotificationError.new("[#{res.to_hash[:url].to_s}] #{res.status}: #{res.body}") unless (200...300).include?(res.status)
+        raise NotificationError.new("[#{res.to_hash[:url].to_s}] #{res.status}") unless (200...300).include?(res.status)
         res
       rescue Faraday::Error::ConnectionFailed, Faraday::Error::TimeoutError, Errno::ETIMEDOUT => e
         url = res ? res.to_hash[:url].to_s : ""
@@ -119,7 +119,7 @@ module TentD
         client = TentClient.new(subject.notification_servers, subject.auth_details.merge(:faraday_adapter => TentD.faraday_adapter))
         permissions = subject.respond_to?(:scopes) && subject.scopes.to_a.include?(:read_permissions)
         res = client.post.create(post.as_json(:app => !!app_authorization, :permissions => permissions, :view => view), :url => subject.notification_path)
-        raise NotificationError.new("[#{res.to_hash[:url].to_s}] #{res.status}: #{res.body}") unless (200...300).include?(res.status)
+        raise NotificationError.new("[#{res.to_hash[:url].to_s}] #{res.status}") unless (200...300).include?(res.status)
         res
       rescue Faraday::Error::ConnectionFailed, Faraday::Error::TimeoutError, Errno::ETIMEDOUT => e
         url = res ? res.to_hash[:url].to_s : ""
