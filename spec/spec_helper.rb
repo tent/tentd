@@ -4,6 +4,7 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'bundler/setup'
 require 'mocha_standalone'
 require 'rack/test'
+require 'faker'
 
 require 'sequel'
 DB = Sequel.connect(ENV['TEST_DATABASE_URL'] || 'postgres://localhost/tent_server_test')

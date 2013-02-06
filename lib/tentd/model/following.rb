@@ -11,7 +11,7 @@ module TentD
 
       plugin :paranoia
       plugin :serialization
-      serialize_attributes :pg_array, :groups, :licenses
+      serialize_attributes :pg_array, :groups, :licenses, :types
       serialize_attributes :json, :profile
 
       one_to_many :permissions
@@ -20,7 +20,7 @@ module TentD
         self.public_id ||= random_id
         self.user_id ||= User.current.id
         self.public = true if self.public.nil?
-        self.created_at = Time.now
+        self.created_at ||= Time.now
         super
       end
 
@@ -37,6 +37,28 @@ module TentD
         following = first(:id => id)
         return unless following
         following.update_profile
+      end
+
+      def self.create_from_params(params, options = {})
+        attributes = {
+          :entity => params.entity,
+          :groups => params.groups.to_a.map { |g| g['id'] },
+          :licenses => params.licenses.to_a,
+          :types => params.types.to_a,
+          :confirmed => false
+        }
+        attributes[:types] = %w[ all ] if attributes[:types].empty?
+
+        if options[:import]
+          attributes.merge!(params.slice(:public_id, :mac_key_id, :mac_key, :mac_algorithm, :remote_id, :profile))
+          attributes[:created_at] = Time.at(params.created_at) if params.created_at
+          attributes[:public_id] = params.id if params.id
+          attributes[:confirmed] = true
+        end
+
+        following = create(attributes)
+        following.assign_permissions(params.permissions)
+        following
       end
 
       def update_profile
@@ -100,6 +122,7 @@ module TentD
         attributes = super
 
         if options[:app]
+          attributes[:types] = types
           attributes[:profile] = profile
           attributes[:licenses] = licenses
           attributes[:remote_id] = remote_id

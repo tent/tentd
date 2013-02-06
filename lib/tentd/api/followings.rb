@@ -3,6 +3,14 @@ module TentD
     class Followings
       include Router
 
+      class Middleware < API::Middleware
+        private
+
+        def import_following?(env)
+          authorize_env?(env, :write_secrets) && env.params.data && env.params.data.mac_key_id && env.params.data.mac_key && env.params.data.mac_algorithm
+        end
+      end
+
       class ParseLookupKey < Middleware
         def action(env)
           id_or_entity = env.params.delete(:captures).first
@@ -113,6 +121,7 @@ module TentD
 
       class Discover < Middleware
         def action(env)
+          return env if import_following?(env)
           return error_response(422, 'Invalid Request Body') unless env.params.data && env.params.data.entity
           client = ::TentClient.new(nil, :faraday_adapter => TentD.faraday_adapter)
           profile, profile_url = client.discover(env.params.data.entity).get_profile
@@ -138,21 +147,14 @@ module TentD
             env.following = existing_following
             env.notify = false
           else
-            env.following = Model::Following.create(:entity => env.params.data.entity,
-                                                    :groups => env.params.data.groups.to_a.map { |g| g['id'] },
-                                                    :confirmed => false)
+            env.following = Model::Following.create_from_params(env.params.data, :import => import_following?(env))
           end
 
-          data = env.params.data
-          if authorize_env?(env, :write_secrets) && data.mac_key_id && data.mac_key && data.mac_algorithm
-            data.public_id = data.delete(:id) if data.id
-            data.slice!(:public_id, :mac_key_id, :mac_key, :mac_algorithm)
-            data[:confirmed] = true
-            env.following.update(data)
-          else
+          unless import_following?(env)
             client = ::TentClient.new(env.server_url, :faraday_adapter => TentD.faraday_adapter)
             res = client.follower.create(
               :entity => env['tent.entity'],
+              :types => env.following.types,
               :licenses => Model::ProfileInfo.tent_info.content['licenses'],
               :notification_path => "notifications/#{env.following.public_id}"
             )

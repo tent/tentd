@@ -62,6 +62,7 @@ describe TentD::Model::Following do
         expect(following.as_json(:app => true)).to eql(public_attributes.merge(
           :profile => following.profile,
           :licenses => following.licenses,
+          :types => following.types,
           :remote_id => nil,
           :updated_at => following.updated_at.to_time.to_i,
           :created_at => following.updated_at.to_time.to_i

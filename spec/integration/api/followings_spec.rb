@@ -637,7 +637,7 @@ describe TentD::API::Followings do
   describe 'POST /followings' do
     let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
     let(:tent_entity) { 'https://smith.example.com' } # me
-    let(:entity_url) { "https://sam.example.org" } # them
+    let(:entity_url) { "https://remote.example.org" } # them
     let(:actual_entity_url) { "https://sam-actual.example.com" } # them
     let(:link_header) {
       %(<#{entity_url}/tent/profile>; rel="#{TentD::API::PROFILE_REL}")
@@ -651,7 +651,8 @@ describe TentD::API::Followings do
     let(:following_data) do
       {
         'entity' => entity_url,
-        'groups' => [{ :id => group.public_id.to_s }]
+        'groups' => [{ :id => group.public_id.to_s }],
+        'types' => %w[ https://tent.io/types/post/status/v0.1.0 ]
       }
     end
 
@@ -712,21 +713,32 @@ describe TentD::API::Followings do
         before { authorize!(:write_followings, :write_secrets) }
 
         context 'when auth details present' do
-          it 'should create following without sending follow request' do
-            @http_stub_head_success.call
-            @http_stub_profile_success.call
-            stub_notification_http!
-            TentClient.any_instance.stubs(:faraday_adapter).returns([:test, http_stubs])
+          let(:group) { Fabricate(:group) }
+          let(:core_profile) { Fabricate(:profile_info) }
 
+          it 'should create following without sending follow request' do
             data = following_data.merge(
               :id => 'public-id',
               :mac_key_id => 'mac-key-id',
               :mac_key => 'mac-key',
-              :mac_algorithm => 'hmac-sha-256'
+              :mac_algorithm => 'hmac-sha-256',
+              :groups => [group.as_json],
+              :licenses => [Faker::Internet.url],
+              :types => %w[ https://tent.io/types/post/status/v0.1.0 ],
+              :permissions => {
+                :public => false,
+                :groups => [group.as_json]
+              },
+              :created_at => Time.now.to_i - 86400,
+              :remote_id => SecureRandom.hex(6),
+              :profile => {
+                TentD::Model::ProfileInfo::TENT_PROFILE_TYPE_URI => core_profile.content
+              }
             )
 
             expect(lambda {
               json_post 'followings', data, env
+              expect(last_response.status).to eql(200)
             }).to change(TentD::Model::Following.where(:user_id => current_user.id), :count).by(1)
 
             following = TentD::Model::Following.order(:id.asc).last
@@ -735,6 +747,13 @@ describe TentD::API::Followings do
             expect(following.mac_key).to eql(data[:mac_key])
             expect(following.mac_algorithm).to eql(data[:mac_algorithm])
             expect(following.confirmed).to eql(true)
+            expect(following.groups).to eql([group.public_id])
+            expect(following.licenses).to eql(data[:licenses])
+            expect(following.types).to eql(data[:types])
+            expect(following.public).to eql(false)
+            expect(following.created_at.to_i).to eql(data[:created_at])
+            expect(following.remote_id).to eql(data[:remote_id])
+            expect(following.profile).to eql(data[:profile])
           end
         end
 
@@ -819,12 +838,36 @@ describe TentD::API::Followings do
           following = TentD::Model::Following.order(:id.asc).last
           expect(following.entity.to_s).to eql(actual_entity_url)
           expect(following.groups).to eql([group.public_id.to_s])
+          expect(following.types).to eql(following_data['types'])
           expect(following.remote_id).to eql(follower.public_id.to_s)
           expect(following.mac_key_id).to eql(follower.mac_key_id)
           expect(following.mac_key).to eql(follower.mac_key)
           expect(following.mac_algorithm).to eql(follower.mac_algorithm)
 
           expect(JSON.parse(last_response.body)['id']).to eql(following.public_id)
+        end
+
+        context 'when no types given' do
+          before do
+            following_data.delete('types')
+          end
+
+          it 'should create following for all types' do
+            expect(lambda {
+              json_post '/followings', following_data, env
+            }).to change(TentD::Model::Following.where(:user_id => current_user.id), :count).by(1)
+
+            following = TentD::Model::Following.order(:id.asc).last
+            expect(following.entity.to_s).to eql(actual_entity_url)
+            expect(following.groups).to eql([group.public_id.to_s])
+            expect(following.types).to eql(['all'])
+            expect(following.remote_id).to eql(follower.public_id.to_s)
+            expect(following.mac_key_id).to eql(follower.mac_key_id)
+            expect(following.mac_key).to eql(follower.mac_key)
+            expect(following.mac_algorithm).to eql(follower.mac_algorithm)
+
+            expect(JSON.parse(last_response.body)['id']).to eql(following.public_id)
+          end
         end
       end
     end
