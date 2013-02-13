@@ -60,6 +60,7 @@ module TentD
         else
           if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
             data.created_at = Time.at(data.created_at) if data.created_at
+            data.groups = data.groups.inject([]) { |memo, group| memo.push(group.id); memo } if data.groups
             follower = create(data.slice(:public_id, :entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta, :created_at))
             if data.permissions
               follower.assign_permissions(data.permissions)

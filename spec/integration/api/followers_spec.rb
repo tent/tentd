@@ -222,7 +222,7 @@ describe TentD::API::Followers do
       data = {
         "id" => SecureRandom.hex(4),
         "entity" => follower_entity_url,
-        "groups" => follower.groups,
+        "groups" => follower.as_json(:groups => true)[:groups],
         "profile" => { "info_type_uri" => { "bacon" => "chunky" } },
         "notification_path" => follower.notification_path,
         "licenses" => follower.licenses,
@@ -248,7 +248,8 @@ describe TentD::API::Followers do
 
         follower = TentD::Model::Follower.order(:id.asc).last
         expect(follower.public_id).to eql(data['id'])
-        %w( entity groups profile notification_path licenses mac_key_id mac_key mac_algorithm mac_timestamp_delta ).each { |k|
+        expect(follower.groups).to eql(data['groups'].map { |g| g[:id] })
+        %w( entity profile notification_path licenses mac_key_id mac_key mac_algorithm mac_timestamp_delta ).each { |k|
           expect(follower.send(k)).to eql(data[k])
         }
       end

@@ -59,7 +59,7 @@ describe TentD::Model::Follower do
         :mac_key_id => 'mac-key-id',
         :mac_key => 'mac_key',
         :mac_algorithm => 'hmac-sha-256',
-        :groups => [],
+        :groups => [group.as_json],
         :profile => {
           :"https://tent.io/types/info/basic/v0.1.0" => {
             :name => "Mr. Eldridge Marvin",
@@ -94,6 +94,18 @@ describe TentD::Model::Follower do
       it 'should import created_at timestamps' do
         follower = described_class.create_follower(attributes, authorized_scopes)
         expect(follower.created_at.to_i).to eql(attributes[:created_at].to_i)
+      end
+
+      it 'should import groups' do
+        follower = described_class.create_follower(attributes, authorized_scopes)
+        expect(follower.reload.groups).to eql([group.public_id])
+      end
+
+      it 'should import when no groups given' do
+        attributes.delete(:groups)
+        expect(attributes.groups).to be_nil
+        follower = described_class.create_follower(attributes, authorized_scopes)
+        expect(follower.reload.groups).to eql([])
       end
     end
 
