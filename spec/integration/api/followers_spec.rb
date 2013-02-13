@@ -437,6 +437,8 @@ describe TentD::API::Followers do
         expect(last_response.status).to eql(200)
         expect(last_response.headers['Content-Location']).to eql("http://example.org/followers/#{follower.public_id}")
         expect(Yajl::Parser.parse(last_response.body)['id']).to eql(follower.public_id)
+        expect(Yajl::Parser.parse(last_response.body)['entity']).to eql(follower.entity)
+        expect(Yajl::Parser.parse(last_response.body)['created_at']).to eql(follower.created_at.to_i)
       end
     }
 

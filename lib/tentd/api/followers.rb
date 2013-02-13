@@ -133,7 +133,7 @@ module TentD
         def action(env)
           return env unless env.params.has_key?(:follower_entity)
 
-          follower = Model::Follower.select(:id, :public, :public_id).where(:entity => env.params.follower_entity, :user_id => Model::User.current.id).first
+          follower = Model::Follower.where(:entity => env.params.follower_entity, :user_id => Model::User.current.id).first
           if follower && !follower.public? && !(env.full_read_authorized || authorize_env?(env, :self))
             follower = Model::Follower.find_with_permissions(follower.id, env.current_auth)
           end
