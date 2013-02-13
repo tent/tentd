@@ -64,7 +64,8 @@ module TentD
               follower.assign_permissions(data.permissions)
             end
           else
-            follower = create(data.slice('entity', 'licenses', 'profile', 'notification_path'))
+            permissions = data.permissions && data.permissions.has_key?(:public) ? { :public => data.permissions.public } : {}
+            follower = create(data.slice('entity', 'licenses', 'profile', 'notification_path').merge(permissions))
           end
 
           (data.types || ['all']).each do |type_url|

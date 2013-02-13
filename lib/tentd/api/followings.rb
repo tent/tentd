@@ -156,7 +156,10 @@ module TentD
               :entity => env['tent.entity'],
               :types => env.following.types,
               :licenses => Model::ProfileInfo.tent_info.content['licenses'],
-              :notification_path => "notifications/#{env.following.public_id}"
+              :notification_path => "notifications/#{env.following.public_id}",
+              :permissions => {
+                :public => env.following.public
+              }
             )
             case res.status
             when 200...300

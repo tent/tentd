@@ -50,7 +50,7 @@ describe TentD::Model::Follower do
             following.entity => true,
             other_follower.entity => true
           },
-          :public => true
+          :public => false
         },
         :id => 'public-id',
         :notification_path => '/notifications',
@@ -84,10 +84,20 @@ describe TentD::Model::Follower do
       before { TentD::Model::Following.destroy }
 
       it 'should create permissions' do
+        follower = nil
         expect(lambda {
           follower = described_class.create_follower(attributes, authorized_scopes)
         }).to change(TentD::Model::Permission, :count).by(3)
+        expect(follower.public).to be_false
       end
+    end
+
+    it 'should set public flag' do
+      follower = nil
+      expect(lambda {
+        follower = described_class.create_follower(attributes)
+      }).to_not change(TentD::Model::Permission, :count)
+      expect(follower.public).to be_false
     end
   end
 
