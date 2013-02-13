@@ -28,7 +28,7 @@ module TentD
         self.mac_algorithm ||= 'hmac-sha-256'
         self.user_id ||= User.current.id
         self.public = true if self.public.nil?
-        self.created_at = Time.now
+        self.created_at ||= Time.now
         super
       end
 
@@ -59,7 +59,8 @@ module TentD
           follower.update(:mac_key => SecureRandom.hex(16))
         else
           if authorized_scopes.include?(:write_followers) && authorized_scopes.include?(:write_secrets)
-            follower = create(data.slice(:public_id, :entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta))
+            data.created_at = Time.at(data.created_at) if data.created_at
+            follower = create(data.slice(:public_id, :entity, :groups, :public, :profile, :licenses, :notification_path, :mac_key_id, :mac_key, :mac_algorithm, :mac_timestamp_delta, :created_at))
             if data.permissions
               follower.assign_permissions(data.permissions)
             end

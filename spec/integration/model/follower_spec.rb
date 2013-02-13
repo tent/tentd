@@ -90,6 +90,11 @@ describe TentD::Model::Follower do
         }).to change(TentD::Model::Permission, :count).by(3)
         expect(follower.public).to be_false
       end
+
+      it 'should import created_at timestamps' do
+        follower = described_class.create_follower(attributes, authorized_scopes)
+        expect(follower.created_at.to_i).to eql(attributes[:created_at].to_i)
+      end
     end
 
     it 'should set public flag' do
