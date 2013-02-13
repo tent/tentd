@@ -120,7 +120,7 @@ module TentD
             data = env.params.data
             data.public_id = data.delete(:id) if data.id
             if follower = Model::Follower.create_follower(data, env.authorized_scopes)
-              env.response = ''
+              env.response = follower
             end
           else
             raise Unauthorized
