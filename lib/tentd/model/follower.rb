@@ -87,6 +87,7 @@ module TentD
         whitelist = ['licenses']
         if authorized_scopes.include?(:write_followers)
           whitelist.concat(['entity', 'profile', 'public', 'groups'])
+          data.groups = data.groups.inject([]) { |memo, group| memo.push(group.id); memo } if data.groups
 
           if authorized_scopes.include?(:write_secrets)
             whitelist.concat(['mac_key_id', 'mac_key', 'mac_algorithm', 'mac_timestamp_delta'])

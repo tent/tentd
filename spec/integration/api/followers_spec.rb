@@ -676,7 +676,7 @@ describe TentD::API::Followers do
             :profile => { 'entity' => "https:://chunky-bacon.example.com" },
             :type => :following,
             :public => true,
-            :groups => ['group-id', 'group-id-2'],
+            :groups => [{ :id => 'group-id' }, { :id => 'group-id-2' }],
             :mac_key_id => '12345',
             :mac_key => '12312',
             :mac_algorithm => 'sdfjhsd',
@@ -699,7 +699,11 @@ describe TentD::API::Followers do
             json_put "/followers/#{follower.public_id}", data, env
             follower.reload
             actual_value = follower.send(property)
-            expect(actual_value.to_json).to eql(@data[property].to_json)
+            if property.to_s == 'groups'
+              expect(follower.as_json(:groups => true)[:groups]).to eql(@data[property])
+            else
+              expect(actual_value.to_json).to eql(@data[property].to_json)
+            end
           end
         end
       end
