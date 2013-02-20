@@ -245,7 +245,13 @@ SQL
         attributes = super
         attributes[:type] = type.uri
         attributes[:version] = latest_version(:fields => [:version]).version
-        attributes[:app] = { :url => attributes.delete(:app_url), :name => attributes.delete(:app_name) }
+
+        app_name, app_url = attributes.delete(:app_name), attributes.delete(:app_url)
+        if app_name || app_url
+          attributes[:app] = {}
+          attributes[:app][:name] = app_name if app_name
+          attributes[:app][:url] = app_url if app_url
+        end
 
         attributes[:mentions] = mentions.map do |mention|
           h = { :entity => mention.entity }

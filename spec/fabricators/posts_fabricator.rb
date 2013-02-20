@@ -1,4 +1,6 @@
 Fabricator(:post, :class_name => "TentD::Model::Post") do |f|
+  f.app_name 'Example'
+  f.app_url 'https://example.org/app'
   f.entity "https://smith.example.com"
   f.public true
   f.original true

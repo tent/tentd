@@ -730,7 +730,7 @@ describe TentD::Model::Post do
   end
 
   describe "#as_json" do
-    let(:post) { Fabricate(:post) }
+    let(:post) { Fabricate(:post, :app_name => 'foo', :app_url => 'https://example.org/app') }
 
     let(:public_attributes) do
       {
@@ -761,6 +761,33 @@ describe TentD::Model::Post do
       context 'without options' do
         it 'should only return public attributes' do
           expect(post.as_json).to eql(public_attributes)
+        end
+
+        context 'when no app url or name' do
+          let(:post) { Fabricate(:post, :app_url => nil, :app_name => nil) }
+
+          it 'should not return app' do
+            public_attributes.delete(:app)
+            expect(post.as_json).to eql(public_attributes)
+          end
+        end
+
+        context 'when no app url' do
+          let(:post) { Fabricate(:post, :app_url => nil) }
+
+          it 'should not return app.url' do
+            public_attributes[:app].delete(:url)
+            expect(post.as_json).to eql(public_attributes)
+          end
+        end
+
+        context 'when no app name' do
+          let(:post) { Fabricate(:post, :app_name => nil) }
+
+          it 'should not return app.name' do
+            public_attributes[:app].delete(:name)
+            expect(post.as_json).to eql(public_attributes)
+          end
         end
 
         context 'when mentions exist' do
