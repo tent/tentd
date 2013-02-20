@@ -7,8 +7,8 @@ module TentD
 
       NotFound = Class.new(Error)
 
-      def initialize(app)
-        @app = app
+      def initialize(app, options = {})
+        @app, @options = app, options
       end
 
       def call(env)

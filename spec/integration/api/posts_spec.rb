@@ -29,6 +29,8 @@ describe TentD::API::Posts do
   let(:other_user) { TentD::Model::User.create }
   let(:http_stubs) { Faraday::Adapter::Test::Stubs.new }
 
+  let(:post_type) { "https://tent.io/types/post/status/v0.1.0" }
+
   describe 'GET /notifications/:following_id' do
     context 'when following' do
       it 'should echo challange' do
@@ -1654,9 +1656,7 @@ describe TentD::API::Posts do
   describe 'DELETE /posts/:post_id' do
     let(:post) { Fabricate(:post, :original => true) }
 
-    context 'when authorized' do
-      before { authorize!(:write_posts) }
-
+    authorized_examples = proc do
       context 'when post exists' do
         it 'should delete post and create post deleted notification' do
           delete "/posts/#{post.public_id}", params, env
@@ -1748,13 +1748,41 @@ describe TentD::API::Posts do
       end
     end
 
-    context 'when not authorized' do
+    unauthorized_examples = proc do
       it 'should return 403' do
         delete "/posts/#{post.public_id}", params, env
         expect(last_response.status).to eq(403)
         expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
+
+    not_found_examples = proc do
+      it 'should return 404' do
+        delete "/posts/#{post.public_id}", params, env
+        expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' }) 
+      end
+    end
+
+    context 'when authorized' do
+      let(:authorized_post_types) { %w[ all ] }
+      before { authorize!(:write_posts) }
+      context &authorized_examples
+
+      context 'when authorized for specific post type' do
+        context 'when post type authorized' do
+          let(:authorized_post_types) { [post_type] }
+          context &authorized_examples
+        end
+
+        context 'when post type unauthorized' do
+          let(:authorized_post_types) { %w[ https://example.org/types/post/foobar/v0.1.0 ] }
+          context &not_found_examples
+        end
+      end
+    end
+
+    context 'when not authorized', &unauthorized_examples
   end
 
   describe 'GET /posts/:post_id/attachments/:attachment_name' do

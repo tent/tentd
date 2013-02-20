@@ -26,7 +26,7 @@ module TentD
 
       class GetOne < Middleware
         def action(env)
-          if authorize_env?(env, :read_posts)
+          if authorize_env?(env, @options[:required_scope])
             q = Model::Post.where(:id => env.params.post_id)
 
             unless env.current_auth.post_types.include?('all')
@@ -304,15 +304,17 @@ module TentD
       class Destroy < Middleware
         def action(env)
           authorize_env!(env, :write_posts)
-          if env.params.has_key?(:version) && TentD::Model::PostVersion.qualify.join(:posts, :posts__id => :post_versions__post_id).count > 1
-            if (post_version = TentD::Model::PostVersion.where(:user_id => Model::User.current.id, :post_id => env.params.post_id, :version => env.params.version.to_i).qualify.join(:posts, :posts__id => :post_versions__post_id).where(:posts__original => true).first) && post_version.destroy
-              env.response = ''
-            end
-          else
-            if (post = TentD::Model::Post.first(:user_id => Model::User.current.id, :id => env.params.post_id, :original => true)) && (!env.params.has_key?(:version) || post.latest_version(:fields => [:version]).version == env.params.version.to_i) && post.destroy
-              env.response = ''
-              env.notify_deleted_post = post
-            end
+          post = env.delete(:response)
+          raise NotFound unless post.kind_of?(TentD::Model::Post) || post.kind_of?(TentD::Model::PostVersion)
+          raise NotFound unless post.original
+
+          if post.kind_of?(TentD::Model::PostVersion) && TentD::Model::PostVersion.where(:post_id => post.post_id).count == 1
+            post = post.post
+          end
+
+          if post.destroy
+            env.response = ''
+            env.notify_deleted_post = post if post.kind_of?(TentD::Model::Post)
           end
           env
         end
@@ -513,7 +515,7 @@ module TentD
 
       get '/posts/:post_id' do |b|
         b.use GetActualId
-        b.use GetOne
+        b.use GetOne, :required_scope => :read_posts
       end
 
       head '/posts/:post_id/versions' do |b|
@@ -531,7 +533,7 @@ module TentD
 
       head '/posts/:post_id/mentions' do |b|
         b.use GetActualId
-        b.use GetOne
+        b.use GetOne, :required_scope => :read_posts
         b.use GetMentions
         b.use MentionsPaginationHeader
         b.use MentionsCountHeader
@@ -539,25 +541,25 @@ module TentD
 
       get '/posts/:post_id/mentions' do |b|
         b.use GetActualId
-        b.use GetOne
+        b.use GetOne, :required_scope => :read_posts
         b.use GetMentions
         b.use MentionsPaginationHeader
       end
 
       get '/posts/:post_id_entity/:post_id' do |b|
         b.use GetActualId
-        b.use GetOne
+        b.use GetOne, :required_scope => :read_posts
       end
 
       get '/posts/:post_id/attachments/:attachment_name' do |b|
         b.use GetActualId
-        b.use GetOne
+        b.use GetOne, :required_scope => :read_posts
         b.use GetAttachment
       end
 
       get '/posts/:post_id_entity/:post_id/attachments/:attachment_name' do |b|
         b.use GetActualId
-        b.use GetOne
+        b.use GetOne, :required_scope => :read_posts
         b.use GetAttachment
       end
 
@@ -595,6 +597,7 @@ module TentD
 
       delete '/posts/:post_id' do |b|
         b.use GetActualId
+        b.use GetOne, :required_scope => :write_posts
         b.use Destroy
         b.use Notify
       end
