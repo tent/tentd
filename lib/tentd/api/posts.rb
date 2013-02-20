@@ -267,6 +267,11 @@ module TentD
         def action(env)
           authorize_env!(env, :write_posts)
           if post = TentD::Model::Post.first(:id => env.params.post_id)
+
+            unless env.current_auth.post_types.include?('all')
+              raise NotFound unless env.current_auth.post_types.any? { |t| TentType.new(t).base == post.type_base }
+            end
+
             if env.params.data.has_key?(:version) && env.params.data.keys.length == 1
               # revert to post version
 

@@ -1904,9 +1904,7 @@ describe TentD::API::Posts do
   describe 'PUT /posts/:post_id' do
     let(:post) { Fabricate(:post) }
 
-    context 'when authorized' do
-      before { authorize!(:write_posts) }
-
+    authorized_examples = proc do
       context 'when post belongs to another user' do
         let(:post) { Fabricate(:post, :user_id => other_user.id) }
 
@@ -2053,12 +2051,40 @@ describe TentD::API::Posts do
       end
     end
 
-    context 'when not authorized' do
+    unauthorized_examples = proc do
       it 'should return 403' do
         json_put "/posts/#{post.public_id}", params, env
         expect(last_response.status).to eq(403)
         expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Unauthorized' }) 
       end
     end
+
+    not_found_examples = proc do
+      it 'should return 404' do
+        json_put "/posts/#{post.public_id}", params, env
+        expect(last_response.status).to eq(404)
+        expect(Yajl::Parser.parse(last_response.body)).to eql({ 'error' => 'Not Found' }) 
+      end
+    end
+
+    context 'when authorized' do
+      let(:authorized_post_types) { %w[ all ] }
+      before { authorize!(:write_posts) }
+      context &authorized_examples
+
+      context 'when specific post type authorized' do
+        context 'when authorized' do
+          let(:authorized_post_types) { [post_type] }
+          context &authorized_examples
+        end
+
+        context 'when unauthorized' do
+          let(:authorized_post_types) { %w[ https://example.com/type/post/foo/v0.1.0 ] }
+          context &not_found_examples
+        end
+      end
+    end
+
+    context 'when not authorized', &unauthorized_examples
   end
 end
