@@ -110,8 +110,8 @@ module TentD
           end
 
           if params.since_time
-            query_conditions << "#{table_name}.#{sort_column} > ?"
-            query_bindings << Time.at(params.since_time.to_i)
+            query_conditions << "#{table_name}.#{sort_column} >= ?"
+            query_bindings << Time.at(params.since_time.to_i + 1)
           end
 
           if params.before_time
