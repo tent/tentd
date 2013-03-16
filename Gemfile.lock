@@ -1,0 +1,67 @@
+GIT
+  remote: git://github.com/tent/rack-putty.git
+  revision: fce75263d3ee93a46248619b10bea033fae60969
+  branch: master
+  specs:
+    rack-putty (0.0.1)
+      rack-mount (~> 0.8.3)
+
+PATH
+  remote: .
+  specs:
+    tentd (0.0.1)
+      pg
+      rack-putty
+      sequel
+      tent-client
+      yajl-ruby
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    diff-lcs (1.2.1)
+    faraday (0.8.4)
+      multipart-post (~> 1.1)
+    faraday_middleware (0.8.8)
+      faraday (>= 0.7.4, < 0.9)
+    faraday_middleware-multi_json (0.0.5)
+      faraday_middleware
+      multi_json
+    multi_json (1.7.0)
+    multipart-post (1.2.0)
+    nokogiri (1.5.6)
+    oj (2.0.10)
+    pg (0.14.1)
+    rack (1.5.2)
+    rack-mount (0.8.3)
+      rack (>= 1.0.0)
+    rack-test (0.6.2)
+      rack (>= 1.0)
+    rake (10.0.3)
+    rspec (2.13.0)
+      rspec-core (~> 2.13.0)
+      rspec-expectations (~> 2.13.0)
+      rspec-mocks (~> 2.13.0)
+    rspec-core (2.13.1)
+    rspec-expectations (2.13.0)
+      diff-lcs (>= 1.1.3, < 2.0)
+    rspec-mocks (2.13.0)
+    sequel (3.45.0)
+    tent-client (0.0.1)
+      faraday (= 0.8.4)
+      faraday_middleware (= 0.8.8)
+      faraday_middleware-multi_json
+      nokogiri
+      oj
+    yajl-ruby (1.1.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bundler
+  rack-putty!
+  rack-test (~> 0.6.1)
+  rake
+  rspec (~> 2.11)
+  tentd!
