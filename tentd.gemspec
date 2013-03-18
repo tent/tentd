@@ -22,6 +22,8 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency 'yajl-ruby'
   gem.add_runtime_dependency 'pg'
   gem.add_runtime_dependency 'sequel'
+  gem.add_runtime_dependency 'sequel-json'
+  gem.add_runtime_dependency 'sequel-pg_array'
 
   gem.add_development_dependency 'rack-test', '~> 0.6.1'
   gem.add_development_dependency 'rspec', '~> 2.11'
