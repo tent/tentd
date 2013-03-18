@@ -9,7 +9,7 @@ GIT
 PATH
   remote: .
   specs:
-    tentd (0.0.1)
+    tentd (0.2.0)
       pg
       rack-putty
       sequel
