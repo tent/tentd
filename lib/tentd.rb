@@ -14,9 +14,10 @@ module TentD
   end
 
   def self.database
-    @database ||= begin
+    @database || begin
       return unless database_url = ENV['DATABASE_URL']
       self.database_url = database_url
+      @database
     end
   end
 
