@@ -6,7 +6,7 @@ module TentD
 
     NoDatabaseError = Class.new(StandardError)
     unless TentD.database
-      raise NoDatabaseError.new("You need to set ENV['DATABASE_URL'] or TentD.database_url")
+      raise NoDatabaseError.new("You need to set ENV['DATABASE_URL'] or pass database_url option to TentD.setup!")
     end
 
     require 'tentd/models/type'
