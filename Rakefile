@@ -29,7 +29,7 @@ task :validator_spec do
 
     # use test database
     unless ENV['DATABASE_URL'] = ENV['TEST_DATABASE_URL']
-      STDERR.puts "You must set TEST_DATABASE_URL!"
+      STDERR.puts "You must set TEST_DATABASE_URL! #{ENV['TEST_DATABASE_URL']}"
       exit 1
     end
 
