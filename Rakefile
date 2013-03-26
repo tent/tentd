@@ -27,6 +27,9 @@ task :validator_spec do
     # don't show database activity
     ENV['DB_LOGFILE'] ||= '/dev/null'
 
+    # use test database
+    ENV['DATABASE_URL'] = ENV['TEST_DATABASE_URL']
+
     puts "Booting Tent server on port #{port}..."
 
     rackup_path = File.expand_path(File.join(File.dirname(__FILE__), 'config.ru'))
