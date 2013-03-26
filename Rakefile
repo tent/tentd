@@ -28,7 +28,10 @@ task :validator_spec do
     ENV['DB_LOGFILE'] ||= '/dev/null'
 
     # use test database
-    ENV['DATABASE_URL'] = ENV['TEST_DATABASE_URL']
+    unless ENV['DATABASE_URL'] = ENV['TEST_DATABASE_URL']
+      STDERR.puts "You must set TEST_DATABASE_URL!"
+      exit 1
+    end
 
     puts "Booting Tent server on port #{port}..."
 
