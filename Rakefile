@@ -14,6 +14,11 @@ task :validator_spec do
   host, port = tmp_socket.local_address.getnameinfo
   tmp_socket.close
 
+  def puts_error(e)
+    print "#{e.inspect}:\n\t"
+    puts e.backtrace.slice(0, 20).join("\n\t")
+  end
+
   tentd_pid = fork do
     require 'puma/cli'
 
@@ -26,10 +31,20 @@ task :validator_spec do
 
     rackup_path = File.expand_path(File.join(File.dirname(__FILE__), 'config.ru'))
     cli = Puma::CLI.new ['--port', port.to_s, rackup_path], stdout, stderr
+    begin
     cli.run
+    rescue => e
+      puts_error(e)
+      exit 1
+    end
   end
 
   validator_pid = fork do
+    at_exit do
+      puts "Stopping Tent server (PID: #{tentd_pid})..."
+      Process.kill("INT", tentd_pid)
+    end
+
     # wait until tentd server boots
     tentd_started = false
     until tentd_started
@@ -47,11 +62,8 @@ task :validator_spec do
       TentValidator.remote_server = "http://#{host}:#{port}"
       TentValidator::Runner::CLI.run
     rescue => e
-      print "#{e.inspect}:\n\t"
-      puts e.backtrace.slice(0, 20).join("\n\t")
-    ensure
-      puts "Stopping Tent server (PID: #{tentd_pid})..."
-      Process.kill("INT", tentd_pid)
+      puts_error(e)
+      exit 1
     end
   end
 
