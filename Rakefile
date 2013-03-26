@@ -70,6 +70,8 @@ task :validator_spec do
           connection.close
         end
       rescue Errno::ECONNREFUSED
+      rescue Interrupt
+        exit
       end
     end
 
