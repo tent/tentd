@@ -76,6 +76,8 @@ task :validator_spec do
   # kill validator if tentd exits first
   puts "Stopping Validator (PID: #{validator_pid})..."
   Process.kill("INT", validator_pid)
+
+  exit $?.exitstatus
 end
 
 task :spec => [:rspec, :validator_spec] do
