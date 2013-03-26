@@ -29,20 +29,13 @@ task :validator_spec do
 
     # use test database
     unless ENV['DATABASE_URL'] = ENV['TEST_DATABASE_URL']
-      STDERR.puts "You must set TEST_DATABASE_URL! #{ENV['TEST_DATABASE_URL']}"
+      STDERR.puts "You must set TEST_DATABASE_URL!"
       exit 1
     end
 
     puts "Booting Tent server on port #{port}..."
 
     rackup_path = File.expand_path(File.join(File.dirname(__FILE__), 'config.ru'))
-    if File.exists?(rackup_path)
-      puts "Using #{rackup_path}..."
-    else
-      STDERR.puts "No such file: #{rackup_path}"
-      exit 1
-    end
-
     cli = Puma::CLI.new ['--port', port.to_s, rackup_path], stdout, stderr
     begin
     cli.run
