@@ -2,8 +2,68 @@ require 'bundler/setup'
 require 'bundler/gem_tasks'
 
 require 'rspec/core/rake_task'
-RSpec::Core::RakeTask.new(:spec) do |spec|
+RSpec::Core::RakeTask.new(:rspec) do |spec|
   spec.pattern = 'spec/**/*_spec.rb'
+end
+
+task :validator_spec do
+  # get random port
+  require 'socket'
+  tmp_socket = Socket.new(:INET, :STREAM)
+  tmp_socket.bind(Addrinfo.tcp("127.0.0.1", 0))
+  host, port = tmp_socket.local_address.getnameinfo
+  tmp_socket.close
+
+  tentd_pid = fork do
+    require 'puma/cli'
+
+    stdout, stderr = StringIO.new, STDERR
+
+    # don't show database activity
+    ENV['DB_LOGFILE'] ||= '/dev/null'
+
+    puts "Booting Tent server on port #{port}..."
+
+    rackup_path = File.expand_path(File.join(File.dirname(__FILE__), 'config.ru'))
+    cli = Puma::CLI.new ['--port', port.to_s, rackup_path], stdout, stderr
+    cli.run
+  end
+
+  validator_pid = fork do
+    # wait until tentd server boots
+    tentd_started = false
+    until tentd_started
+      begin
+        Socket.tcp("127.0.0.1", port) do |connection|
+          tentd_started = true
+          connection.close
+        end
+      rescue Errno::ECONNREFUSED
+      end
+    end
+
+    begin
+      require 'tent-validator'
+      TentValidator.remote_server = "http://#{host}:#{port}"
+      TentValidator::Runner::CLI.run
+    rescue => e
+      print "#{e.inspect}:\n\t"
+      puts e.backtrace.slice(0, 20).join("\n\t")
+    ensure
+      puts "Stopping Tent server (PID: #{tentd_pid})..."
+      Process.kill("INT", tentd_pid)
+    end
+  end
+
+  # wait for tentd process to exit
+  Process.waitpid(tentd_pid)
+
+  # kill validator if tentd exits first
+  puts "Stopping Validator (PID: #{validator_pid})..."
+  Process.kill("INT", validator_pid)
+end
+
+task :spec => [:rspec, :validator_spec] do
 end
 task :default => :spec
 
