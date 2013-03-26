@@ -45,7 +45,10 @@ task :validator_spec do
   validator_pid = fork do
     at_exit do
       puts "Stopping Tent server (PID: #{tentd_pid})..."
-      Process.kill("INT", tentd_pid)
+      begin
+        Process.kill("INT", tentd_pid)
+      rescue Errno::ESRCH
+      end
     end
 
     # wait until tentd server boots
@@ -75,7 +78,10 @@ task :validator_spec do
 
   # kill validator if tentd exits first
   puts "Stopping Validator (PID: #{validator_pid})..."
-  Process.kill("INT", validator_pid)
+  begin
+    Process.kill("INT", validator_pid)
+  rescue Errno::ESRCH
+  end
 
   exit $?.exitstatus
 end
