@@ -68,9 +68,36 @@ task :validator_spec do
       end
     end
 
+    # don't show database activity
+    ENV['DB_LOGFILE'] ||= '/dev/null'
+
     begin
       require 'tent-validator'
-      TentValidator.remote_server = "http://#{host}:#{port}"
+      server_url = "http://#{host}:#{port}#{ENV['TENT_SUBDIR']}"
+      TentValidator.setup!(
+        :remote_entity_uri => server_url,
+        :remote_server_meta => {
+          "entity" => server_url,
+          "previous_entities" => [],
+          "servers" => [
+            {
+              "version" => "0.3",
+              "urls" => {
+                "app_auth_request" => "#{server_url}/oauth/authorize",
+                "app_token_request" => "#{server_url}/oauth/token",
+                "posts_feed" => "#{server_url}/posts",
+                "new_post" => "#{server_url}/posts",
+                "post" => "#{server_url}/posts/{entity}/{post}",
+                "post_attachment" => "#{server_url}/posts/{entity}/{post}/attachments/{name}?version={version}",
+                "batch" => "#{server_url}/batch",
+                "server_info" => "#{server_url}/server"
+              },
+              "preference" => 0
+            }
+          ]
+        },
+        :tent_database_url => ENV['TEST_VALIDATOR_TEND_DATABASE_URL']
+      )
       TentValidator::Runner::CLI.run
     rescue => e
       puts_error(e)

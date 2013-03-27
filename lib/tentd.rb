@@ -8,7 +8,7 @@ module TentD
     require 'sequel'
     require 'logger'
 
-    if database_url = options[:database] || ENV['DATABASE_URL']
+    if database_url = options[:database_url] || ENV['DATABASE_URL']
       @database = Sequel.connect(database_url, :logger => Logger.new(ENV['DB_LOGFILE'] || STDOUT))
     end
 
