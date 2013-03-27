@@ -14,6 +14,18 @@ GIT
       rack-mount (~> 0.8.3)
 
 GIT
+  remote: git://github.com/tent/tent-client.git
+  revision: 12831b0c4f53533b04d9ef032894b82187f7d5d4
+  branch: 0.3
+  specs:
+    tent-client (0.2.0)
+      faraday (= 0.8.4)
+      faraday_middleware (= 0.8.8)
+      faraday_middleware-multi_json
+      nokogiri
+      yajl-ruby
+
+GIT
   remote: git://github.com/tent/tent-validator.git
   revision: 72c3505f73be1161efc146b499cca2358cfb257d
   branch: 0.3
@@ -21,6 +33,8 @@ GIT
     tent-validator (0.2.0)
       faraday (= 0.8.4)
       json-patch
+      tent-client
+      yajl-ruby
 
 PATH
   remote: .
@@ -48,7 +62,6 @@ GEM
     multi_json (1.7.2)
     multipart-post (1.2.0)
     nokogiri (1.5.9)
-    oj (2.0.10)
     pg (0.14.1)
     puma (1.6.3)
       rack (~> 1.2)
@@ -71,12 +84,6 @@ GEM
       sequel
       yajl-ruby
     sequel-pg_array (0.0.1)
-    tent-client (0.0.1)
-      faraday (= 0.8.4)
-      faraday_middleware (= 0.8.8)
-      faraday_middleware-multi_json
-      nokogiri
-      oj
     yajl-ruby (1.1.0)
 
 PLATFORMS
@@ -90,5 +97,6 @@ DEPENDENCIES
   rack-test (~> 0.6.1)
   rake
   rspec (~> 2.11)
+  tent-client!
   tent-validator!
   tentd!
