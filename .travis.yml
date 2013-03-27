@@ -4,7 +4,6 @@ before_script:
   - psql -c 'create database validator_tentd_test;' -U postgres
   - bundle exec rake db:migrate DATABASE_URL=postgres://postgres@localhost/validator_tentd_test
 env:
-  - TEST_DATABASE_URL=postgres://postgres@localhost/tentd_test
-  - TEST_VALIDATOR_TEND_DATABASE_URL=postgres://postgres@localhost/validator_tentd_test
+  - TEST_DATABASE_URL=postgres://postgres@localhost/tentd_test TEST_VALIDATOR_TEND_DATABASE_URL=postgres://postgres@localhost/validator_tentd_test
 rvm:
   - 1.9.3
