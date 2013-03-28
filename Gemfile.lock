@@ -14,8 +14,8 @@ GIT
       rack-mount (~> 0.8.3)
 
 GIT
-  remote: git://github.com/tent/tent-client.git
-  revision: 12831b0c4f53533b04d9ef032894b82187f7d5d4
+  remote: git://github.com/tent/tent-client-ruby.git
+  revision: 302b3436a57ce43c964596d741860bca858a419f
   branch: 0.3
   specs:
     tent-client (0.2.0)
