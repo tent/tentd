@@ -7,6 +7,8 @@ RSpec::Core::RakeTask.new(:rspec) do |spec|
 end
 
 task :validator_spec do
+  $stdout, $stderr = STDOUT.dup, STDERR.dup
+
   # get random port
   require 'socket'
   tmp_socket = Socket.new(:INET, :STREAM)
@@ -15,14 +17,15 @@ task :validator_spec do
   tmp_socket.close
 
   def puts_error(e)
-    print "#{e.inspect}:\n\t"
-    puts e.backtrace.slice(0, 20).join("\n\t")
+    $stderr.print "#{e.inspect}:\n\t"
+    $stderr.puts e.backtrace.slice(0, 20).join("\n\t")
   end
 
   tentd_pid = fork do
     require 'puma/cli'
 
-    stdout, stderr = StringIO.new, STDERR
+    STDOUT.reopen '/dev/null'
+    STDERR.reopen '/dev/null'
 
     # don't show database activity
     ENV['DB_LOGFILE'] ||= '/dev/null'
@@ -33,10 +36,10 @@ task :validator_spec do
       exit 1
     end
 
-    puts "Booting Tent server on port #{port}..."
+    $stdout.puts "Booting Tent server on port #{port}..."
 
     rackup_path = File.expand_path(File.join(File.dirname(__FILE__), 'config.ru'))
-    cli = Puma::CLI.new ['--port', port.to_s, rackup_path], stdout, stderr
+    cli = Puma::CLI.new ['--port', port.to_s, rackup_path]
     begin
     cli.run
     rescue => e
@@ -47,7 +50,7 @@ task :validator_spec do
 
   validator_pid = fork do
     at_exit do
-      puts "Stopping Tent server (PID: #{tentd_pid})..."
+      $stdout.puts "Stopping Tent server (PID: #{tentd_pid})..."
       begin
         Process.kill("INT", tentd_pid)
       rescue Errno::ESRCH
@@ -108,11 +111,15 @@ task :validator_spec do
   # wait for tentd process to exit
   Process.waitpid(tentd_pid)
 
-  # kill validator if tentd exits first
-  puts "Stopping Validator (PID: #{validator_pid})..."
-  begin
-    Process.kill("INT", validator_pid)
-  rescue Errno::ESRCH
+  if $?.exitstatus == 0
+    Process.waitpid(validator_pid)
+  else
+    # kill validator if tentd exits first with non-0 status
+    $stdout.puts "Stopping Validator (PID: #{validator_pid})..."
+    begin
+      Process.kill("INT", validator_pid)
+    rescue Errno::ESRCH
+    end
   end
 
   exit $?.exitstatus
