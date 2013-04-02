@@ -10,6 +10,7 @@ module TentD
     end
 
     require 'tentd/models/type'
+    require 'tentd/models/entity'
     require 'tentd/models/user'
     require 'tentd/models/post'
     require 'tentd/models/app'
