@@ -61,6 +61,8 @@ Sequel.migration do
       column :published_at         , "bigint"                 , :null => false
       column :received_at          , "bigint"
       column :deleted_at           , "bigint"
+      column :version_published_at , "bigint"
+      column :version_received_at  , "bigint"
 
       column :app_id               , "text"
       column :app_name             , "text"
