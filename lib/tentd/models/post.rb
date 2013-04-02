@@ -42,6 +42,8 @@ module TentD
         attrs = {
           :id => self.public_id,
           :type => self.type,
+          :entity => self.entity,
+          :published_at => self.published_at,
           :content => self.content,
           :version => {
             :id => self.version,
