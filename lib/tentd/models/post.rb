@@ -34,10 +34,19 @@ module TentD
       end
 
       def as_json(options = {})
-        {
+        attrs = {
           :type => self.type,
           :content => self.content,
+          :version => {
+            :id => self.version,
+            :parents => self.version_parents,
+            :message => self.version_message,
+            :published_at => self.published_at
+          }
         }
+        attrs[:version].delete(:parents) if attrs[:version][:parents].nil?
+        attrs[:version].delete(:message) if attrs[:version][:message].nil?
+        attrs
       end
 
       private
