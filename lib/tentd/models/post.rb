@@ -1,3 +1,4 @@
+require 'securerandom'
 require 'openssl'
 require 'tent-canonical-json'
 
@@ -10,6 +11,7 @@ module TentD
       serialize_attributes :json, :mentions, :attachments, :version_parents, :licenses, :content
 
       def before_create
+        self.public_id = generate_public_id
         self.version = generate_version_signature
       end
 
@@ -38,6 +40,7 @@ module TentD
 
       def as_json(options = {})
         attrs = {
+          :id => self.public_id,
           :type => self.type,
           :content => self.content,
           :version => {
@@ -53,6 +56,10 @@ module TentD
       end
 
       private
+
+      def generate_public_id
+        SecureRandom.urlsafe_base64(16)
+      end
 
       def generate_version_signature
         OpenSSL::Digest::SHA512.new.hexdigest(canonical_json).byteslice(0, 32).unpack("H*").first
