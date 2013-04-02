@@ -18,6 +18,8 @@ module TentD
         current_user = env['current_user']
         type = Type.first_or_create(data['type'])
 
+        published_at_timestamp = data['published_at'] ? data['published_at'].to_i : (Time.now.to_f * 1000).to_i
+
         create(
           :user_id => current_user.id,
           :entity_id => current_user.entity_id,
@@ -27,7 +29,8 @@ module TentD
           :type_id => type.id,
           :type_fragment_id => type.fragment ? type.id : nil,
 
-          :published_at => data['published_at'] ? data['published_at'].to_i : (Time.now.to_f * 1000).to_i,
+          :version_published_at => published_at_timestamp,
+          :published_at => published_at_timestamp,
 
           :content => data['content'],
         )
@@ -41,7 +44,7 @@ module TentD
             :id => self.version,
             :parents => self.version_parents,
             :message => self.version_message,
-            :published_at => self.published_at
+            :published_at => self.version_published_at
           }
         }
         attrs[:version].delete(:parents) if attrs[:version][:parents].nil?
