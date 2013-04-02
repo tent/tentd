@@ -16,7 +16,7 @@ module TentD
       def self.create_from_env(env)
         data = env['data']
         current_user = env['current_user']
-        type = Type.first_or_create(data['type'], :select => [:id, :fragment])
+        type = Type.first_or_create(data['type'])
 
         create(
           :user_id => current_user.id,
