@@ -14,7 +14,7 @@ describe "POST /posts" do
     }
   end
 
-  let(:content_type) { %(application/vnd.tent.post.v0+json; type="%s") % post_type }
+  let(:content_type) { TentD::API::CONTENT_TYPE % post_type }
 
   context "without authentication" do
     context "when app registration post" do

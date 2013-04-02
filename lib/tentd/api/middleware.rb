@@ -26,8 +26,18 @@ module TentD
         halt!(422, "Invalid Attributes")
       end
 
+      def malformed_request!
+        halt!(400, "Malformed Request")
+      end
+
       def halt!(status, message)
         raise Halt.new(status, message)
+      end
+
+      def rack_input(env)
+        data = env['rack.input'].read
+        env['rack.input'].rewind
+        data
       end
 
     end

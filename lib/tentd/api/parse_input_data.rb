@@ -18,14 +18,6 @@ module TentD
         env
       end
 
-      private
-
-      def rack_input(env)
-        data = env['rack.input'].read
-        env['rack.input'].rewind
-        data
-      end
-
     end
 
   end
