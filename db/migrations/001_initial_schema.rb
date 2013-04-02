@@ -76,7 +76,7 @@ Sequel.migration do
       column :version              , "text"                   , :null => false
       column :version_message      , "text"
 
-      column :public_id            , "boolean"                , :default => false
+      column :public_id            , "text"
       column :licenses             , "text" # serialized json
       column :content              , "text" # serialized json
 
