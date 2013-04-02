@@ -30,6 +30,8 @@ task :validator_spec do
     # don't show database activity
     ENV['DB_LOGFILE'] ||= '/dev/null'
 
+    ENV['TENT_ENTITY'] ||= "http://#{host}:#{port}#{ENV['TENT_SUBDIR']}"
+
     # use test database
     unless ENV['DATABASE_URL'] = ENV['TEST_DATABASE_URL']
       STDERR.puts "You must set TEST_DATABASE_URL!"
