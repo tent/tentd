@@ -17,7 +17,8 @@ module TentD
       private
 
       def content_type(response_body)
-        CONTENT_TYPE % Hash === response_body ? response_body['type'] : ""
+        response_body = response_body.as_json
+        CONTENT_TYPE % (Hash === response_body ? response_body[:type] : "")
       end
 
       def serialize(response_body)
