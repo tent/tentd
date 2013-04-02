@@ -27,6 +27,8 @@ Sequel.migration do
       primary_key :id
 
       column :type     , "text" , :null => false
+      column :base     , "text" , :null => false
+      column :version  , "text" , :null => false
       column :fragment , "text"
 
       index [:type, :fragment], :name => :unique_types, :unique => true
