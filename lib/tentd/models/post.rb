@@ -64,7 +64,7 @@ module TentD
       end
 
       def generate_version_signature
-        OpenSSL::Digest::SHA512.new.hexdigest(canonical_json).byteslice(0, 32).unpack("H*").first
+        OpenSSL::Digest::SHA512.new.hexdigest(canonical_json)[0...64]
       end
 
       def canonical_json
