@@ -8,7 +8,7 @@ module TentD
         end
 
         unless valid_content_type?(env)
-          halt!(400, "Invalid Content-Type header. The header must be application/vnd.tent.post.v0+json.")
+          halt!(415, "Invalid Content-Type header. The header must be application/vnd.tent.post.v0+json.")
         end
 
         env

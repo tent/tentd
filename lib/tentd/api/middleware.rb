@@ -23,7 +23,7 @@ module TentD
       end
 
       def invalid_attributes!
-        halt!(422, "Invalid Attributes")
+        halt!(400, "Invalid Attributes")
       end
 
       def malformed_request!
