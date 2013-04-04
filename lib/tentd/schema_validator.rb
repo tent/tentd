@@ -13,6 +13,11 @@ module TentD
       type = TentClient::TentType.new(type_uri)
       schema_name = "post_#{type.base.split('/').last}"
 
+      # Validate post schema
+      schema = @schemas['post'].dup
+      schema['properties'].each_pair { |name, property| property['required'] = false }
+      return false unless new(schema).valid?(data)
+
       # Don't validate content of unknown post types
       return unless schema = @schemas[schema_name]
 
