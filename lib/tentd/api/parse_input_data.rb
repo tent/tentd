@@ -16,6 +16,9 @@ module TentD
         end
 
         env
+
+      rescue Yajl::ParseError
+        invalid_attributes!
       end
 
     end
