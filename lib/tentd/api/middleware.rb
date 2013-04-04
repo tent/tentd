@@ -15,7 +15,7 @@ module TentD
       def call(env)
         super
       rescue Halt => e
-        [e.code, { 'Content-Type' => CONTENT_TYPE % "https://tent.io/types/error/v0#" }, [encode_json(:error => e.message)]]
+        [e.code, { 'Content-Type' => ERROR_CONTENT_TYPE }, [encode_json(:error => e.message)]]
       end
 
       def encode_json(data)
