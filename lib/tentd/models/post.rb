@@ -22,7 +22,7 @@ module TentD
 
         published_at_timestamp = data['published_at'] ? data['published_at'].to_i : (Time.now.to_f * 1000).to_i
 
-        create(
+        attrs = {
           :user_id => current_user.id,
           :entity_id => current_user.entity_id,
           :entity => current_user.entity,
@@ -35,7 +35,13 @@ module TentD
           :published_at => published_at_timestamp,
 
           :content => data['content'],
-        )
+        }
+
+        if data['permissions'] && !data['permissions']['public'].nil?
+          attrs[:public] = data['permissions']['public']
+        end
+
+        create(attrs)
       end
 
       def as_json(options = {})
@@ -54,6 +60,10 @@ module TentD
         }
         attrs[:version].delete(:parents) if attrs[:version][:parents].nil?
         attrs[:version].delete(:message) if attrs[:version][:message].nil?
+
+        attrs[:permissions] = {
+          :public => self[:public]
+        }
         attrs
       end
 
