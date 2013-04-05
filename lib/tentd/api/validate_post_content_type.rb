@@ -22,7 +22,7 @@ module TentD
 
       def valid_content_type?(env)
         post_type = env['data']['type']
-        env['CONTENT_TYPE'].to_s =~ Regexp.new("\\A#{Regexp.escape(CONTENT_TYPE.split(';').first)}") &&
+        env['CONTENT_TYPE'].to_s =~ Regexp.new("\\A#{Regexp.escape(POST_CONTENT_TYPE.split(';').first)}") &&
         env['CONTENT_TYPE'].to_s =~ Regexp.new(%(\\btype=["']#{Regexp.escape(post_type)}["']\\Z))
       end
     end

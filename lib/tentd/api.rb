@@ -3,7 +3,7 @@ require 'rack-putty'
 module TentD
   class API
 
-    CONTENT_TYPE = %(application/vnd.tent.post.v0+json; type="%s").freeze
+    POST_CONTENT_TYPE = %(application/vnd.tent.post.v0+json; type="%s").freeze
     ERROR_CONTENT_TYPE = %(application/vnd.tent.error.v0+json).freeze
 
     require 'tentd/api/serialize_response'
