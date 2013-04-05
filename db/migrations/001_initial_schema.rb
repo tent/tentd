@@ -68,6 +68,7 @@ Sequel.migration do
       column :app_name             , "text"
       column :app_url              , "text"
 
+      column :public               , "boolean"                , :default => false
       column :permissions_entities , "text[]"                 , :default => "{}"
       column :permissions_groups   , "text[]"                 , :default => "{}"
 
