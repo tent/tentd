@@ -11,8 +11,8 @@ module TentD
       serialize_attributes :json, :mentions, :attachments, :version_parents, :licenses, :content
 
       def before_create
-        self.public_id = generate_public_id
-        self.version = generate_version_signature
+        self.public_id = TentD::Utils.random_id
+        self.version = TentD::Utils.hex_digest(canonical_json)
       end
 
       def self.create_from_env(env)
@@ -41,7 +41,41 @@ module TentD
           attrs[:public] = data['permissions']['public']
         end
 
-        create(attrs)
+        if Array === env['attachments']
+          attrs['attachments'] = env['attachments'].inject(Array.new) do |memo, attachment|
+            memo << {
+              :digest => TentD::Utils.hex_digest(attachment[:tempfile]),
+              :size => attachment[:tempfile].size,
+              :name => attachment[:name],
+              :category => attachment[:category],
+              :content_type => attachment[:content_type]
+            }
+            memo
+          end
+        end
+
+        post = create(attrs)
+
+        if Array === env['attachments']
+          post.create_attachments(env['attachments'])
+        end
+
+        post
+      end
+
+      def create_attachments(attachments)
+        attachments.each_with_index do |attachment, index|
+          data = attachment[:tempfile].read
+          attachment[:tempfile].rewind
+
+          PostsAttachment.create(
+            :attachment_id => Attachment.find_or_create(
+              TentD::Utils::Hash.slice(self.attachments[index], 'digest', 'size').merge(:data => data)
+            ).id,
+            :post_id => self.id,
+            :content_type => attachment[:content_type]
+          )
+        end
       end
 
       def as_json(options = {})
@@ -61,6 +95,10 @@ module TentD
         attrs[:version].delete(:parents) if attrs[:version][:parents].nil?
         attrs[:version].delete(:message) if attrs[:version][:message].nil?
 
+        if Array(self.attachments).any?
+          attrs[:attachments] = self.attachments
+        end
+
         attrs[:permissions] = {
           :public => self[:public]
         }
@@ -68,14 +106,6 @@ module TentD
       end
 
       private
-
-      def generate_public_id
-        SecureRandom.urlsafe_base64(16)
-      end
-
-      def generate_version_signature
-        OpenSSL::Digest::SHA512.new.hexdigest(canonical_json)[0...64]
-      end
 
       def canonical_json
         TentCanonicalJson.encode(as_json)

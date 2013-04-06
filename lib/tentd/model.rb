@@ -15,6 +15,7 @@ module TentD
     require 'tentd/models/post'
     require 'tentd/models/app'
     require 'tentd/models/attachment'
+    require 'tentd/models/posts_attachment'
 
   end
 end

@@ -20,3 +20,12 @@ def generate_app_content
     :scopes => %w( import_posts )
   }
 end
+
+def generate_app_icon_attachment
+  {
+    :content_type => "image/png",
+    :category => 'icon',
+    :name => 'appicon.png',
+    :data => "Fake image data"
+  }
+end

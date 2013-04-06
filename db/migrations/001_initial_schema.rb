@@ -154,11 +154,11 @@ Sequel.migration do
     create_table(:attachments) do
       primary_key :id
 
-      column :hash         , "text"   , :null => false
+      column :digest       , "text"   , :null => false
       column :size         , "bigint" , :null => false
       column :data         , "bytea"  , :null => false
 
-      index [:hash, :size], :name => :unique_attachments, :unique => true
+      index [:digest, :size], :name => :unique_attachments, :unique => true
     end
 
     # Join table for post attachment data
@@ -166,7 +166,9 @@ Sequel.migration do
       foreign_key :post_id       , :posts       , :on_delete => :cascade
       foreign_key :attachment_id , :attachments , :on_delete => :cascade
 
-      primary_key [:post_id, :attachment_id], :name => :unique_posts_attachments, :unique => true
+      column :content_type , "text" , :null => false
+
+      index [:post_id, :attachment_id], :name => :unique_posts_attachments, :unique => true
     end
 
     create_table(:permissions) do
