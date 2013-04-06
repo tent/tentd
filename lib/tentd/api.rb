@@ -6,6 +6,7 @@ module TentD
     POST_CONTENT_TYPE = %(application/vnd.tent.post.v0+json; type="%s").freeze
     ERROR_CONTENT_TYPE = %(application/vnd.tent.error.v0+json).freeze
     MULTIPART_CONTENT_TYPE = %(multipart/form-data).freeze
+    ATTACHMENT_DIGEST_HEADER = %(Attachment-Digest).freeze
 
     require 'tentd/api/serialize_response'
     require 'tentd/api/middleware'

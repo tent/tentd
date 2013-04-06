@@ -1,4 +1,5 @@
 require 'tentd/version'
+require 'tentd/utils'
 
 module TentD
 
