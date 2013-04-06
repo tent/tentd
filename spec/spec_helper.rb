@@ -25,4 +25,41 @@ RSpec.configure do |config|
   config.around(:each) do |example|
     TentD.database.transaction(:rollback=>:always) { example.run }
   end
+
+  config.before(:each) do |example|
+    example.class.class_eval do
+      let(:server_url) { "http://example.tent.local" }
+      let(:server_meta) do
+        {
+          "entity" => server_url,
+          "previous_entities" => [],
+          "servers" => [
+            {
+              "version" => "0.3",
+              "urls" => {
+                "app_auth_request" => "#{server_url}/oauth/authorize",
+                "app_token_request" => "#{server_url}/oauth/token",
+                "posts_feed" => "#{server_url}/posts",
+                "new_post" => "#{server_url}/posts",
+                "post" => "#{server_url}/posts/{entity}/{post}",
+                "post_attachment" => "#{server_url}/posts/{entity}/{post}/attachments/{name}?version={version}",
+                "batch" => "#{server_url}/batch",
+                "server_info" => "#{server_url}/server"
+              },
+              "preference" => 0
+            }
+          ]
+        }
+      end
+      let(:client) do
+        TentClient.new(
+          server_meta["entity"],
+          :server_meta => server_meta,
+          :faraday_adapter => [:rack, lambda { |env|
+            current_session.request(env['PATH_INFO'], env)
+          }]
+        )
+      end
+    end
+  end
 end

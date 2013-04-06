@@ -14,7 +14,6 @@ describe "POST /posts" do
     }
   end
 
-  let(:content_type) { TentD::API::POST_CONTENT_TYPE % post_type }
 
   context "without authentication" do
     context "when app registration post" do
@@ -22,7 +21,7 @@ describe "POST /posts" do
 
       it "creates post" do
         expect {
-          post "/posts", encode_json(data), { 'CONTENT_TYPE' => content_type }
+          client.post.create(data)
         }.to change(TentD::Model::Post, :count).by(1)
         expect(last_response.status).to eql(200)
 
