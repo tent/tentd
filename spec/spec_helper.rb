@@ -22,8 +22,8 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
-  config.around(:each) do |example|
-    TentD.database.transaction(:rollback=>:always) { example.run }
+  config.before(:each) do
+    TentD.database.from(*TentD.database.tables).truncate
   end
 
   config.before(:each) do |example|
