@@ -8,7 +8,7 @@ module TentD
         end
 
         unless valid_content_type?(env)
-          halt!(415, "Invalid Content-Type header. The header must be application/vnd.tent.post.v0+json.")
+          halt!(415, "Invalid Content-Type header. The header must be #{POST_CONTENT_TYPE.split(';').first} or #{MULTIPART_CONTENT_TYPE}.")
         end
 
         env
@@ -22,8 +22,11 @@ module TentD
 
       def valid_content_type?(env)
         post_type = env['data']['type']
-        env['CONTENT_TYPE'].to_s =~ Regexp.new("\\A#{Regexp.escape(POST_CONTENT_TYPE.split(';').first)}") &&
-        env['CONTENT_TYPE'].to_s =~ Regexp.new(%(\\btype=["']#{Regexp.escape(post_type)}["']\\Z))
+        (
+          env['CONTENT_TYPE'].to_s =~ Regexp.new("\\A#{Regexp.escape(POST_CONTENT_TYPE.split(';').first)}\\b") &&
+          env['CONTENT_TYPE'].to_s =~ Regexp.new(%(\\btype=["']#{Regexp.escape(post_type)}["']\\Z))
+        ) ||
+        env['CONTENT_TYPE'].to_s =~ Regexp.new("\\A#{Regexp.escape(MULTIPART_CONTENT_TYPE)}\\b")
       end
     end
 
