@@ -8,7 +8,8 @@ module TentD
 
       def call(env)
         if env.has_key?('response')
-          [200, { 'Content-Type' => content_type(env['response']) }, [serialize(env['response'])]]
+          response_body = env['response'].as_json
+          [200, { 'Content-Type' => content_type(response_body) }, [serialize(response_body)]]
         else
           [201, {}, []]
         end
@@ -17,12 +18,11 @@ module TentD
       private
 
       def content_type(response_body)
-        response_body = response_body.as_json
         POST_CONTENT_TYPE % (Hash === response_body ? response_body[:type] : "")
       end
 
       def serialize(response_body)
-        Yajl::Encoder.encode(response_body.as_json)
+        Yajl::Encoder.encode(response_body)
       end
     end
 
