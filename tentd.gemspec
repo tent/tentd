@@ -25,7 +25,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency 'sequel-json'
   gem.add_runtime_dependency 'sequel-pg_array'
   gem.add_runtime_dependency 'tent-schemas'
-  gem.add_runtime_dependency 'tent-validator', '~> 0.2.0'
+  gem.add_runtime_dependency 'api-validator'
   gem.add_runtime_dependency 'tent-canonical-json'
 
   gem.add_development_dependency 'rack-test', '~> 0.6.1'
@@ -34,4 +34,5 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency 'bundler'
   gem.add_development_dependency 'rake'
   gem.add_development_dependency 'puma'
+  gem.add_development_dependency 'tent-validator', '~> 0.2.0'
 end

@@ -1,5 +1,6 @@
 require 'tentd/version'
 require 'tentd/utils'
+require 'tent-client'
 
 module TentD
 

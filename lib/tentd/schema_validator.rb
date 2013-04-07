@@ -1,8 +1,8 @@
 require 'tent-schemas'
-require 'tent-validator'
+require 'api-validator'
 
 module TentD
-  class SchemaValidator < TentValidator::ResponseExpectation::SchemaValidator
+  class SchemaValidator < ApiValidator::JsonSchema
 
     @schemas = TentSchemas.schemas.inject(Hash.new) do |memo, (name, schema)|
       memo[name] = TentSchemas.inject_refs!(schema)
