@@ -37,8 +37,8 @@ RSpec.configure do |config|
             {
               "version" => "0.3",
               "urls" => {
-                "app_auth_request" => "#{server_url}/oauth/authorize",
-                "app_token_request" => "#{server_url}/oauth/token",
+                "oauth_auth" => "#{server_url}/oauth/authorize",
+                "oauth_token" => "#{server_url}/oauth/token",
                 "posts_feed" => "#{server_url}/posts",
                 "new_post" => "#{server_url}/posts",
                 "post" => "#{server_url}/posts/{entity}/{post}",
