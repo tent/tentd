@@ -20,7 +20,7 @@ module TentD
         current_user = env['current_user']
         type = Type.first_or_create(data['type'])
 
-        published_at_timestamp = data['published_at'] ? data['published_at'].to_i : (Time.now.to_f * 1000).to_i
+        published_at_timestamp = (data['published_at'] || TentD::Utils.timestamp).to_i
 
         attrs = {
           :user_id => current_user.id,
@@ -85,6 +85,7 @@ module TentD
           :entity => self.entity,
           :published_at => self.published_at,
           :content => self.content,
+          :mentions => self.mentions,
           :version => {
             :id => self.version,
             :parents => self.version_parents,
@@ -94,6 +95,8 @@ module TentD
         }
         attrs[:version].delete(:parents) if attrs[:version][:parents].nil?
         attrs[:version].delete(:message) if attrs[:version][:message].nil?
+        attrs.delete(:content) if attrs[:content].nil?
+        attrs.delete(:mentions) if attrs[:mentions].nil?
 
         if Array(self.attachments).any?
           attrs[:attachments] = self.attachments

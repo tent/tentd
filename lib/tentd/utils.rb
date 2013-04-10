@@ -1,8 +1,18 @@
 module TentD
   module Utils
 
+    MAC_ALGORITHM = "hmac-sha-256".freeze
+
     def self.random_id
       SecureRandom.urlsafe_base64(16)
+    end
+
+    def self.mac_key
+      SecureRandom.hex(32)
+    end
+
+    def self.mac_algorithm
+      MAC_ALGORITHM
     end
 
     def self.hex_digest(io)
@@ -16,6 +26,14 @@ module TentD
       digest.hexdigest[0...64]
     end
 
+    def self.timestamp
+      (Time.now.to_f * 1000).to_i
+    end
+
+    def self.expand_uri_template(template, params = {})
+      template.to_s.gsub(/{([^}]+)}/) { URI.encode_www_form_component(params[$1] || params[$1.to_sym]) }
+    end
+
     module Hash
       extend self
 
@@ -27,6 +45,30 @@ module TentD
 
       def slice!(hash, *keys)
         hash.replace(slice(hash, *keys))
+      end
+
+      def stringify_keys(hash)
+        _stringify_keys(hash).first
+      end
+
+      def _stringify_keys(*items)
+        items.map do |item|
+          case item
+          when ::Hash
+            item.inject(::Hash.new) do |new_hash, (k,v)|
+              new_hash[k.to_s] = _stringify_keys(v).first
+              new_hash
+            end
+          when ::Array
+            item.map { |i| _stringify_keys(i).first }
+          else
+            item
+          end
+        end
+      end
+
+      def stringify_keys!(hash)
+        hash.replace(stringify_keys(hash))
       end
     end
 

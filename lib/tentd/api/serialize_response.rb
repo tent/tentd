@@ -7,15 +7,35 @@ module TentD
       extend self
 
       def call(env)
-        if env.has_key?('response')
+        response_headers = build_response_headers(env)
+        if env.has_key?('response') && env['response']
           response_body = env['response'].as_json
-          [200, { 'Content-Type' => content_type(response_body) }, [serialize(response_body)]]
+          [env['response.status'] || 200, { 'Content-Type' => content_type(response_body) }.merge(response_headers), [serialize(response_body)]]
         else
-          [201, {}, []]
+          [env['response.status'] || 201, response_headers, []]
         end
       end
 
       private
+
+      def build_response_headers(env)
+        headers = (env['response.headers'] || Hash.new)
+
+        links = (env['response.links'] || Array.new).map do |link|
+          _link = "<#{link.delete(:url)}>"
+          if link.keys.any?
+            _link << link.inject([nil]) { |memo, (k,v)| memo << %(#{k}=#{v.inspect}); memo }.join("; ")
+          end
+          _link
+        end
+
+        if links.any?
+          links = links.join(', ')
+          headers['Link'] ? headers['Link'] << ", #{links}" : headers['Link'] = links
+        end
+
+        headers
+      end
 
       def content_type(response_body)
         POST_CONTENT_TYPE % (Hash === response_body ? response_body[:type] : "")

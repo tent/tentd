@@ -5,6 +5,7 @@ ENV['RACK_ENV'] ||= 'test'
 
 require 'bundler/setup'
 require 'mocha/api'
+require 'webmock/rspec'
 require 'rack/test'
 
 require 'tentd'
@@ -24,10 +25,16 @@ RSpec.configure do |config|
 
   config.before(:each) do
     TentD.database.from(*TentD.database.tables).truncate
+
+    # create user / meta post
+    TentD::Model::User.first_or_create(ENV['TENT_ENTITY'])
   end
 
   config.before(:each) do |example|
     example.class.class_eval do
+      let(:current_user) { TentD::Model::User.first_or_create(ENV['TENT_ENTITY']) }
+
+      let(:server_entity) { server_url }
       let(:server_url) { "http://example.tent.local" }
       let(:server_meta) do
         {

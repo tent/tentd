@@ -11,7 +11,7 @@ module TentD
 
     def self.validate(type_uri, data)
       type = TentClient::TentType.new(type_uri)
-      schema_name = "post_#{type.base.split('/').last}"
+      schema_name = "post_#{type.base.to_s.split('/').last}"
 
       remove_null_members(data)
 

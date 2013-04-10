@@ -24,7 +24,7 @@ module TentD
         post_type = env['data']['type']
         (
           env['CONTENT_TYPE'].to_s =~ Regexp.new("\\A#{Regexp.escape(POST_CONTENT_TYPE.split(';').first)}\\b") &&
-          env['CONTENT_TYPE'].to_s =~ Regexp.new(%(\\btype=["']#{Regexp.escape(post_type)}["']\\Z))
+          env['CONTENT_TYPE'].to_s =~ Regexp.new(%(\\btype=["']#{Regexp.escape(post_type)}["']))
         ) ||
         env['CONTENT_TYPE'].to_s =~ Regexp.new("\\A#{Regexp.escape(MULTIPART_CONTENT_TYPE)}\\b")
       end

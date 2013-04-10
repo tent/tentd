@@ -16,7 +16,8 @@ module TentD
       private
 
       def validate_post!(env)
-        invalid_attributes! unless Hash === env['data']['content']
+        invalid_attributes! if env['data'].has_key?('content') && !(Hash === env['data']['content'])
+        invalid_attributes! unless env['data'].has_key?('type')
 
         env['data.valid?'] = SchemaValidator.validate(env['data']['type'], env['data'])
         invalid_attributes! if env['data.valid?'] == false
