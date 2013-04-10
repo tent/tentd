@@ -38,7 +38,8 @@ Sequel.migration do
       primary_key :id
       foreign_key :entity_id, :entities
 
-      column :entity, "text", :null => false # entities.entity
+      column :entity       , "text"   , :null => false # entities.entity
+      column :meta_post_id , "bigint" # posts.id
 
       index [:entity], :name => :unique_users, :unique => true
     end
@@ -141,10 +142,10 @@ Sequel.migration do
       foreign_key :post_id   , :posts
       foreign_key :entity_id , :entities
 
-      column :post   , "text"    , :null => false
+      column :post   , "text"
       column :public , "boolean" , :default => true
 
-      primary_key [:user_id, :entity_id, :post]
+      index [:user_id, :post_id, :entity_id, :post], :name => :unique_mentions, :unique => true
     end
 
     # Fallback data store for attachments
