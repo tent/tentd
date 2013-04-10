@@ -6,6 +6,8 @@ module TentD
 
   TENT_VERSION = '0.3'.freeze
 
+  TentType = TentClient::TentType
+
   def self.setup!(options = {})
     require 'sequel'
     require 'logger'
