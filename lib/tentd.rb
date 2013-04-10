@@ -3,6 +3,8 @@ require 'tent-client'
 require 'logger'
 require 'sequel'
 
+Thread.abort_on_exception = true
+
 module TentD
   autoload :API, 'tentd/api'
   autoload :Action, 'tentd/action'
@@ -10,6 +12,7 @@ module TentD
   autoload :TentVersion, 'tentd/tent_version'
   autoload :TentType, 'tentd/tent_type'
   autoload :Model, 'tentd/model'
+  autoload :Streaming, 'tentd/streaming'
 
   TENT_VERSION = '0.2'.freeze
 

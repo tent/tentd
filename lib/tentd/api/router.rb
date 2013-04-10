@@ -25,10 +25,11 @@ module TentD
   class API
     module Router
       autoload :ExtractParams, 'tentd/api/router/extract_params'
-      autoload :SerializeResponse, 'tentd/api/router/serialize_response'
       autoload :CachingHeaders, 'tentd/api/router/caching_headers'
       autoload :CorsHeaders, 'tentd/api/router/cors_headers'
       autoload :EtagCheck, 'tentd/api/router/etag_check'
+
+      autoload :Respond, 'tentd/api/router/respond'
 
       def self.included(base)
         base.extend(ClassMethods)
@@ -70,7 +71,7 @@ module TentD
 
           return if route_exists?(verb, path)
 
-          builder = Rack::Builder.new(SerializeResponse.new)
+          builder = Rack::Builder.new(Respond.new)
           builder.use(Rack::Head)
           builder.use(EtagCheck)
           builder.use(Rack::ETag)

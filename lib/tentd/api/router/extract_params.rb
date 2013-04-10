@@ -34,6 +34,10 @@ module TentD
             keys.zip(values) { |k,v| Array === params[k] ? params[k] << v : params[k] = v if v }
           end
 
+          if TentD::Streaming.requests_stream?(env)
+            env.stream_requested = true
+          end
+
           begin
             if env['CONTENT_TYPE'].to_s.split(';').first =~ /\bjson\Z/
               params['data'] = env['data'] || JSON.parse(env['rack.input'].read)
