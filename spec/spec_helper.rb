@@ -18,6 +18,8 @@ TentD.setup!(:database_url => ENV['TEST_DATABASE_URL'])
 RSpec.configure do |config|
   config.include Rack::Test::Methods
 
+  config.color = true
+
   config.mock_with :mocha
   config.expect_with :rspec do |c|
     c.syntax = :expect
