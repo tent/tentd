@@ -32,7 +32,9 @@ module TentD
           :type_fragment_id => type.fragment ? type.id : nil,
 
           :version_published_at => published_at_timestamp,
+          :version_received_at => published_at_timestamp,
           :published_at => published_at_timestamp,
+          :received_at => published_at_timestamp,
 
           :content => data['content'],
         }
@@ -84,13 +86,15 @@ module TentD
           :type => self.type,
           :entity => self.entity,
           :published_at => self.published_at,
+          :received_at => self.received_at,
           :content => self.content,
           :mentions => self.mentions,
           :version => {
             :id => self.version,
             :parents => self.version_parents,
             :message => self.version_message,
-            :published_at => self.version_published_at
+            :published_at => self.version_published_at,
+            :received_at => self.version_received_at
           }
         }
         attrs[:version].delete(:parents) if attrs[:version][:parents].nil?
