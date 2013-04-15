@@ -1,17 +1,17 @@
 module TentD
   module Utils
 
-    MAC_ALGORITHM = "hmac-sha-256".freeze
+    MAC_ALGORITHM = "sha256".freeze
 
     def self.random_id
       SecureRandom.urlsafe_base64(16)
     end
 
-    def self.mac_key
+    def self.hawk_key
       SecureRandom.hex(32)
     end
 
-    def self.mac_algorithm
+    def self.hawk_algorithm
       MAC_ALGORITHM
     end
 

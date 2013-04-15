@@ -85,8 +85,8 @@ describe "POST /posts" do
               :entity => remote_entity_url,
               :published_at => TentD::Utils.timestamp,
               :content => {
-                :mac_key => TentD::Utils.mac_key,
-                :mac_algorithm => TentD::Utils.mac_algorithm
+                :hawk_key => TentD::Utils.hawk_key,
+                :hawk_algorithm => TentD::Utils.hawk_algorithm
               },
               :mentions => [
                 {

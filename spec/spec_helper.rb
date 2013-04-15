@@ -41,13 +41,16 @@ RSpec.configure do |config|
       let(:server_meta) do
         TentD::Utils::Hash.stringify_keys(current_user.meta_post.as_json[:content])
       end
+      let(:client_options) { Hash.new } unless example.respond_to?(:client_options)
       let(:client) do
         TentClient.new(
           server_meta["entity"],
-          :server_meta => server_meta,
-          :faraday_adapter => [:rack, lambda { |env|
-            current_session.request(env['PATH_INFO'], env)
-          }]
+          {
+            :server_meta => server_meta,
+            :faraday_adapter => [:rack, lambda { |env|
+              current_session.request(env['PATH_INFO'], env)
+            }]
+          }.merge(client_options)
         )
       end
     end

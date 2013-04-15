@@ -8,6 +8,7 @@ gem 'tent-schemas', :git => 'git://github.com/tent/tent-schemas.git', :branch =>
 gem 'json-pointer', :git => 'git://github.com/tent/json-pointer-ruby.git', :branch => 'master'
 gem 'tent-canonical-json', :git => 'git://github.com/tent/tent-canonical-json-ruby.git', :branch => 'master'
 gem 'api-validator', :git => 'git://github.com/tent/api-validator.git', :branch => 'master'
+gem 'hawk-auth', :git => 'git://github.com/tent/hawk-ruby.git', :branch => 'master'
 
 group :development, :test do
   gem 'tent-validator', :git => 'git://github.com/tent/tent-validator.git', :branch => 'master'

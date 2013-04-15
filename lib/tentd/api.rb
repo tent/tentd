@@ -11,6 +11,7 @@ module TentD
     require 'tentd/api/serialize_response'
     require 'tentd/api/middleware'
     require 'tentd/api/user_lookup'
+    require 'tentd/api/authentication'
     require 'tentd/api/parse_input_data'
     require 'tentd/api/parse_content_type'
     require 'tentd/api/parse_link_header'
@@ -23,6 +24,7 @@ module TentD
     stack_base SerializeResponse
 
     middleware UserLookup
+    middleware Authentication
     middleware ParseInputData
     middleware ParseContentType
     middleware ParseLinkHeader
