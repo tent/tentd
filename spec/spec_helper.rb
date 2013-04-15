@@ -37,26 +37,7 @@ RSpec.configure do |config|
       let(:server_entity) { server_url }
       let(:server_url) { "http://example.tent.local" }
       let(:server_meta) do
-        {
-          "entity" => server_url,
-          "previous_entities" => [],
-          "servers" => [
-            {
-              "version" => "0.3",
-              "urls" => {
-                "oauth_auth" => "#{server_url}/oauth/authorize",
-                "oauth_token" => "#{server_url}/oauth/token",
-                "posts_feed" => "#{server_url}/posts",
-                "new_post" => "#{server_url}/posts",
-                "post" => "#{server_url}/posts/{entity}/{post}",
-                "post_attachment" => "#{server_url}/posts/{entity}/{post}/attachments/{name}?version={version}",
-                "batch" => "#{server_url}/batch",
-                "server_info" => "#{server_url}/server"
-              },
-              "preference" => 0
-            }
-          ]
-        }
+        TentD::Utils::Hash.stringify_keys(current_user.meta_post.as_json[:content])
       end
       let(:client) do
         TentClient.new(
