@@ -8,6 +8,10 @@ module TentD
 
   TentType = TentClient::TentType
 
+  module REGEX
+    VALID_ID = /\A[-0-9a-z_]+\Z/i
+  end
+
   def self.setup!(options = {})
     require 'sequel'
     require 'logger'
