@@ -41,6 +41,8 @@ Sequel.migration do
       column :entity       , "text"   , :null => false # entities.entity
       column :meta_post_id , "bigint" # posts.id
 
+      column :server_credentials , "text" , :null => false
+
       index [:entity], :name => :unique_users, :unique => true
     end
 

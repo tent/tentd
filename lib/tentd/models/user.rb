@@ -2,9 +2,19 @@ module TentD
   module Model
 
     class User < Sequel::Model(TentD.database[:users])
+      plugin :serialization
+      serialize_attributes :json, :server_credentials
+
       def self.create(attrs)
         entity = Entity.first_or_create(attrs[:entity])
-        user = super(attrs.merge(:entity_id => entity.id))
+        user = super(attrs.merge(
+          :entity_id => entity.id,
+          :server_credentials => {
+            :id => TentD::Utils.random_id,
+            :hawk_key => TentD::Utils.hawk_key,
+            :hawk_algorithm => TentD::Utils.hawk_algorithm
+          }
+        ))
         user.create_meta_post
         user
       end
