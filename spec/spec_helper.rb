@@ -10,7 +10,7 @@ require 'rack/test'
 
 require 'tentd'
 
-ENV['TENT_ENTITY'] ||= 'http://example.org'
+ENV['TENT_ENTITY'] = 'http://example.org'
 
 ENV['DB_LOGFILE'] ||= '/dev/null'
 TentD.setup!(:database_url => ENV['TEST_DATABASE_URL'])
