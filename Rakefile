@@ -30,7 +30,7 @@ task :validator_spec do
     # don't show database activity
     ENV['DB_LOGFILE'] ||= '/dev/null'
 
-    ENV['TENT_ENTITY'] ||= "http://#{host}:#{port}#{ENV['TENT_SUBDIR']}"
+    ENV['TENT_ENTITY'] ||= "http://localhost:#{port}#{ENV['TENT_SUBDIR']}"
 
     # use test database
     unless ENV['DATABASE_URL'] = ENV['TEST_DATABASE_URL']
@@ -78,7 +78,7 @@ task :validator_spec do
 
     begin
       require 'tent-validator'
-      server_url = "http://#{host}:#{port}#{ENV['TENT_SUBDIR']}"
+      server_url = "http://localhost:#{port}#{ENV['TENT_SUBDIR']}"
       TentValidator.setup!(
         :remote_entity_uri => server_url,
         :remote_server_meta => {
