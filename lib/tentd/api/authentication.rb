@@ -20,7 +20,7 @@ module TentD
           :method => env['REQUEST_METHOD']
         )
 
-        if Hawk::AuthorizationHeader::AuthenticationFailure === res
+        if Hawk::AuthenticationFailure === res
           halt!(403, "Authentication failure: #{res.message}")
         else
           env
