@@ -1,3 +1,5 @@
+require 'hawk'
+
 module TentD
   module Utils
 
@@ -32,6 +34,29 @@ module TentD
 
     def self.expand_uri_template(template, params = {})
       template.to_s.gsub(/{([^}]+)}/) { URI.encode_www_form_component(params[$1] || params[$1.to_sym]) }
+    end
+
+    def self.sign_url(credentials, url, options = {})
+      credentials = Hash.symbolize_keys(credentials)
+
+      options[:ttl] ||= 86400 # 24 hours
+      options[:method] ||= 'GET'
+
+      uri = URI(url)
+      options.merge!(
+        :credentials => {
+          :id => credentials[:id],
+          :key => credentials[:hawk_key],
+          :algorithm => credentials[:hawk_algorithm]
+        },
+        :host => uri.host,
+        :port => uri.port || (uri.scheme == 'https' ? 443 : 80),
+        :path => uri.path + (uri.query ? "?#{uri.query}" : '')
+      )
+
+      bewit = Hawk::Crypto.bewit(options)
+      uri.query ? uri.query += "&bewit=#{bewit}" : uri.query = "bewit=#{bewit}"
+      uri.to_s
     end
 
     module Hash

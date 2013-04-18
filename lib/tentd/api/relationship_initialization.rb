@@ -1,5 +1,6 @@
 require 'faraday'
 require 'yajl'
+require 'hawk'
 
 module TentD
   class API
@@ -117,10 +118,13 @@ module TentD
         relationship_post, credentials_post = Model::Relationship.create_from_env(env)
         current_user = env['current_user']
         (env['response.links'] ||= []) << {
-          :url => TentD::Utils.expand_uri_template(
-            current_user.preferred_server['urls']['post'],
-            :entity => current_user.entity,
-            :post => credentials_post.public_id
+          :url => TentD::Utils.sign_url(
+            env['current_user'].server_credentials,
+            TentD::Utils.expand_uri_template(
+              current_user.preferred_server['urls']['post'],
+              :entity => current_user.entity,
+              :post => credentials_post.public_id
+            )
           ),
           :rel => "https://tent.io/rels/credentials"
         }
