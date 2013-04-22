@@ -62,7 +62,24 @@ module TentD
             RelationshipInitialization.call(env)
           end
         else
-          env['response'] = Model::Post.create_from_env(env)
+          post = Model::Post.create_from_env(env)
+          env['response'] = post
+
+          if TentType.new(post.type).base == 'https://tent.io/types/app' && !env['request.import']
+            credentials_post = Model::Credentials.generate(env['current_user'], env['response'])
+            current_user = env['current_user']
+            (env['response.links'] ||= []) << {
+              :url => TentD::Utils.sign_url(
+                current_user.server_credentials,
+                TentD::Utils.expand_uri_template(
+                  current_user.preferred_server['urls']['post'],
+                  :entity => current_user.entity,
+                  :post => credentials_post.public_id
+                )
+              ),
+              :rel => "https://tent.io/rels/credentials"
+            }
+          end
         end
         env
       end

@@ -23,13 +23,16 @@ describe "POST /posts" do
     data[:mentions] = mentions if mentions.any?
   end
 
+  let(:expected_create_post_count) { 1 }
+  let(:expected_create_mention_count) { mentions.size }
+
   shared_examples "a valid create post request" do
     it "creates post" do
       expect {
         expect {
           client.post.create(data, params = {}, create_post_options)
-        }.to change(TentD::Model::Post, :count).by(1)
-      }.to change(TentD::Model::Mention, :count).by(mentions.size)
+        }.to change(TentD::Model::Post, :count).by(expected_create_post_count)
+      }.to change(TentD::Model::Mention, :count).by(expected_create_mention_count)
       expect(last_response.status).to eql(200)
 
       response_data = parse_json(last_response.body)
@@ -51,6 +54,8 @@ describe "POST /posts" do
   context "without authentication" do
     context "when app registration post" do
       let(:post_type) { 'https://tent.io/types/app/v0#' }
+      let(:expected_create_post_count) { 2 } # app post + credentials post
+      let(:expected_create_mention_count) { 1 } # credentials post mentions app post
 
       it_behaves_like "a valid create post request"
 
