@@ -1,5 +1,6 @@
 require 'tent-schemas'
 require 'api-validator'
+require 'tentd/schema_validator/format_validators'
 
 module TentD
   class SchemaValidator < ApiValidator::JsonSchema
