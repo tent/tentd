@@ -65,7 +65,7 @@ module TentD
           post = Model::Post.create_from_env(env)
           env['response'] = post
 
-          if TentType.new(post.type).base == 'https://tent.io/types/app' && !env['request.import']
+          if %w( https://tent.io/types/app https://tent.io/types/app-auth ).include?(TentType.new(post.type).base) && !env['request.import']
             credentials_post = Model::Credentials.generate(env['current_user'], env['response'])
             current_user = env['current_user']
             (env['response.links'] ||= []) << {
