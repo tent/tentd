@@ -99,6 +99,8 @@ module TentD
         }
         attrs[:version].delete(:parents) if attrs[:version][:parents].nil?
         attrs[:version].delete(:message) if attrs[:version][:message].nil?
+        attrs[:version].delete(:received_at) if attrs[:version][:received_at].nil?
+        attrs.delete(:received_at) if attrs[:received_at].nil?
         attrs.delete(:content) if attrs[:content].nil?
         attrs.delete(:mentions) if attrs[:mentions].nil?
 
