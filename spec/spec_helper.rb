@@ -38,15 +38,18 @@ RSpec.configure do |config|
 
       let(:server_entity) { server_url }
       let(:server_url) { "http://example.tent.local" }
+      let(:server_meta_post) do
+        TentD::Utils::Hash.stringify_keys(current_user.meta_post.as_json)
+      end
       let(:server_meta) do
-        TentD::Utils::Hash.stringify_keys(current_user.meta_post.as_json[:content])
+        server_meta_post['content']
       end
       let(:client_options) { Hash.new } unless example.respond_to?(:client_options)
       let(:client) do
         TentClient.new(
           server_meta["entity"],
           {
-            :server_meta => server_meta,
+            :server_meta => server_meta_post,
             :faraday_adapter => [:rack, lambda { |env|
               current_session.request(env['PATH_INFO'], env)
             }]

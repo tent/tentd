@@ -46,7 +46,7 @@ module TentD
 
       def perform_discovery(env)
         entity = env['data']['entity']
-        unless meta = TentClient.new(entity).server_meta
+        unless meta = TentClient.new(entity).server_meta_post
           halt!(400, "Discovery of entity #{entity.inspect} failed!")
         end
 

@@ -29,6 +29,7 @@ describe "POST /posts" do
       "entity" => remote_entity_url,
       "previous_entities" => [],
       "content" => {
+        "entity" => remote_entity_url,
         "servers" => [
           {
             "version" => "0.3",
@@ -77,7 +78,7 @@ describe "POST /posts" do
         end
 
         context "with linked credentials post" do
-          let(:credentials_post_id) { TentD::Utils.random_id }
+          let(:credentials_post_id) { "credentials-#{TentD::Utils.random_id}" }
           let(:credentials_post) do
             {
               :id => credentials_post_id,
@@ -129,7 +130,6 @@ describe "POST /posts" do
               it "imports post" do
                 expect {
                   client.post.create(data, &faraday_request_block)
-                  expect_http_stubs_called
                   expect(last_response.status).to eql(204), begin
                     if last_response.status == 400
                       parse_json(last_response.body)['error']
@@ -137,6 +137,7 @@ describe "POST /posts" do
                       "Expected response status of 204, got #{last_response.status}"
                     end
                   end
+                  expect_http_stubs_called
                 }.to change(TentD::Model::Post, :count)
               end
             end
