@@ -12,7 +12,7 @@ module TentD
           response_body = env['response'].as_json
           [env['response.status'] || 200, { 'Content-Type' => content_type(response_body) }.merge(response_headers), [serialize(response_body)]]
         else
-          [env['response.status'] || 201, response_headers, []]
+          [env['response.status'] || 404, { 'Content-Type' => ERROR_CONTENT_TYPE }.merge(response_headers), [serialize(:error => 'Not Found')]]
         end
       end
 
