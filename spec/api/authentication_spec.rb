@@ -99,7 +99,7 @@ describe TentD::API::Authentication do
     context "when valid" do
       it "accepts the request" do
         res = client.http.get(url)
-        expect(res).to be_success, "#{res.body['error']}"
+        expect(res).to be_success
       end
     end
 
