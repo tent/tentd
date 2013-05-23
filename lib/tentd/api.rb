@@ -3,9 +3,12 @@ require 'rack-putty'
 module TentD
   class API
 
-    POST_CONTENT_TYPE = %(application/vnd.tent.post.v0+json; type="%s").freeze
+    POST_CONTENT_MIME = %(application/vnd.tent.post.v0+json).freeze
+    MULTIPART_CONTENT_MIME = %(multipart/form-data).freeze
+
+    POST_CONTENT_TYPE = %(#{POST_CONTENT_MIME}; type="%s").freeze
     ERROR_CONTENT_TYPE = %(application/vnd.tent.error.v0+json).freeze
-    MULTIPART_CONTENT_TYPE = %(multipart/form-data).freeze
+    MULTIPART_CONTENT_TYPE = MULTIPART_CONTENT_MIME
     ATTACHMENT_DIGEST_HEADER = %(Attachment-Digest).freeze
 
     require 'tentd/api/serialize_response'

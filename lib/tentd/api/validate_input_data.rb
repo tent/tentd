@@ -5,7 +5,7 @@ module TentD
 
     class ValidateInputData < Middleware
       def action(env)
-        if Hash === env['data']
+        if Hash === env['data'] && [POST_CONTENT_MIME, MULTIPART_CONTENT_MIME].include?(env['request.mime'])
           validate_post!(env)
           validate_attachments!(env)
         end
