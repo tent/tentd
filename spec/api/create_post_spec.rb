@@ -113,4 +113,75 @@ describe "POST /posts" do
       end
     end
   end
+
+  context "with authentication" do
+    let!(:app_post) do
+      TentD::Model::Post.create_from_env(
+        TentD::Utils::Hash.stringify_keys(
+          :current_user => current_user,
+          :data => {
+            :type => "https://tent.io/types/app/v0#",
+            :content => generate_app_content
+          }
+        )
+      )
+    end
+
+    let(:read_post_types) { [] }
+    let(:write_post_types) { [] }
+    let!(:app_auth_post) do
+      TentD::Model::Post.create_from_env(
+        TentD::Utils::Hash.stringify_keys(
+          :current_user => current_user,
+          :data => {
+            :type => "https://tent.io/types/app-auth/v0#",
+            :content => {
+              :post_types => {
+                :read => read_post_types,
+                :write => write_post_types
+              }
+            },
+            :mentions => [
+              { :entity => app_post.entity, :post => app_post.public_id }
+            ]
+          }
+        )
+      )
+    end
+
+    let!(:credentials_post) { TentD::Model::Credentials.generate(current_user, app_post) }
+    let(:client_options) do
+      {
+        :credentials => TentD::Model::Credentials.slice_credentials(credentials_post)
+      }
+    end
+
+    context "when status post" do
+      let(:post_type) { 'https://tent.io/types/status/v0#' }
+
+      context "when authorized" do
+        let(:read_post_types) { %w( https://tent.io/types/status/v0# ) }
+        let(:write_post_types) { read_post_types }
+
+        it_behaves_like "a valid create post request"
+
+        context "with mentions" do
+          let(:first_mention_entity) { "https://foo.example.com/some-entity" }
+          let(:second_mention_entity) { "https://bar.example.com/another-entity" }
+          let(:mentions) do
+            [
+              { :entity => first_mention_entity },
+              { :entity => second_mention_entity, :post => "some-random-post" },
+            ]
+          end
+
+          it_behaves_like "a valid create post request"
+        end
+      end
+
+      context "when not authorized" do
+        it "returns 403"
+      end
+    end
+  end
 end

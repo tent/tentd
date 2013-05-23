@@ -2,6 +2,8 @@ def content_for_post_type(type)
   case type
   when %r|/app/|
     generate_app_content
+  when %r|/status/|
+    generate_status_content
   else
     Hash.new
   end
@@ -18,6 +20,12 @@ def generate_app_content
       :write => %w( https://tent.io/types/status/v0# )
     },
     :scopes => %w( import_posts )
+  }
+end
+
+def generate_status_content
+  {
+    :text => "The quick brown fox jumps over the lazy dog into a pool of red dye. The quick red fox jumps over the lazy dog again who becomes very confused and starts running in circles before finally falling over in a fit of dizziness, tail in pool. Then it made sense." # .size => 256
   }
 end
 
