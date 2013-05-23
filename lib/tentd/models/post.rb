@@ -43,6 +43,10 @@ module TentD
           attrs[:public] = data['permissions']['public']
         end
 
+        if Array === data['mentions'] && data['mentions'].any?
+          attrs[:mentions] = data['mentions']
+        end
+
         if Array === env['attachments']
           attrs['attachments'] = env['attachments'].inject(Array.new) do |memo, attachment|
             memo << {
@@ -57,6 +61,10 @@ module TentD
         end
 
         post = create(attrs)
+
+        if Array === data['mentions']
+          post.create_mentions(data['mentions'])
+        end
 
         if Array === env['attachments']
           post.create_attachments(env['attachments'])
@@ -77,6 +85,19 @@ module TentD
             :post_id => self.id,
             :content_type => attachment[:content_type]
           )
+        end
+      end
+
+      def create_mentions(mentions)
+        mentions.map do |mention|
+          mention_attrs = {
+            :user_id => self.user_id,
+            :post_id => self.id,
+            :entity_id => Entity.first_or_create(mention['entity']).id
+          }
+          mention_attrs[:post] = mention['post'] if mention.has_key?('post')
+          mention_attrs[:public] = mention['public'] if mention.has_key?('public')
+          Mention.create(mention_attrs)
         end
       end
 

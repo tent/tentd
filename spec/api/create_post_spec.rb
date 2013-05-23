@@ -15,13 +15,21 @@ describe "POST /posts" do
   end
 
   let(:attachments) { [] }
+  let(:mentions) { [] }
   let(:create_post_options) { Hash.new }
+
+  before do
+    create_post_options[:attachments] = attachments if attachments.any?
+    data[:mentions] = mentions if mentions.any?
+  end
 
   shared_examples "a valid create post request" do
     it "creates post" do
       expect {
-        client.post.create(data, params = {}, create_post_options)
-      }.to change(TentD::Model::Post, :count).by(1)
+        expect {
+          client.post.create(data, params = {}, create_post_options)
+        }.to change(TentD::Model::Post, :count).by(1)
+      }.to change(TentD::Model::Mention, :count).by(mentions.size)
       expect(last_response.status).to eql(200)
 
       response_data = parse_json(last_response.body)
@@ -32,6 +40,10 @@ describe "POST /posts" do
 
       if attachments.empty?
         expect(data).to_not have_key('attachments')
+      end
+
+      if mentions.empty?
+        expect(data).to_not have_key('mentions')
       end
     end
   end
@@ -46,10 +58,6 @@ describe "POST /posts" do
         it_behaves_like "a valid create post request"
 
         let(:attachments) { [generate_app_icon_attachment] }
-
-        before do
-          create_post_options[:attachments] = attachments
-        end
 
         it "creates attachment" do
           expect {
