@@ -2,7 +2,7 @@ module TentD
   class Feed
 
     class Query
-      attr_reader :model, :table_name, :select_columns, :sort_columns, :query_conditions, :query_bindings
+      attr_reader :model, :table_name, :select_columns, :joins, :sort_columns, :query_conditions, :query_bindings
       attr_accessor :sort_order, :limit
       def initialize(model)
         @model = model
@@ -11,6 +11,7 @@ module TentD
         @query_bindings = []
 
         @select_columns = '*'
+        @joins = []
         @sort_columns = nil
         @sort_order = 'ASC'
       end
@@ -21,6 +22,14 @@ module TentD
 
       def sort_columns=(columns)
         @sort_columns = Array(columns).map(&:to_s).join(',')
+      end
+
+      def join(sql)
+        joins << sql
+      end
+
+      def qualify(column)
+        "#{table_name}.#{column}"
       end
 
       def build_query_conditions(options = {})
@@ -42,7 +51,7 @@ module TentD
       end
 
       def to_sql(options = {})
-        q = ["SELECT #{select_columns} FROM #{table_name}"]
+        q = ["SELECT #{select_columns} FROM #{table_name}"].concat(joins)
 
         if query_conditions.any?
           q << "WHERE #{build_query_conditions(options)}"
