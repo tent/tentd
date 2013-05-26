@@ -88,6 +88,13 @@ module TentD
       end
     end
 
+    class PostsFeed < Middleware
+      def action(env)
+        env['response'] = Feed.new
+        env
+      end
+    end
+
     head '/' do |b|
       b.use HelloWorld
     end
@@ -99,6 +106,10 @@ module TentD
 
     get '/posts/:entity/:post' do |b|
       b.use GetPost
+    end
+
+    get '/posts' do |b|
+      b.use PostsFeed
     end
 
   end
