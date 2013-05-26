@@ -21,7 +21,7 @@ module TentD
     end
 
     require 'tentd/model'
-    require 'tentd/posts_feed'
+    require 'tentd/feed'
     require 'tentd/api'
   end
 

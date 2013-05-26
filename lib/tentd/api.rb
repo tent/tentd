@@ -90,7 +90,7 @@ module TentD
 
     class PostsFeed < Middleware
       def action(env)
-        env['response'] = Feed.new
+        env['response'] = Feed.new(env)
         env
       end
     end
