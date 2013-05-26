@@ -19,7 +19,7 @@ module TentD
       q.sort_order = 'DESC'
 
       if params['types']
-        requested_types = params['types'].map { |uri| TentType.new(uri) }
+        requested_types = params['types'].uniq.map { |uri| TentType.new(uri) }
 
         type_ids_q = Query.new(Model::Type)
         type_ids_q.select_columns = :id
