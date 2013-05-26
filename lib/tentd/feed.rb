@@ -44,6 +44,11 @@ module TentD
         q.query_bindings << type_ids
       end
 
+      if params['entities']
+        q.query_conditions << "entity IN ?"
+        q.query_bindings << params['entities'].split(',').uniq
+      end
+
       q
     end
 
