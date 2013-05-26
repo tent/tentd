@@ -11,7 +11,7 @@ module TentD
     end
 
     def query
-      q = Model::Post.order(Sequel.desc(:published_at))
+      q = Model::Post.order(Sequel.desc(:received_at))
 
       if params['types']
         requested_types = params['types'].map { |uri| TentType.new(uri) }
