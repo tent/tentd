@@ -17,6 +17,7 @@ module TentD
 
           :version_published_at => published_at_timestamp,
           :published_at => published_at_timestamp,
+          :received_at => published_at_timestamp,
 
           :content => {
             :hawk_key => TentD::Utils.hawk_key,
