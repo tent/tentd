@@ -21,6 +21,9 @@ module TentD
       q.sort_columns = :received_at
       q.sort_order = 'DESC'
 
+      q.query_conditions << "#{q.table_name}.user_id = ?"
+      q.query_bindings << env['current_user'].id
+
       if params['types']
         requested_types = params['types'].uniq.map { |uri| TentType.new(uri) }
 
