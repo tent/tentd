@@ -3,6 +3,7 @@ module TentD
   class Feed
 
     DEFAULT_PAGE_LIMIT = 25.freeze
+    MAX_PAGE_LIMIT = 200.freeze
 
     require 'tentd/feed/query'
 
@@ -51,7 +52,11 @@ module TentD
         q.query_bindings << params['entities'].split(',').uniq
       end
 
-      q.limit = DEFAULT_PAGE_LIMIT
+      if params['limit']
+        q.limit = [params['limit'].to_i, MAX_PAGE_LIMIT].min
+      else
+        q.limit = DEFAULT_PAGE_LIMIT
+      end
 
       q
     end
