@@ -3,7 +3,7 @@ module TentD
 
     class Credentials
       def self.generate(current_user, target_post=nil)
-        type = Type.first_or_create("https://tent.io/types/credentials/v0")
+        type = Type.first_or_create("https://tent.io/types/credentials/v0#")
         published_at_timestamp = (Time.now.to_f * 1000).to_i
 
         post_attrs = {

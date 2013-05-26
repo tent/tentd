@@ -24,7 +24,7 @@ module TentD
       end
 
       def create_meta_post
-        type = Type.first_or_create("https://tent.io/types/meta/v0")
+        type = Type.first_or_create("https://tent.io/types/meta/v0#")
         published_at_timestamp = (Time.now.to_f * 1000).to_i
 
         meta_post = Post.create(
