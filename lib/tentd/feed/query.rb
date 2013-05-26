@@ -23,13 +23,38 @@ module TentD
         @sort_columns = Array(columns).map(&:to_s).join(',')
       end
 
-      def all
-        q = ["SELECT #{select_columns} FROM #{table_name}"]
-        q << "WHERE #{query_conditions.join(' AND ')}" if query_conditions.any?
-        q << "ORDER BY #{sort_columns} #{sort_order}" if sort_columns
-        q = q.join(' ')
+      def build_query_conditions(options = {})
+        sep = options[:conditions_sep] || 'AND'
 
-        model.with_sql(q, *query_bindings)
+        query_conditions.map do |c|
+          if c.kind_of?(Array) && ['OR', 'AND'].include?(c.first)
+            c = c.dup
+            c_sep = c.shift
+            if c.size > 1
+              "(#{c.join(" #{c_sep} ")})"
+            else
+              c.first
+            end
+          else
+            c
+          end
+        end.join(" #{sep} ")
+      end
+
+      def to_sql(options = {})
+        q = ["SELECT #{select_columns} FROM #{table_name}"]
+
+        if query_conditions.any?
+          q << "WHERE #{build_query_conditions(options)}"
+        end
+
+        q << "ORDER BY #{sort_columns} #{sort_order}" if sort_columns
+
+        q.join(' ')
+      end
+
+      def all(options = {})
+        model.with_sql(to_sql(options), *query_bindings)
       end
     end
 

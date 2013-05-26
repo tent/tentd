@@ -21,10 +21,24 @@ module TentD
       if params['types']
         requested_types = params['types'].map { |uri| TentType.new(uri) }
 
-        # TODO: refactor to only need query
-        type_ids = Model::Type.where(:base => requested_types.map(&:base)).all.select { |type|
-          requested_types.any? { |t| t.base == type.base && t.fragment == type.fragment }
-        }.map(&:id)
+        type_ids_q = Query.new(Model::Type)
+        type_ids_q.select_columns = :id
+
+        requested_types.each do |type|
+          type_ids_q.query_conditions << ["AND", "base = ?"]
+          type_ids_q.query_bindings << type.base
+
+          if type.has_fragment?
+            if type.fragment.nil?
+              type_ids_q.query_conditions.last << "fragment IS NULL"
+            else
+              type_ids_q.query_conditions.last << "fragment = ?"
+              type_ids_q.query_bindings << type.fragment
+            end
+          end
+        end
+
+        type_ids = type_ids_q.all(:conditions_sep => 'OR').map(&:id)
 
         q.query_conditions << "type_id IN ?"
         q.query_bindings << type_ids
