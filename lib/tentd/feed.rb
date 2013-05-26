@@ -1,6 +1,9 @@
 module TentD
 
   class Feed
+
+    require 'tentd/feed/query'
+
     attr_reader :env
     def initialize(env)
       @env = env
@@ -11,7 +14,9 @@ module TentD
     end
 
     def query
-      q = Model::Post.order(Sequel.desc(:received_at))
+      q = Query.new(Model::Post)
+      q.sort_columns = :received_at
+      q.sort_order = 'DESC'
 
       if params['types']
         requested_types = params['types'].map { |uri| TentType.new(uri) }
@@ -21,7 +26,8 @@ module TentD
           requested_types.any? { |t| t.base == type.base && t.fragment == type.fragment }
         }.map(&:id)
 
-        q = q.where(:type_id => type_ids)
+        q.query_conditions << "type_id IN ?"
+        q.query_bindings << type_ids
       end
 
       q
