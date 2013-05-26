@@ -52,6 +52,7 @@ module TentD
 
           :version_published_at => published_at_timestamp,
           :published_at => published_at_timestamp,
+          :received_at => published_at_timestamp,
 
           :mentions => [
             { "entity" => initiating_post['entity'], "post" => initiating_post['id'] }
