@@ -3,7 +3,7 @@ module TentD
 
     class Query
       attr_reader :model, :table_name, :select_columns, :sort_columns, :query_conditions, :query_bindings
-      attr_accessor :sort_order
+      attr_accessor :sort_order, :limit
       def initialize(model)
         @model = model
         @table_name = model.table_name
@@ -49,6 +49,7 @@ module TentD
         end
 
         q << "ORDER BY #{sort_columns} #{sort_order}" if sort_columns
+        q << "LIMIT #{limit.to_i}" if limit
 
         q.join(' ')
       end

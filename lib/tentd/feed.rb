@@ -2,6 +2,8 @@ module TentD
 
   class Feed
 
+    DEFAULT_PAGE_LIMIT = 25.freeze
+
     require 'tentd/feed/query'
 
     attr_reader :env
@@ -48,6 +50,8 @@ module TentD
         q.query_conditions << "entity IN ?"
         q.query_bindings << params['entities'].split(',').uniq
       end
+
+      q.limit = DEFAULT_PAGE_LIMIT
 
       q
     end
