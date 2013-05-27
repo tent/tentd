@@ -59,39 +59,41 @@ module TentD
         mentions_table = Model::Mention.table_name
         q.join("INNER JOIN #{mentions_table} ON #{mentions_table}.post_id = #{q.table_name}.id")
 
-        mentions = params['mentions'].split(',').map do |mention|
-          entity, post = mention.split(' ')
-          mention = { :entity => entity }
-          mention[:post] = post if post
-          mention
+        mentions = Array(params['mentions']).map do |mentions_param|
+          mentions_param.split(',').map do |mention|
+            entity, post = mention.split(' ')
+            mention = { :entity => entity }
+            mention[:post] = post if post
+            mention
+          end
         end
 
         # fetch entity ids
-        entities = mentions.map { |mention| mention[:entity] }
+        flat_mentions = mentions.flatten
+        entities = flat_mentions.map { |mention| mention[:entity] }
         entities_q = Query.new(Model::Entity)
         entities_q.query_conditions << "entity IN ?"
         entities_q.query_bindings << entities
         entities_q.all.each do |entity|
           index = entities.index(entity.entity)
-          mentions[index][:entity_id] = entity.id
+          flat_mentions[index][:entity_id] = entity.id
         end
 
-        # get rid of entities we don't know about
-        mentions.reject! { |mention| !mention.has_key?(:entity_id) }
+        mentions.each do |_mentions|
+          mentions_bindings = []
+          mentions_conditions = ['OR'].concat(_mentions.map { |mention|
+            mentions_bindings << mention[:entity_id]
+            if mention[:post]
+              mentions_bindings << mention[:post]
+              "(#{mentions_table}.entity_id = ? AND #{mentions_table}.post = ?)"
+            else
+              "#{mentions_table}.entity_id = ?"
+            end
+          })
 
-        mentions_bindings = []
-        mentions_conditions = ['OR'].concat(mentions.map { |mention|
-          mentions_bindings << mention[:entity_id]
-          if mention[:post]
-            mentions_bindings << mention[:post]
-            "(#{mentions_table}.entity_id = ? AND #{mentions_table}.post = ?)"
-          else
-            "#{mentions_table}.entity_id = ?"
-          end
-        })
-
-        q.query_conditions << mentions_conditions
-        q.query_bindings.push(*mentions_bindings)
+          q.query_conditions << mentions_conditions
+          q.query_bindings.push(*mentions_bindings)
+        end
       end
 
       if params['limit']
