@@ -3,7 +3,7 @@ module TentD
 
     class Query
       attr_reader :model, :table_name, :select_columns, :joins, :sort_columns, :query_conditions, :query_bindings
-      attr_accessor :sort_order, :limit
+      attr_accessor :limit
       def initialize(model)
         @model = model
         @table_name = model.table_name
@@ -13,7 +13,6 @@ module TentD
         @select_columns = '*'
         @joins = []
         @sort_columns = nil
-        @sort_order = 'ASC'
       end
 
       def select_columns=(columns)
@@ -21,7 +20,7 @@ module TentD
       end
 
       def sort_columns=(columns)
-        @sort_columns = Array(columns).map(&:to_s).join(',')
+        @sort_columns = Array(columns).map(&:to_s).join(', ')
       end
 
       def join(sql)
@@ -57,7 +56,7 @@ module TentD
           q << "WHERE #{build_query_conditions(options)}"
         end
 
-        q << "ORDER BY #{sort_columns} #{sort_order}" if sort_columns
+        q << "ORDER BY #{sort_columns}" if sort_columns
         q << "LIMIT #{limit.to_i}" if limit
 
         q.join(' ')

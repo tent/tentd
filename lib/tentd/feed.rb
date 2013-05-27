@@ -18,8 +18,15 @@ module TentD
 
     def query
       q = Query.new(Model::Post)
-      q.sort_columns = :received_at
-      q.sort_order = 'DESC'
+
+      q.sort_columns = case params['sort_by']
+      when 'published_at'
+        ['published_at DESC', 'version_published_at DESC']
+      when 'version.published_at'
+        'version_published_at DESC'
+      else
+        ['received_at DESC', 'version_received_at DESC']
+      end
 
       q.query_conditions << "#{q.table_name}.user_id = ?"
       q.query_bindings << env['current_user'].id
