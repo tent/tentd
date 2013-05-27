@@ -20,7 +20,8 @@ module TentD
         current_user = env['current_user']
         type = Type.first_or_create(data['type'])
 
-        published_at_timestamp = (data['published_at'] || TentD::Utils.timestamp).to_i
+        received_at_timestamp = TentD::Utils.timestamp
+        published_at_timestamp = (data['published_at'] || received_at_timestamp).to_i
 
         attrs = {
           :user_id => current_user.id,
@@ -32,9 +33,9 @@ module TentD
           :type_fragment_id => type.fragment ? type.id : nil,
 
           :version_published_at => published_at_timestamp,
-          :version_received_at => published_at_timestamp,
+          :version_received_at => received_at_timestamp,
           :published_at => published_at_timestamp,
-          :received_at => published_at_timestamp,
+          :received_at => received_at_timestamp,
 
           :content => data['content'],
         }
