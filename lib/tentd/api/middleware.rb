@@ -5,17 +5,17 @@ module TentD
     class Middleware < Rack::Putty::Middleware
 
       class Halt < StandardError
-        attr_accessor :code, :message
-        def initialize(code, message)
+        attr_accessor :code, :message, :attributes
+        def initialize(code, message, attributes = {})
           super(message)
-          @code, @message = code, message
+          @code, @message, @attributes = code, message, attributes
         end
       end
 
       def call(env)
         super
       rescue Halt => e
-        [e.code, { 'Content-Type' => ERROR_CONTENT_TYPE }, [encode_json(:error => e.message)]]
+        [e.code, { 'Content-Type' => ERROR_CONTENT_TYPE }, [encode_json(e.attributes.merge(:error => e.message))]]
       end
 
       def encode_json(data)
@@ -30,8 +30,8 @@ module TentD
         halt!(400, "Malformed Request")
       end
 
-      def halt!(status, message)
-        raise Halt.new(status, message)
+      def halt!(status, message, attributes = {})
+        raise Halt.new(status, message, attributes)
       end
 
       def rack_input(env)

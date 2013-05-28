@@ -32,8 +32,8 @@ module TentD
 
       private
 
-      def halt!(status, message)
-        raise Middleware::Halt.new(status, message)
+      def halt!(status, message, attributes = {})
+        raise Middleware::Halt.new(status, message, attributes)
       end
 
       def parse_credentials_link(env)
@@ -102,6 +102,15 @@ module TentD
           request.headers['Accept'] = POST_CONTENT_TYPE % 'https://tent.io/types/credentials/v0#'
         end
         post = Yajl::Parser.parse(res.body)
+
+        unless TentType.new(post['type']).base == 'https://tent.io/types/credentials'
+          post = Utils::Hash.symbolize_keys(post)
+          if post.has_key?(:error)
+            halt!(400, "Invalid credentials post! (#{post[:error]})", post)
+          else
+            halt!(400, "Invalid credentials post!", post)
+          end
+        end
 
         unless SchemaValidator.validate(post['type'], post)
           halt!(400, "Invalid credentials post!")
