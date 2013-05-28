@@ -80,7 +80,7 @@ module TentD
       end
 
       def request_path(env)
-        env['SCRIPT_NAME'] + env['PATH_INFO'] + (env['QUERY_STRING'] != "" ? "?#{env['QUERY_STRING']}" : "")
+        env['PATH_INFO'] + (env['QUERY_STRING'] != "" ? "?#{env['QUERY_STRING']}" : "")
       end
 
       def request_port(env)
