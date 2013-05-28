@@ -19,17 +19,44 @@ module TentD
     def query
       q = Query.new(Model::Post)
 
-      q.sort_columns = case params['sort_by']
+      # TODO: handle sort columns/order better
+      sort_columns = case params['sort_by']
       when 'published_at'
-        ['published_at DESC', 'version_published_at DESC']
+        ["#{q.table_name}.published_at DESC", "#{q.table_name}.version_published_at DESC"]
       when 'version.published_at'
-        'version_published_at DESC'
+        ["#{q.table_name}.version_published_at DESC"]
       else
-        ['received_at DESC', 'version_received_at DESC']
+        ["#{q.table_name}.received_at DESC"]
       end
+      q.sort_columns = sort_columns
 
       q.query_conditions << "#{q.table_name}.user_id = ?"
       q.query_bindings << env['current_user'].id
+
+      if params['since']
+        since_timestamp, since_version = params['since'].split(' ')
+        since_timestamp = since_timestamp.to_i
+
+        timestamp_column = q.sort_columns.split(' ').first
+
+        q.reverse_sort = true
+
+        if since_version
+          q.query_conditions << ["OR",
+            ["AND", "#{timestamp_column} >= ?", "#{q.table_name}.version > ?"],
+            "#{timestamp_column} > ?"
+          ]
+          q.query_bindings << since_timestamp
+          q.query_bindings << since_version
+          q.query_bindings << since_timestamp
+
+          sort_columns << "#{q.table_name}.version DESC"
+          q.sort_columns = sort_columns
+        else
+          q.query_conditions << "#{timestamp_column} > ?"
+          q.query_bindings << since_timestamp
+        end
+      end
 
       if params['types']
         requested_types = params['types'].uniq.map { |uri| TentType.new(uri) }
