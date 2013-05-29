@@ -53,7 +53,7 @@ module TentD
         Post.first(
           :user_id => current_user.id,
           :public_id => public_id,
-          :type_id => Type.first_or_create("https://tent.io/types/credentials/v0").id
+          :type_id => Type.first_or_create("https://tent.io/types/credentials/v0#").id
         )
       end
     end
