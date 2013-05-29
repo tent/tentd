@@ -22,7 +22,7 @@ module TentD
       # TODO: handle sort columns/order better
       sort_columns = case params['sort_by']
       when 'published_at'
-        ["#{q.table_name}.published_at DESC", "#{q.table_name}.version_published_at DESC"]
+        ["#{q.table_name}.published_at DESC"]
       when 'version.published_at'
         ["#{q.table_name}.version_published_at DESC"]
       else
