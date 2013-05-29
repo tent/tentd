@@ -33,11 +33,11 @@ module TentD
       q.query_conditions << "#{q.table_name}.user_id = ?"
       q.query_bindings << env['current_user'].id
 
+      timestamp_column = q.sort_columns.split(' ').first
+
       if params['since']
         since_timestamp, since_version = params['since'].split(' ')
         since_timestamp = since_timestamp.to_i
-
-        timestamp_column = q.sort_columns.split(' ').first
 
         q.reverse_sort = true
 
@@ -55,6 +55,27 @@ module TentD
         else
           q.query_conditions << "#{timestamp_column} > ?"
           q.query_bindings << since_timestamp
+        end
+      end
+
+      if params['until']
+        until_timestamp, until_version = params['until'].split(' ')
+        until_timestamp = until_timestamp.to_i
+
+        if until_version
+          q.query_conditions << ["OR",
+            ["AND", "#{timestamp_column} >= ?", "#{q.table_name}.version > ?"],
+            "#{timestamp_column} > ?"
+          ]
+          q.query_bindings << until_timestamp
+          q.query_bindings << until_version
+          q.query_bindings << until_timestamp
+
+          sort_columns << "#{q.table_name}.version DESC"
+          q.sort_columns = sort_columns
+        else
+          q.query_conditions << "#{timestamp_column} > ?"
+          q.query_bindings << until_timestamp
         end
       end
 
