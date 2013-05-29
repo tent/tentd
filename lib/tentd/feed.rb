@@ -79,6 +79,27 @@ module TentD
         end
       end
 
+      if params['before']
+        before_timestamp, before_version = params['before'].split(' ')
+        before_timestamp = before_timestamp.to_i
+
+        if before_version
+          q.query_conditions << ["OR",
+            ["AND", "#{timestamp_column} <= ?", "#{q.table_name}.version < ?"],
+            "#{timestamp_column} < ?"
+          ]
+          q.query_bindings << before_timestamp
+          q.query_bindings << before_version
+          q.query_bindings << before_timestamp
+
+          sort_columns << "#{q.table_name}.version DESC"
+          q.sort_columns = sort_columns
+        else
+          q.query_conditions << "#{timestamp_column} < ?"
+          q.query_bindings << before_timestamp
+        end
+      end
+
       if params['types']
         requested_types = params['types'].uniq.map { |uri| TentType.new(uri) }
 
