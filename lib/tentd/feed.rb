@@ -6,6 +6,7 @@ module TentD
     MAX_PAGE_LIMIT = 200.freeze
 
     require 'tentd/feed/query'
+    require 'tentd/feed/pagination'
 
     attr_reader :env
     def initialize(env)
@@ -182,13 +183,16 @@ module TentD
     end
 
     def fetch_query
-      query.all
+      @models = query.all
+    end
+
+    def models
+      @models || fetch_query
     end
 
     def as_json(options = {})
-      models = fetch_query
       {
-        :pages => {},
+        :pages => Pagination.new(self).as_json,
         :posts => models.map(&:as_json)
       }
     end
