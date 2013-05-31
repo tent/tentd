@@ -17,7 +17,7 @@ module TentD
       env['params']
     end
 
-    def query
+    def build_query(params = send(:params))
       q = Query.new(Model::Post)
 
       # TODO: handle sort columns/order better
@@ -183,7 +183,7 @@ module TentD
     end
 
     def fetch_query
-      @models = query.all
+      @models = build_query.all
     end
 
     def models

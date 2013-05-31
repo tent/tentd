@@ -15,8 +15,33 @@ module TentD
         end
       end
 
+      def prev_posts_exist?
+        return false unless feed.models.any?
+
+        params = base_params.dup
+
+        until_post = feed.models.first
+        params['until'] = [until_post.published_at, until_post.version].join(' ')
+
+        q = feed.build_query(params)
+        q.any?
+      end
+
+      def next_posts_exist?
+        return false unless feed.models.any?
+
+        params = base_params.dup
+
+        before_post = feed.models.last
+        params['before'] = [before_post.published_at, before_post.version].join(' ')
+        params['since'] = '0'
+
+        q = feed.build_query(params)
+        q.any?
+      end
+
       def first_params
-        return unless feed.models.any?
+        return unless prev_posts_exist?
 
         params = base_params.dup
 
@@ -27,7 +52,7 @@ module TentD
       end
 
       def last_params
-        return unless feed.models.any?
+        return unless next_posts_exist?
 
         params = base_params.dup
 
@@ -40,7 +65,7 @@ module TentD
       end
 
       def next_params
-        return unless feed.models.any?
+        return unless next_posts_exist?
 
         params = base_params.dup
 
@@ -51,7 +76,7 @@ module TentD
       end
 
       def prev_params
-        return unless feed.models.any?
+        return unless prev_posts_exist?
 
         params = base_params.dup
 
