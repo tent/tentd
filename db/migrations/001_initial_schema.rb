@@ -103,6 +103,7 @@ Sequel.migration do
       column :read_post_types    , "text[]" # members: uri
       column :read_post_type_ids , "text[]" # members: types.id
       column :write_post_types   , "text[]" # members: uri
+      column :scopes             , "text[]"
 
       index [:user_id, :auth_code], :name => :index_apps_user_auth_code
       index [:user_id, :post_id], :name => :unique_app, :unique => true

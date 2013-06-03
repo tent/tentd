@@ -66,10 +66,20 @@ module TentD
           end
         else
           post = Model::Post.create_from_env(env)
-          env['response'] = post
+          env['response'] = post.latest_version
 
           if %w( https://tent.io/types/app https://tent.io/types/app-auth ).include?(TentType.new(post.type).base) && !env['request.import']
-            credentials_post = Model::Credentials.generate(env['current_user'], env['response'])
+            if TentType.new(post.type).base == "https://tent.io/types/app"
+              # app
+              credentials_post = Model::Post.first(:id => Model::App.first(:user_id => env['current_user'].id, :post_id => post.id).credentials_post_id)
+            else
+              # app-auth
+              credentials_post = Post.qualify.join(:mentions, :posts__id => :mentions__post_id).where(
+                :mentions__post => post.public_id,
+                :posts__type_id => Type.first_or_create('https://tent.io/types/credentials/v0#').id
+              ).first
+            end
+
             current_user = env['current_user']
             (env['response.links'] ||= []) << {
               :url => TentD::Utils.sign_url(

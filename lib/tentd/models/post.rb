@@ -11,8 +11,51 @@ module TentD
       serialize_attributes :json, :mentions, :attachments, :version_parents, :licenses, :content
 
       def before_create
-        self.public_id = TentD::Utils.random_id
+        self.public_id ||= TentD::Utils.random_id
         self.version = TentD::Utils.hex_digest(canonical_json)
+      end
+
+      def save_version
+        data = as_json
+        data[:version] = {
+          :parents => [
+            { :version => data[:version][:id] }
+          ]
+        }
+
+        env = {
+          'data' => TentD::Utils::Hash.stringify_keys(data),
+          'current_user' => User.first(:id => user_id)
+        }
+
+        self.class.create_from_env(env)
+      end
+
+      def latest_version
+        self.class.where(:public_id => public_id).order(Sequel.desc(:version_published_at)).first
+      end
+
+      def after_create
+        return if version_parents && version_parents.any? # initial version only
+
+        case TentType.new(type).base
+        when 'https://tent.io/types/app'
+          app = App.update_or_create_from_post(self)
+        when 'https://tent.io/types/app-auth'
+          credentials_post = Model::Credentials.generate(User.first(:id => user_id), self, :bidirectional_mention => true)
+          # TODO: refactor into single query
+          app_post = nil
+          mentions.each do |m|
+            _post = Post.first(:user_id => user_id, :public_id => m['post'])
+            if _post.type == 'https://tent.io/types/app/v0#'
+              app_post = _post
+              break
+            end
+          end
+
+          app = App.first(:post_id => app_post.id)
+          app.update(:auth_code => credentials_post.content['hawk_key'])
+        end
       end
 
       def self.create_from_env(env)
@@ -39,6 +82,10 @@ module TentD
 
           :content => data['content'],
         }
+
+        if data['version'] && Array === data['version']['parents']
+          attrs[:version_parents] = data['version']['parents']
+        end
 
         if data['permissions'] && !data['permissions']['public'].nil?
           attrs[:public] = data['permissions']['public']

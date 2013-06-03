@@ -2,7 +2,7 @@ module TentD
   module Model
 
     class Credentials
-      def self.generate(current_user, target_post=nil)
+      def self.generate(current_user, target_post=nil, options = {})
         type = Type.first_or_create("https://tent.io/types/credentials/v0#")
         published_at_timestamp = (Time.now.to_f * 1000).to_i
 
@@ -40,6 +40,10 @@ module TentD
             :entity_id => current_user.entity_id,
             :post => target_post.public_id
           )
+
+          if options[:bidirectional_mention]
+            Mention.link_posts(target_post, post)
+          end
         end
 
         post

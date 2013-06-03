@@ -54,8 +54,8 @@ describe "POST /posts" do
   context "without authentication" do
     context "when app registration post" do
       let(:post_type) { 'https://tent.io/types/app/v0#' }
-      let(:expected_create_post_count) { 2 } # app post + credentials post
-      let(:expected_create_mention_count) { 1 } # credentials post mentions app post
+      let(:expected_create_post_count) { 3 } # app post + credentials post + app post version (bidirectional mentions)
+      let(:expected_create_mention_count) { 3 } # credentials post mentions app post and vice versa (app post has 2 versions)
 
       it_behaves_like "a valid create post request"
 
