@@ -18,7 +18,7 @@ describe TentD::API::Authentication do
 
   let(:credentials) { TentD::Model::Credentials.generate(current_user) }
 
-  context "with Authroize header" do
+  context "with Authorize header" do
     context "when valid" do
       let(:client_options) do
         {
