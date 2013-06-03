@@ -1,6 +1,6 @@
 # tentd [![Build Status](https://travis-ci.org/tent/tentd.png?branch=master)](https://travis-ci.org/tent/tentd)
 
-(**note:** 0.3 development is happening on a [different branch](https://github.com/tent/tentd/tree/0.3)
+(**note:** 0.3 development is happening on a [different branch](https://github.com/tent/tentd/tree/0.3))
 
 tentd is an **alpha** implementation of a [Tent Protocol](http://tent.io) server.
 It currently contains **broken code, ugly code, many bugs, and security flaws**.
