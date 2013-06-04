@@ -27,7 +27,7 @@ module TentD
 
         if target_post
           post_attrs[:mentions] = [
-            { "entity" => current_user.entity, "post" => target_post.public_id }
+            { "entity" => current_user.entity, "type" => target_post.type, "post" => target_post.public_id }
           ]
         end
 

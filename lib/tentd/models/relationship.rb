@@ -55,7 +55,7 @@ module TentD
           :received_at => published_at_timestamp,
 
           :mentions => [
-            { "entity" => initiating_post['entity'], "post" => initiating_post['id'] }
+            { "entity" => initiating_post['entity'], "type" => initiating_post['type'], "post" => initiating_post['id'] }
           ]
         )
 

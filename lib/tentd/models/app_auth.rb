@@ -26,7 +26,7 @@ module TentD
           },
 
           :mentions => [
-            { "entity" => current_user.entity, "post" => app_post.public_id }
+            { "entity" => current_user.entity, "type" => app_post.type, "post" => app_post.public_id }
           ]
         }
 
