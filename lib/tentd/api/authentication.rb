@@ -71,7 +71,7 @@ module TentD
           :id => credentials[:id],
           :key => credentials[:hawk_key],
           :algorithm => credentials[:hawk_algorithm],
-          :resource => resource
+          :credentials_resource => resource
         }
       end
 

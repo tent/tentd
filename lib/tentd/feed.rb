@@ -27,6 +27,45 @@ module TentD
     end
 
     def build_query(params = send(:params))
+      q = _build_query(params)
+
+      if env['current_auth.resource'] && TentType.new(env['current_auth.resource'].type).base == 'https://tent.io/types/app-auth'
+        read_types = env['current_auth.resource'].content['post_types']['read']
+
+        unless read_types == %w( all )
+          read_types.map! { |uri| TentType.new(uri) }
+          authorized_base_types = read_types.select { |t| !t.has_fragment? }
+          authorized_types_with_fragments = read_types.select { |t| t.has_fragment? }
+
+          _condition = ["OR", "#{q.table_name}.public = true"]
+
+          if authorized_base_types.any?
+            q.join("INNER JOIN types ON #{q.table_name}.type_id = types.id")
+            _condition << ["AND",
+              "#{q.table_name}.public = false",
+              "types.base IN ?"
+            ]
+            q.query_bindings << authorized_base_types.map(&:to_s)
+          end
+
+          if authorized_types_with_fragments.any?
+            _condition << ["AND",
+              "#{q.table_name}.public = false",
+              "#{q.table_name}.type IN ?"
+            ]
+            q.query_bindings << authorized_types_with_fragments.map(&:to_s)
+          end
+
+          q.query_conditions << _condition
+        end
+      else
+        q.query_conditions << "#{q.table_name}.public = true"
+      end
+
+      q
+    end
+
+    def _build_query(params)
       q = Query.new(Model::Post)
 
       # TODO: handle sort columns/order better
@@ -39,10 +78,6 @@ module TentD
         ["#{q.table_name}.received_at DESC"]
       end
       q.sort_columns = sort_columns
-
-      unless env['current_auth']
-        q.query_conditions << "#{q.table_name}.public = true"
-      end
 
       q.query_conditions << "#{q.table_name}.user_id = ?"
       q.query_bindings << env['current_user'].id

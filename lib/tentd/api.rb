@@ -15,6 +15,7 @@ module TentD
     require 'tentd/api/middleware'
     require 'tentd/api/user_lookup'
     require 'tentd/api/authentication'
+    require 'tentd/api/authorization'
     require 'tentd/api/parse_input_data'
     require 'tentd/api/parse_content_type'
     require 'tentd/api/parse_link_header'
@@ -29,6 +30,7 @@ module TentD
 
     middleware UserLookup
     middleware Authentication
+    middleware Authorization
     middleware ParseInputData
     middleware ParseContentType
     middleware ParseLinkHeader
