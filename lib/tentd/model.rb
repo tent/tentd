@@ -14,6 +14,7 @@ module TentD
     require 'tentd/models/user'
     require 'tentd/models/post'
     require 'tentd/models/app'
+    require 'tentd/models/app_auth'
     require 'tentd/models/attachment'
     require 'tentd/models/posts_attachment'
     require 'tentd/models/relationship'

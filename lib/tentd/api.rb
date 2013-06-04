@@ -21,6 +21,7 @@ module TentD
     require 'tentd/api/validate_input_data'
     require 'tentd/api/validate_post_content_type'
     require 'tentd/api/relationship_initialization'
+    require 'tentd/api/oauth'
 
     include Rack::Putty::Router
 
@@ -120,6 +121,14 @@ module TentD
 
     get '/posts' do |b|
       b.use PostsFeed
+    end
+
+    get '/oauth/authorize' do |b|
+      b.use OAuth::Authorize
+    end
+
+    post '/oauth/token' do |b|
+      b.use OAuth::Token
     end
 
   end

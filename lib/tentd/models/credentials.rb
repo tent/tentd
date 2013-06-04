@@ -49,6 +49,11 @@ module TentD
         post
       end
 
+      def self.refresh_key(credentials_post)
+        credentials_post.content["hawk_key"] = Utils.hawk_key
+        credentials_post.save_version # => new credentials_post
+      end
+
       def self.slice_credentials(credentials_post)
         TentD::Utils::Hash.symbolize_keys(credentials_post.as_json[:content]).merge(:id => credentials_post.public_id)
       end
