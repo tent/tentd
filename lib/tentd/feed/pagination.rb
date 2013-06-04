@@ -16,28 +16,24 @@ module TentD
       end
 
       def prev_posts_exist?
-        return false unless feed.models.any?
-
-        params = base_params.dup
-
-        until_post = feed.models.first
-        params['until'] = [until_post.published_at, until_post.version].join(' ')
-
-        q = feed.build_query(params)
-        q.any?
+        %w( before since ).any? { |k| feed.params.keys.include?(k) }
       end
 
       def next_posts_exist?
-        return false unless feed.models.any?
+        if feed.params['since']
+          return false unless feed.models.any?
 
-        params = base_params.dup
+          params = base_params.dup
 
-        before_post = feed.models.last
-        params['before'] = [before_post.published_at, before_post.version].join(' ')
-        params['since'] = '0'
+          before_post = feed.models.last
+          params['before'] = [before_post.published_at, before_post.version].join(' ')
+          params['since'] = '0'
 
-        q = feed.build_query(params)
-        q.any?
+          q = feed.build_query(params)
+          q.any?
+        else
+          feed.beyond_limit_exists == true
+        end
       end
 
       def first_params

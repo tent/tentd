@@ -9,12 +9,21 @@ module TentD
     require 'tentd/feed/pagination'
 
     attr_reader :env
+    attr_accessor :check_beyond_limit, :beyond_limit_exists
     def initialize(env)
       @env = env
     end
 
     def params
       env['params']
+    end
+
+    def limit
+      if params['limit']
+        [params['limit'].to_i, MAX_PAGE_LIMIT].min
+      else
+        DEFAULT_PAGE_LIMIT
+      end
     end
 
     def build_query(params = send(:params))
@@ -177,10 +186,11 @@ module TentD
         end
       end
 
-      if params['limit']
-        q.limit = [params['limit'].to_i, MAX_PAGE_LIMIT].min
-      else
-        q.limit = DEFAULT_PAGE_LIMIT
+      q.limit = limit
+
+      unless params['since']
+        q.limit += 1
+        self.check_beyond_limit = true
       end
 
       q
@@ -188,6 +198,17 @@ module TentD
 
     def fetch_query
       @models = build_query.all
+
+      if check_beyond_limit
+        if @models.size == limit + 1
+          @models.pop
+          self.beyond_limit_exists = true
+        else
+          self.beyond_limit_exists = false
+        end
+      end
+
+      @models
     end
 
     def models
@@ -195,9 +216,10 @@ module TentD
     end
 
     def as_json(options = {})
+      _models = models
       {
         :pages => Pagination.new(self).as_json,
-        :posts => models.map(&:as_json)
+        :posts => _models.map(&:as_json)
       }
     end
   end
