@@ -28,6 +28,8 @@ module TentD
 
         if Hawk::AuthenticationFailure === res
           halt!(403, "Authentication failure: #{res.message}")
+        else
+          env['current_auth'] = res
         end
       end
 
@@ -45,6 +47,8 @@ module TentD
 
         if Hawk::AuthenticationFailure === res
           halt!(403, "Authentication failure: #{res.message}")
+        else
+          env['current_auth'] = res
         end
       end
 
@@ -54,8 +58,10 @@ module TentD
         return unless id =~ TentD::REGEX::VALID_ID
 
         return unless credentials = if id == env['current_user'].server_credentials['id']
+          resource = env['current_user']
           TentD::Utils::Hash.symbolize_keys(env['current_user'].server_credentials)
         elsif credentials_post = Model::Credentials.lookup(env['current_user'], id)
+          resource = credentials_post
           Model::Credentials.slice_credentials(credentials_post)
         end
 
@@ -64,7 +70,8 @@ module TentD
         {
           :id => credentials[:id],
           :key => credentials[:hawk_key],
-          :algorithm => credentials[:hawk_algorithm]
+          :algorithm => credentials[:hawk_algorithm],
+          :resource => resource
         }
       end
 

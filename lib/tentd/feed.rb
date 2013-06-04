@@ -31,6 +31,10 @@ module TentD
       end
       q.sort_columns = sort_columns
 
+      unless env['current_auth']
+        q.query_conditions << "#{q.table_name}.public = true"
+      end
+
       q.query_conditions << "#{q.table_name}.user_id = ?"
       q.query_bindings << env['current_user'].id
 
