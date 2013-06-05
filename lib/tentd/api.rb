@@ -77,9 +77,9 @@ module TentD
               credentials_post = Model::Post.first(:id => Model::App.first(:user_id => env['current_user'].id, :post_id => post.id).credentials_post_id)
             else
               # app-auth
-              credentials_post = Post.qualify.join(:mentions, :posts__id => :mentions__post_id).where(
+              credentials_post = Model::Post.qualify.join(:mentions, :posts__id => :mentions__post_id).where(
                 :mentions__post => post.public_id,
-                :posts__type_id => Type.find_or_create_full('https://tent.io/types/credentials/v0#').id
+                :posts__type_id => Model::Type.find_or_create_full('https://tent.io/types/credentials/v0#').id
               ).first
             end
 
