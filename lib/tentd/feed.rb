@@ -35,25 +35,26 @@ module TentD
         unless read_types == %w( all )
           read_types.map! { |uri| TentType.new(uri) }
           authorized_base_types = read_types.select { |t| !t.has_fragment? }
+          authorized_base_type_ids = Model::Type.find_types(authorized_base_types).map(&:id)
           authorized_types_with_fragments = read_types.select { |t| t.has_fragment? }
+          authorized_type_ids_with_fragments = Model::Type.find_types(authorized_types_with_fragments).map(&:id)
 
           _condition = ["OR", "#{q.table_name}.public = true"]
 
-          if authorized_base_types.any?
-            q.join("INNER JOIN types ON #{q.table_name}.type_id = types.id")
+          if authorized_base_type_ids.any?
             _condition << ["AND",
               "#{q.table_name}.public = false",
-              "types.base IN ?"
+              "#{q.table_name}.type_base_id IN ?"
             ]
-            q.query_bindings << authorized_base_types.map(&:to_s)
+            q.query_bindings << authorized_base_type_ids
           end
 
-          if authorized_types_with_fragments.any?
+          if authorized_type_ids_with_fragments.any?
             _condition << ["AND",
               "#{q.table_name}.public = false",
-              "#{q.table_name}.type IN ?"
+              "#{q.table_name}.type_id IN ?"
             ]
-            q.query_bindings << authorized_types_with_fragments.map(&:to_s)
+            q.query_bindings << authorized_type_ids_with_fragments
           end
 
           q.query_conditions << _condition
@@ -150,29 +151,16 @@ module TentD
       end
 
       if params['types']
-        requested_types = params['types'].uniq.map { |uri| TentType.new(uri) }
+        tent_types = params['types'].uniq.map { |uri| TentType.new(uri) }
+        tent_types_without_fragment = tent_types.select { |t| !t.has_fragment? }
+        tent_types_with_fragment = tent_types.select { |t| t.has_fragment? }
 
-        type_ids_q = Query.new(Model::Type)
-        type_ids_q.select_columns = :id
+        base_type_ids = Model::Type.where(:base => tent_types_without_fragment.map(&:base), :fragment => nil).map(&:id)
+        full_type_ids = Model::Type.where(:base => tent_types_with_fragment.map(&:base), :fragment => tent_types_with_fragment.map { |t| t.fragment.to_s }).map(&:id)
 
-        requested_types.each do |type|
-          type_ids_q.query_conditions << ["AND", "base = ?"]
-          type_ids_q.query_bindings << type.base
-
-          if type.has_fragment?
-            if type.fragment.nil?
-              type_ids_q.query_conditions.last << "fragment IS NULL"
-            else
-              type_ids_q.query_conditions.last << "fragment = ?"
-              type_ids_q.query_bindings << type.fragment
-            end
-          end
-        end
-
-        type_ids = type_ids_q.all(:conditions_sep => 'OR').map(&:id)
-
-        q.query_conditions << "type_id IN ?"
-        q.query_bindings << type_ids
+        q.query_conditions << ["OR", "#{q.table_name}.type_base_id IN ?", "#{q.table_name}.type_id IN ?"]
+        q.query_bindings << base_type_ids
+        q.query_bindings << full_type_ids
       end
 
       if params['entities']

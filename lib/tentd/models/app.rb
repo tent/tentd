@@ -13,7 +13,7 @@ module TentD
         attrs = {
           :notification_url => post.content['notification_url'],
           :read_post_types => post.content['post_types']['read'],
-          :read_post_type_ids => Type.fetch_or_create(post.content['post_types']['read'], :select => :id).map(&:id),
+          :read_post_type_ids => Type.find_or_create_types(post.content['post_types']['read']).map(&:id),
           :write_post_types => post.content['post_types']['write'],
           :scopes => post.content['scopes']
         }

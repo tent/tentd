@@ -26,12 +26,11 @@ Sequel.migration do
     create_table(:types) do
       primary_key :id
 
-      column :type     , "text" , :null => false
       column :base     , "text" , :null => false
       column :version  , "text" , :null => false
       column :fragment , "text"
 
-      index [:type, :fragment], :name => :unique_types, :unique => true
+      index [:base, :version, :fragment], :name => :unique_types, :unique => true
     end
 
     create_table(:users) do
@@ -50,7 +49,7 @@ Sequel.migration do
       primary_key :id
       foreign_key :user_id          , :users
       foreign_key :type_id          , :types
-      foreign_key :type_fragment_id , :types
+      foreign_key :type_base_id     , :types
       foreign_key :entity_id        , :entities
 
       column :type                 , "text"                   , :null => false # types.type + '#' + types.fragment

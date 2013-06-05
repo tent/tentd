@@ -13,12 +13,12 @@ module TentD
 
           auth_post = Model::Post.qualify.join(:mentions, :posts__public_id => :mentions__post).where(
             :mentions__post_id => app.post_id,
-            :posts__type_id => Model::Type.first_or_create("https://tent.io/types/app-auth/v0#").id
+            :posts__type_id => Model::Type.find_or_create_full("https://tent.io/types/app-auth/v0#").id
           ).order(Sequel.desc(:posts__version_published_at)).first
 
           credentials_post = Model::Post.qualify.join(:mentions, :posts__public_id => :mentions__post).where(
             :mentions__post_id => auth_post.id,
-            :posts__type_id => Model::Type.first_or_create("https://tent.io/types/credentials/v0#").id
+            :posts__type_id => Model::Type.find_or_create_full("https://tent.io/types/credentials/v0#").id
           ).first
 
           unless credentials_post && credentials_post.content['hawk_key'] == token_code

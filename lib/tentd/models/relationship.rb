@@ -3,7 +3,7 @@ module TentD
 
     class Relationship < Sequel::Model(TentD.database[:relationships])
       def self.create_initial(current_user, target_entity)
-        type = Type.first_or_create("https://tent.io/types/relationship/v0#initial")
+        type, base_type = Type.find_or_create("https://tent.io/types/relationship/v0#initial")
         published_at_timestamp = TentD::Utils.timestamp
 
         post = Post.create(
@@ -13,7 +13,7 @@ module TentD
 
           :type => type.type,
           :type_id => type.id,
-          :type_fragment_id => type.fragment ? type.id : nil,
+          :type_base_id => base_type.id,
 
           :version_published_at => published_at_timestamp,
           :published_at => published_at_timestamp,
@@ -36,7 +36,7 @@ module TentD
       def self.create_from_env(env)
         initiating_post = env['data']
         current_user = env['current_user']
-        type = Type.first_or_create("https://tent.io/types/relationship/v0#")
+        type, base_type = Type.find_or_create("https://tent.io/types/relationship/v0#")
         published_at_timestamp = TentD::Utils.timestamp
 
         ##
@@ -48,7 +48,7 @@ module TentD
 
           :type => type.type,
           :type_id => type.id,
-          :type_fragment_id => type.fragment ? type.id : nil,
+          :type_base_id => base_type.id,
 
           :version_published_at => published_at_timestamp,
           :published_at => published_at_timestamp,

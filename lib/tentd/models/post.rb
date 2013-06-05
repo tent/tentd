@@ -61,7 +61,7 @@ module TentD
       def self.create_from_env(env)
         data = env['data']
         current_user = env['current_user']
-        type = Type.first_or_create(data['type'])
+        type, base_type = Type.find_or_create(data['type'])
 
         received_at_timestamp = TentD::Utils.timestamp
         published_at_timestamp = (data['published_at'] || received_at_timestamp).to_i
@@ -73,7 +73,7 @@ module TentD
 
           :type => type.type,
           :type_id => type.id,
-          :type_fragment_id => type.fragment ? type.id : nil,
+          :type_base_id => base_type.id,
 
           :version_published_at => published_at_timestamp,
           :version_received_at => received_at_timestamp,

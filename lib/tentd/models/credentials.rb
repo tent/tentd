@@ -3,7 +3,7 @@ module TentD
 
     class Credentials
       def self.generate(current_user, target_post=nil, options = {})
-        type = Type.first_or_create("https://tent.io/types/credentials/v0#")
+        type, base_type = Type.find_or_create("https://tent.io/types/credentials/v0#")
         published_at_timestamp = (Time.now.to_f * 1000).to_i
 
         post_attrs = {
@@ -13,7 +13,7 @@ module TentD
 
           :type => type.type,
           :type_id => type.id,
-          :type_fragment_id => type.fragment ? type.id : nil,
+          :type_base_id => base_type.id,
 
           :version_published_at => published_at_timestamp,
           :published_at => published_at_timestamp,
@@ -62,7 +62,7 @@ module TentD
         Post.first(
           :user_id => current_user.id,
           :public_id => public_id,
-          :type_id => Type.first_or_create("https://tent.io/types/credentials/v0#").id
+          :type_id => Type.find_or_create_full("https://tent.io/types/credentials/v0#").id
         )
       end
     end

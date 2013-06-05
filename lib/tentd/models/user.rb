@@ -24,7 +24,7 @@ module TentD
       end
 
       def create_meta_post
-        type = Type.first_or_create("https://tent.io/types/meta/v0#")
+        type, base_type = Type.find_or_create("https://tent.io/types/meta/v0#")
         published_at_timestamp = (Time.now.to_f * 1000).to_i
 
         meta_post = Post.create(
@@ -34,7 +34,7 @@ module TentD
 
           :type => type.type,
           :type_id => type.id,
-          :type_fragment_id => type.fragment ? type.id : nil,
+          :type_base_id => base_type.id,
 
           :version_published_at => published_at_timestamp,
           :published_at => published_at_timestamp,

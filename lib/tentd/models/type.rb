@@ -3,38 +3,94 @@ module TentD
 
     class Type < Sequel::Model(TentD.database[:types])
 
-      def self.first_or_create(type_uri, options = {})
-        tent_type = TentClient::TentType.new(type_uri)
-        q = options[:select] ? select(*Array(options[:select])) : where
+      def self.find_or_create(type_uri)
+        base_type = find_or_create_base(type_uri)
+        full_type = find_or_create_full(type_uri)
 
-        unless type = q.where(:type => tent_type.to_s).first
-          type = create(
-            :type => tent_type.to_s,
+        [full_type, base_type]
+      end
+
+      def self.find_types(type_uris)
+        return [] if type_uris.empty?
+
+        tent_types = type_uris.map { |uri| TentType.new(uri) }
+        tent_types_without_fragment = tent_types.select { |t| !t.has_fragment? }
+        tent_types_with_fragment = tent_types.select { |t| t.has_fragment? }
+
+        q = where
+
+        if tent_types_without_fragment.any?
+          q = q.where(:base => tent_types_without_fragment.map(&:base), :fragment => nil)
+        end
+
+        tent_types_with_fragment.each do |tent_type|
+          q = q.where(:base => tent_type.base, :fragment => tent_type.fragment.to_s)
+        end
+
+        types = q.all.to_a
+      end
+
+      def self.find_or_create_types(type_uris)
+        return [] if type_uris == %w( all )
+
+        tent_types = type_uris.map { |uri| TentType.new(uri) }
+
+        types = find_types(type_uris)
+
+        missing_tent_types = tent_types.reject do |tent_type|
+          types.any? { |t| tent_type == t.tent_type }
+        end
+
+        missing_tent_types.each do |tent_type|
+          types << find_or_create_full(tent_type.to_s)
+        end
+
+        types.compact
+      end
+
+      def self.find_or_create_base(type_uri)
+        tent_type = TentClient::TentType.new(type_uri)
+
+        return unless tent_type.base
+
+        unless base_type = where(:base => tent_type.base, :fragment => nil).first
+          base_type = create(
             :base => tent_type.base,
             :version => tent_type.version,
-            :fragment => tent_type.fragment
+            :fragment => nil
           )
         end
+
+        base_type
+      end
+
+      def self.find_or_create_full(type_uri)
+        tent_type = TentClient::TentType.new(type_uri)
+        fragment = tent_type.has_fragment? ? tent_type.fragment.to_s : nil
+
+        return unless tent_type.base
+
+        unless type = where(:base => tent_type.base, :fragment => fragment).first
+          type = create(
+            :base => tent_type.base,
+            :version => tent_type.version,
+            :fragment => fragment
+          )
+        end
+
         type
       end
 
-      def self.fetch_or_create(type_uris, options = {})
-        tent_types = type_uris.compact.map { |uri| TentType.new(uri) }
-        q = options[:select] ? select(*Array(options[:select])) : where
+      def tent_type
+        t = TentType.new
+        t.base = self.base
+        t.version = self.version
+        t.fragment = self.fragment.to_s unless self.fragment.nil?
+        t
+      end
 
-        types = q.where(:type => tent_types.map(&:to_s)).all
-
-        tent_types.select { |tent_type| !types.any? { |t| t.type == tent_type.to_s } }.each do |tent_type|
-          next unless tent_type.base # i.e. "all"
-          types << create(
-            :type => tent_type.to_s,
-            :base => tent_type.base,
-            :version => tent_type.version,
-            :fragment => tent_type.fragment
-          )
-        end
-
-        types
+      def type
+        tent_type.to_s
       end
 
     end

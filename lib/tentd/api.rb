@@ -79,7 +79,7 @@ module TentD
               # app-auth
               credentials_post = Post.qualify.join(:mentions, :posts__id => :mentions__post_id).where(
                 :mentions__post => post.public_id,
-                :posts__type_id => Type.first_or_create('https://tent.io/types/credentials/v0#').id
+                :posts__type_id => Type.find_or_create_full('https://tent.io/types/credentials/v0#').id
               ).first
             end
 
