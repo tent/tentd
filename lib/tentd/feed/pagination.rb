@@ -16,13 +16,15 @@ module TentD
       end
 
       def prev_posts_exist?
+        return false unless feed.models.any?
+
         %w( before since ).any? { |k| feed.params.keys.include?(k) }
       end
 
       def next_posts_exist?
-        if feed.params['since']
-          return false unless feed.models.any?
+        return false unless feed.models.any?
 
+        if feed.params['since']
           params = base_params.dup
 
           before_post = feed.models.last
