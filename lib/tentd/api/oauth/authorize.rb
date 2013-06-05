@@ -4,6 +4,13 @@ module TentD
 
       class Authorize < Middleware
         def action(env)
+          ##
+          # Only activate this endpoint when oauth_auth url points here (no app has taken responsibility)
+          oauth_auth_url = "#{env['current_user'].entity}/oauth/authorize"
+          halt!(404) unless env['current_user'].meta_post.content['servers'].any? do |server|
+            server['urls']['oauth_auth'] == oauth_auth_url
+          end
+
           app_post = Model::Post.first(:user_id => env['current_user'].id, :public_id => env['params']['client_id'])
           app_auth_post = Model::AppAuth.create(
             env['current_user'], app_post,
