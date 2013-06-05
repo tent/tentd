@@ -9,7 +9,7 @@ module TentD
       def call(env)
         response_headers = build_response_headers(env)
         if env.has_key?('response') && env['response']
-          response_body = Hash === env['response'] ? env['response'] : env['response'].as_json
+          response_body = env['response'].respond_to?(:as_json) ? env['response'].as_json : env['response']
           [env['response.status'] || 200, { 'Content-Type' => content_type(response_body) }.merge(response_headers), [serialize(response_body)]]
         else
           [env['response.status'] || 404, { 'Content-Type' => ERROR_CONTENT_TYPE }.merge(response_headers), [serialize(:error => 'Not Found')]]
@@ -38,6 +38,7 @@ module TentD
       end
 
       def content_type(response_body)
+        return "" unless Hash === response_body
         if type = response_body[:type]
           POST_CONTENT_TYPE % (Hash === response_body ? type : "")
         else
@@ -46,7 +47,11 @@ module TentD
       end
 
       def serialize(response_body)
-        Yajl::Encoder.encode(response_body)
+        if Hash === response_body
+          Yajl::Encoder.encode(response_body)
+        else
+          response_body
+        end
       end
     end
 

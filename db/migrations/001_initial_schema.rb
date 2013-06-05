@@ -171,7 +171,7 @@ Sequel.migration do
 
       column :content_type , "text" , :null => false
 
-      index [:post_id, :attachment_id], :name => :unique_posts_attachments, :unique => true
+      index [:post_id, :attachment_id, :content_type], :name => :unique_posts_attachments, :unique => true
     end
 
     create_table(:permissions) do

@@ -60,6 +60,87 @@ module TentD
       end
     end
 
+    class AttachmentRedirect < Middleware
+      def action(env)
+        unless Model::Post === env['response']
+          env.delete('response')
+          return env
+        end
+
+        post = env.delete('response')
+        params = env['params']
+
+        if env['current_auth'] && (app_auth = env['current_auth.resource']) && TentType.new(app_auth.type).base == %(https://tent.io/types/app-auth)
+          post_type = TentType.new(post.type)
+          unless app_auth.content['post_types']['read'].any? { |uri|
+            type = TentType.new(uri)
+            uri == 'all' || (type.base == post_type.base && (type.has_fragment? ? type.fragment == post_type.fragment : true))
+          }
+            halt!(403, "Unauthorized")
+          end
+        else
+          unless post.public
+            halt!(404, "Not Found")
+          end
+        end
+
+        accept = env['HTTP_ACCEPT'].to_s.split(';').first
+
+        attachments = post.attachments.select { |a| a['name'] == params[:name] }
+
+        unless accept == '*/*'
+          attachments = attachments.select { |a| a['content_type'] == accept }
+        end
+        return env if attachments.empty?
+
+        attachment = attachments.first
+
+        attachment_url = Utils.expand_uri_template(env['current_user'].preferred_server['urls']['attachment'],
+          :entity => post.entity,
+          :digest => attachment['digest']
+        )
+
+        (env['response.headers'] ||= {})['Location'] = attachment_url
+        env['response.status'] = 302
+
+        env
+      end
+    end
+
+    class GetAttachment < Middleware
+      def action(env)
+        params = env['params']
+
+        attachment = Model::Attachment.where(:digest => params[:digest]).first
+        halt!(404, "Not Found") unless attachment
+
+        post_attachment = Model::PostsAttachment.where(:attachment_id => attachment.id).first
+        halt!(404, "Not Found") unless post_attachment
+
+        post = Model::Post.where(:id => post_attachment.post_id, :user_id => env['current_user'].id).first
+        halt!(404, "Not Found") unless post
+
+        if env['current_auth'] && (app_auth = env['current_auth.resource']) && TentType.new(app_auth.type).base == %(https://tent.io/types/app-auth)
+          post_type = TentType.new(post.type)
+          unless app_auth.content['post_types']['read'].any? { |uri|
+            type = TentType.new(uri)
+            uri == 'all' || (type.base == post_type.base && (type.has_fragment? ? type.fragment == post_type.fragment : true))
+          }
+            halt!(403, "Unauthorized")
+          end
+        else
+          unless post.public
+            halt!(404, "Not Found")
+          end
+        end
+
+        env['response'] = attachment.data.lit
+        (env['response.headers'] ||= {})['Content-Length'] = attachment.data.bytesize
+        env['response.headers']['Content-Type'] = post_attachment.content_type
+        env
+      end
+    end
+
     class CreatePost < Middleware
       def action(env)
         if env['request.notification']
@@ -119,6 +200,15 @@ module TentD
 
     get '/posts/:entity/:post' do |b|
       b.use GetPost
+    end
+
+    get '/posts/:entity/:post/attachments/:name' do |b|
+      b.use GetPost
+      b.use AttachmentRedirect
+    end
+
+    get '/attachments/:entity/:digest' do |b|
+      b.use GetAttachment
     end
 
     get '/posts' do |b|
