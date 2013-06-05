@@ -13,7 +13,7 @@ module TentD
           )
 
           credentials_post = env['current_auth'][:credentials_resource]
-          mention = credentials_post.mentions.find do |mention|
+          mention = credentials_post.mentions.to_a.find do |mention|
             type_bases.include?(TentType.new(mention['type']).base)
           end
           return env unless mention
