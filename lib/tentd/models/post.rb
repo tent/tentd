@@ -121,6 +121,101 @@ module TentD
         post
       end
 
+      def self.create_version_from_env(env)
+        data = env['data']
+        current_user = env['current_user']
+        type, base_type = Type.find_or_create(data['type'])
+
+        received_at_timestamp = TentD::Utils.timestamp
+        published_at_timestamp = (data['published_at'] || received_at_timestamp).to_i
+
+        attrs = {
+          :public_id => env['params']['post'],
+
+          :user_id => current_user.id,
+          :entity_id => current_user.entity_id,
+          :entity => current_user.entity,
+
+          :type => type.type,
+          :type_id => type.id,
+          :type_base_id => base_type.id,
+
+          :version_published_at => published_at_timestamp,
+          :version_received_at => received_at_timestamp,
+          :published_at => published_at_timestamp,
+          :received_at => received_at_timestamp,
+
+          :content => data['content'],
+        }
+
+        if data['version'] && Array === data['version']['parents']
+          attrs[:version_parents] = data['version']['parents']
+        end
+
+        if data['permissions'] && !data['permissions']['public'].nil?
+          attrs[:public] = data['permissions']['public']
+        end
+
+        if Array === data['mentions'] && data['mentions'].any?
+          attrs[:mentions] = data['mentions']
+        end
+
+        if Array === data['attachments']
+          data['attachments'] = data['attachments'].inject([]) do |memo, attachment|
+            next memo unless attachment.has_key?('digest')
+            if attachment['model'] = Attachment.where(:digest => attachment['digest']).first
+              memo << attachment
+            end
+            memo
+          end
+
+          attrs[:attachments] = data['attachments'].map do |attachment|
+            {
+              :digest => attachment['digest'],
+              :size => attachment['model'].size,
+              :name => attachment['name'],
+              :category => attachment['category'],
+              :content_type => attachment['content_type']
+            }
+          end
+        end
+
+        if Array === env['attachments']
+          attrs[:attachments] = env['attachments'].inject(attrs[:attachments] || Array.new) do |memo, attachment|
+            memo << {
+              :digest => TentD::Utils.hex_digest(attachment[:tempfile]),
+              :size => attachment[:tempfile].size,
+              :name => attachment[:name],
+              :category => attachment[:category],
+              :content_type => attachment[:content_type]
+            }
+            memo
+          end
+        end
+
+        post = create(attrs)
+
+        if Array === data['mentions']
+          post.create_mentions(data['mentions'])
+        end
+
+        if Array === data['attachments']
+          data['attachments'].each do |attachment|
+            PostsAttachment.create(
+              :attachment_id => attachment['model'].id,
+              :content_type => attachment['content_type'],
+              :post_id => post.id
+            )
+          end
+        end
+
+        if Array === env['attachments']
+          post.create_attachments(env['attachments'])
+        end
+
+        post
+      end
+
       def create_attachments(attachments)
         attachments.each_with_index do |attachment, index|
           data = attachment[:tempfile].read

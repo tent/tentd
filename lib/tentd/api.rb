@@ -182,6 +182,20 @@ module TentD
       end
     end
 
+    class CreatePostVersion < Middleware
+      def action(env)
+        unless env['current_auth'] && (app_auth = env['current_auth.resource']) && TentType.new(app_auth.type).base == %(https://tent.io/types/app-auth) && (post_type = TentType.new(env['data']['type'])) && app_auth.content['post_types']['write'].any? { |uri|
+          type = TentType.new(uri)
+          uri == 'all' || (type.has_fragment? ? type == post_type : type.base == post_type.base)
+        }
+          halt!(403, "Unauthorized")
+        end
+
+        env['response'] = Model::Post.create_version_from_env(env)
+        env
+      end
+    end
+
     class PostsFeed < Middleware
       def action(env)
         env['response'] = Feed.new(env)
@@ -200,6 +214,10 @@ module TentD
 
     get '/posts/:entity/:post' do |b|
       b.use GetPost
+    end
+
+    put '/posts/:entity/:post' do |b|
+      b.use CreatePostVersion
     end
 
     get '/posts/:entity/:post/attachments/:name' do |b|

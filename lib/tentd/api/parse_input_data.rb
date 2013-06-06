@@ -6,7 +6,7 @@ module TentD
     class ParseInputData < Middleware
 
       def action(env)
-        return env unless env['REQUEST_METHOD'] == 'POST'
+        return env unless %w( POST PUT ).include?(env['REQUEST_METHOD'])
 
         if data = rack_input(env)
           env['data'] = case env['CONTENT_TYPE'].split(';').first
