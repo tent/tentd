@@ -11,6 +11,10 @@ module TentD
             halt!(403, "Invalid token code")
           end
 
+          unless env['current_auth.resource'] && env['current_auth.resource'] == (app_post = Model::Post.where(:id => app.post_id).first.latest_version)
+            halt!(401, "Request must be signed using app credentials")
+          end
+
           auth_post = Model::Post.qualify.join(:mentions, :posts__public_id => :mentions__post).where(
             :mentions__post_id => app.post_id,
             :posts__type_id => Model::Type.find_or_create_full("https://tent.io/types/app-auth/v0#").id
