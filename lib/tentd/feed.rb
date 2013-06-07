@@ -151,7 +151,7 @@ module TentD
       end
 
       if params['types']
-        tent_types = params['types'].uniq.map { |uri| TentType.new(uri) }
+        tent_types = params['types'].to_s.split(",").uniq.map { |uri| TentType.new(uri) }
         tent_types_without_fragment = tent_types.select { |t| !t.has_fragment? }
         tent_types_with_fragment = tent_types.select { |t| t.has_fragment? }
 
