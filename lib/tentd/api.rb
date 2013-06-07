@@ -76,7 +76,7 @@ module TentD
             type = TentType.new(uri)
             uri == 'all' || (type.base == post_type.base && (type.has_fragment? ? type.fragment == post_type.fragment : true))
           }
-            halt!(403, "Unauthorized")
+            halt!(404, "Not Found")
           end
         else
           unless post.public
@@ -126,7 +126,7 @@ module TentD
             type = TentType.new(uri)
             uri == 'all' || (type.base == post_type.base && (type.has_fragment? ? type.fragment == post_type.fragment : true))
           }
-            halt!(403, "Unauthorized")
+            halt!(404, "Not Found")
           end
         else
           unless post.public
