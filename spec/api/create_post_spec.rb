@@ -147,7 +147,7 @@ describe "POST /posts" do
               }
             },
             :mentions => [
-              { :entity => app_post.entity, :post => app_post.public_id }
+              { :entity => app_post.entity, :type => app_post.type, :post => app_post.public_id }
             ]
           }
         )
