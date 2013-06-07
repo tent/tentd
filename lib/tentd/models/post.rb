@@ -177,9 +177,10 @@ module TentD
           attrs[:attachments] = self.attachments
         end
 
-        attrs[:permissions] = {
-          :public => self[:public]
-        }
+        if self[:public] == false
+          attrs[:permissions] = { :public => false }
+        end
+
         attrs
       end
 
