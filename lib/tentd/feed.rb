@@ -187,9 +187,12 @@ module TentD
         entities_q = Query.new(Model::Entity)
         entities_q.query_conditions << "entity IN ?"
         entities_q.query_bindings << entities
+        _entity_mapping = {}
         entities_q.all.each do |entity|
-          index = entities.index(entity.entity)
-          flat_mentions[index][:entity_id] = entity.id
+          _entity_mapping[entity.entity] = entity.id
+        end
+        flat_mentions.each do |m|
+          m[:entity_id] = _entity_mapping[m[:entity]]
         end
 
         mentions.each do |_mentions|
