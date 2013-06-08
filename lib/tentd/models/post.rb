@@ -92,7 +92,10 @@ module TentD
         end
 
         if Array === data['mentions'] && data['mentions'].any?
-          attrs[:mentions] = data['mentions']
+          attrs[:mentions] = data['mentions'].map do |m|
+            m['entity'] = attrs[:entity] unless m.has_key?('entity')
+            m
+          end
         end
 
         if Array === env['attachments']
@@ -157,7 +160,10 @@ module TentD
         end
 
         if Array === data['mentions'] && data['mentions'].any?
-          attrs[:mentions] = data['mentions']
+          attrs[:mentions] = data['mentions'].map do |m|
+            m['entity'] = attrs[:entity] unless m.has_key?('entity')
+            m
+          end
         end
 
         if Array === data['attachments']
@@ -236,7 +242,7 @@ module TentD
           mention_attrs = {
             :user_id => self.user_id,
             :post_id => self.id,
-            :entity_id => Entity.first_or_create(mention['entity']).id
+            :entity_id => mention.has_key?('entity') ? Entity.first_or_create(mention['entity']).id : self.entity_id
           }
           mention_attrs[:post] = mention['post'] if mention.has_key?('post')
           mention_attrs[:public] = mention['public'] if mention.has_key?('public')
@@ -270,6 +276,12 @@ module TentD
 
         if Array(self.attachments).any?
           attrs[:attachments] = self.attachments
+        end
+
+        if attrs[:mentions]
+          attrs[:mentions].each do |m|
+            m.delete('entity') if m['entity'] == self.entity
+          end
         end
 
         if self[:public] == false
