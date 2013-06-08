@@ -18,11 +18,17 @@ module TentD
     end
 
     def limit
-      if params['limit']
+      _limit = if params['limit']
         [params['limit'].to_i, MAX_PAGE_LIMIT].min
       else
         DEFAULT_PAGE_LIMIT
       end
+
+      if params['max-refs']
+        _limit = [MAX_PAGE_LIMIT / [Refs::MAX_REFS_PER_POST, params['max-refs'].to_i].min, _limit].min
+      end
+
+      _limit
     end
 
     def build_query(params = send(:params))
@@ -242,10 +248,16 @@ module TentD
 
     def as_json(options = {})
       _models = models
-      {
+      res = {
         :pages => Pagination.new(self).as_json,
         :posts => _models.map(&:as_json)
       }
+
+      if params['max-refs']
+        res[:refs] = Refs.fetch(env['current_user'], *_models, params['max-refs'].to_i).map(&:as_json)
+      end
+
+      res
     end
   end
 

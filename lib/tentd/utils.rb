@@ -62,6 +62,23 @@ module TentD
     module Hash
       extend self
 
+      def deep_dup(hash)
+        hash.inject({}) do |memo, (k,v)|
+          memo[k] = case v
+          when ::Hash
+            deep_dup(v)
+          when Array
+            v.map { |i| deep_dup(i) }
+          when Symbol, TrueClass, FalseClass, NilClass
+            v
+          else
+            v.respond_to?(:dup) ? v.dup : v
+          end
+
+          memo
+        end
+      end
+
       def slice(hash, *keys)
         keys.each_with_object(hash.class.new) { |k, new_hash|
           new_hash[k] = hash[k] if hash.has_key?(k)

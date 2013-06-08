@@ -47,8 +47,8 @@ module TentD
           conditions.map! {|c| c.kind_of?(Array) ? _build_conditions(c) : c }
           "(#{conditions.join(" #{sep} ")})"
         else
-          if conditions.kind_of?(Array)
-            _build_conditions(conditions)
+          if conditions.first.kind_of?(Array)
+            _build_conditions(conditions.first)
           else
             conditions.first
           end

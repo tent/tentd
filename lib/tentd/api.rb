@@ -64,9 +64,15 @@ module TentD
       def action(env)
         return env unless Model::Post === (post = env.delete('response.post'))
 
+        params = env['params']
+
         env['response'] = {
           :post => post.as_json
         }
+
+        if params['max-refs']
+          env['response'][:refs] = Refs.fetch(env['current_user'], post, params['max-refs'].to_i).map(&:as_json)
+        end
 
         env['response.headers'] ||= {}
         env['response.headers']['Content-Type'] = POST_CONTENT_TYPE % post.type

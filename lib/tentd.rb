@@ -23,6 +23,7 @@ module TentD
     require 'tentd/model'
     require 'tentd/query'
     require 'tentd/feed'
+    require 'tentd/refs'
     require 'tentd/api'
   end
 

@@ -8,7 +8,7 @@ module TentD
     class Post < Sequel::Model(TentD.database[:posts])
       plugin :serialization
       serialize_attributes :pg_array, :permissions_entities, :permissions_groups
-      serialize_attributes :json, :mentions, :attachments, :version_parents, :licenses, :content
+      serialize_attributes :json, :mentions, :refs, :attachments, :version_parents, :licenses, :content
 
       def before_create
         self.public_id ||= TentD::Utils.random_id
@@ -84,6 +84,13 @@ module TentD
           end
         end
 
+        if Array === data['refs'] && data['refs'].any?
+          attrs[:refs] = data['refs'].map do |ref|
+            ref['entity'] = attrs[:entity] unless ref.has_key?('entity')
+            ref
+          end
+        end
+
         if Array === env['attachments']
           attrs['attachments'] = env['attachments'].inject(Array.new) do |memo, attachment|
             memo << {
@@ -149,6 +156,13 @@ module TentD
           attrs[:mentions] = data['mentions'].map do |m|
             m['entity'] = attrs[:entity] unless m.has_key?('entity')
             m
+          end
+        end
+
+        if Array === data['refs'] && data['refs'].any?
+          attrs[:refs] = data['refs'].map do |ref|
+            ref['entity'] = attrs[:entity] unless ref.has_key?('entity')
+            ref
           end
         end
 
@@ -245,6 +259,7 @@ module TentD
           :received_at => self.received_at,
           :content => self.content,
           :mentions => self.mentions,
+          :refs => self.refs,
           :version => {
             :id => self.version,
             :parents => self.version_parents,
@@ -259,6 +274,7 @@ module TentD
         attrs.delete(:received_at) if attrs[:received_at].nil?
         attrs.delete(:content) if attrs[:content].nil?
         attrs.delete(:mentions) if attrs[:mentions].nil?
+        attrs.delete(:refs) if attrs[:refs].nil?
 
         if Array(self.attachments).any?
           attrs[:attachments] = self.attachments
@@ -266,6 +282,12 @@ module TentD
 
         if attrs[:mentions]
           attrs[:mentions].each do |m|
+            m.delete('entity') if m['entity'] == self.entity
+          end
+        end
+
+        if attrs[:refs]
+          attrs[:refs].each do |m|
             m.delete('entity') if m['entity'] == self.entity
           end
         end

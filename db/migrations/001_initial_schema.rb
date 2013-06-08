@@ -11,6 +11,7 @@ Sequel.migration do
     #   - subscriptions
     #   - groups
     #   - mentions
+    #   - refs
     #   - attachments
     #   - posts_attachments
     #   - permissions
@@ -75,6 +76,7 @@ Sequel.migration do
       column :permissions_groups   , "text[]"                 , :default => "{}"
 
       column :mentions             , "text" # serialized json
+      column :refs                 , "text" # serialized json
       column :attachments          , "text" # serialized json
 
       column :version_parents      , "text" # serialized json
@@ -151,6 +153,16 @@ Sequel.migration do
       column :public , "boolean" , :default => true
 
       index [:user_id, :post_id, :entity_id, :post], :name => :unique_mentions, :unique => true
+    end
+
+    create_table(:refs) do
+      foreign_key :user_id   , :users
+      foreign_key :post_id   , :posts
+      foreign_key :entity_id , :entities
+
+      column :post, "text"
+
+      index [:user_id, :post_id, :entity_id, :post], :name => :unique_refs, :unique => true
     end
 
     # Fallback data store for attachments
