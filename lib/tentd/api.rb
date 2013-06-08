@@ -188,7 +188,11 @@ module TentD
           type = TentType.new(uri)
           uri == 'all' || (type.has_fragment? ? type == post_type : type.base == post_type.base)
         }
-          halt!(403, "Unauthorized")
+          if env['current_auth']
+            halt!(403, "Unauthorized")
+          else
+            halt!(401, "Unauthorized")
+          end
         end
 
         env['response'] = Model::Post.create_version_from_env(env)
