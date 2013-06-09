@@ -5,7 +5,6 @@ module TentD
     DEFAULT_PAGE_LIMIT = 25.freeze
     MAX_PAGE_LIMIT = 200.freeze
 
-    require 'tentd/feed/query'
     require 'tentd/feed/pagination'
 
     attr_reader :env
