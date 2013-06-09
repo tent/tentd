@@ -41,20 +41,6 @@ module TentD
         case TentType.new(type).base
         when 'https://tent.io/types/app'
           app = App.update_or_create_from_post(self)
-        when 'https://tent.io/types/app-auth'
-          credentials_post = Model::Credentials.generate(User.first(:id => user_id), self, :bidirectional_mention => true)
-          # TODO: refactor into single query
-          app_post = nil
-          mentions.each do |m|
-            _post = Post.first(:user_id => user_id, :public_id => m['post'])
-            if _post.type == 'https://tent.io/types/app/v0#'
-              app_post = _post
-              break
-            end
-          end
-
-          app = App.first(:post_id => app_post.id)
-          app.update(:auth_code => credentials_post.content['hawk_key'])
         end
       end
 
@@ -290,8 +276,6 @@ module TentD
 
         attrs
       end
-
-      private
 
       def canonical_json
         TentCanonicalJson.encode(as_json)

@@ -12,14 +12,13 @@ module TentD
       def self.update_or_create_from_post(post)
         attrs = {
           :notification_url => post.content['notification_url'],
-          :read_post_types => post.content['post_types']['read'],
-          :read_post_type_ids => Type.find_or_create_types(post.content['post_types']['read']).map(&:id),
-          :write_post_types => post.content['post_types']['write'],
-          :scopes => post.content['scopes']
         }
 
         if app = first(:post_id => post.id)
-          update(attrs)
+          update(attrs) if attrs.any? do |k,v|
+            app.send(k) != v
+          end
+
           app
         else
           credentials_post = Model::Credentials.generate(User.first(:id => post.user_id), post, :bidirectional_mention => true)
@@ -28,6 +27,7 @@ module TentD
             :user_id => post.user_id,
             :post_id => post.id,
             :credentials_post_id => credentials_post.id,
+            :hawk_key => credentials_post.content['hawk_key']
           ))
         end
       end

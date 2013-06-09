@@ -2,10 +2,15 @@ module TentD
   module Model
 
     class Mention < Sequel::Model(TentD.database[:mentions])
-      def self.link_posts(source_post, target_post)
+      def self.link_posts(source_post, target_post, options = {})
         source_post.mentions ||= []
-        source_post.mentions << { "entity" => target_post.entity, "post" => target_post.public_id }
-        source_post.save_version
+        source_post.mentions << { "entity" => target_post.entity, "type" => target_post.type, "post" => target_post.public_id }
+        if options[:save_version]
+          source_post.save_version
+        else
+          source_post.version = TentD::Utils.hex_digest(source_post.canonical_json)
+          source_post.save
+        end
 
         create(
           :user_id => source_post.user_id,

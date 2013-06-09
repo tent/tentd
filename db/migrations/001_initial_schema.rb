@@ -57,7 +57,7 @@ Sequel.migration do
       column :original_entity      , "text"
 
       # Timestamps
-      # nanoseconds since unix epoch
+      # milliseconds since unix epoch
       # bigint max value: 9,223,372,036,854,775,807
 
       column :published_at         , "bigint"                 , :null => false
@@ -92,19 +92,22 @@ Sequel.migration do
 
     create_table(:apps) do
       primary_key :id
-      foreign_key :user_id             , :users
-      foreign_key :post_id             , :posts
-      foreign_key :credentials_post_id , :posts
+      foreign_key :user_id                  , :users
+      foreign_key :post_id                  , :posts
+      foreign_key :credentials_post_id      , :posts
+      foreign_key :auth_credentials_post_id , :posts
 
-      column :auth_code          , "text"
-      column :notification_url   , "text"
+      column :hawk_key           , "text" # credentials_post.content.hawk_key
+      column :auth_hawk_key      , "text" # auth_credentials_post.content.hawk_key
 
-      column :read_post_types    , "text[]" # members: uri
-      column :read_post_type_ids , "text[]" # members: types.id
-      column :write_post_types   , "text[]" # members: uri
-      column :scopes             , "text[]"
+      column :notification_url   , "text" # post.content.notification_url
 
-      index [:user_id, :auth_code], :name => :index_apps_user_auth_code
+      column :read_post_types    , "text[]" # auth_post.content.post_types.read
+      column :read_post_type_ids , "text[]" # auth_post.content.post_types.read ids
+      column :write_post_types   , "text[]" # auth_post.content.post_types.write
+      column :scopes             , "text[]" # auth_post.content.scopes
+
+      index [:user_id, :auth_hawk_key], :name => :index_apps_user_auth_hawk_key
       index [:user_id, :post_id], :name => :unique_app, :unique => true
     end
 
