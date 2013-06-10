@@ -216,7 +216,12 @@ module TentD
           end
         end
 
-        env['response.post'] = Model::Post.create_version_from_env(env)
+        begin
+          env['response.post'] = Model::Post.create_version_from_env(env)
+        rescue Model::Post::CreateFailure => e
+          halt!(400, e.message)
+        end
+
         env
       end
     end

@@ -6,6 +6,8 @@ module TentD
   module Model
 
     class Post < Sequel::Model(TentD.database[:posts])
+      CreateFailure = Class.new(StandardError)
+
       plugin :serialization
       serialize_attributes :pg_array, :permissions_entities, :permissions_groups
       serialize_attributes :json, :mentions, :refs, :attachments, :version_parents, :licenses, :content
@@ -146,6 +148,8 @@ module TentD
 
         if data['version'] && Array === data['version']['parents']
           attrs[:version_parents] = data['version']['parents']
+        else
+          raise CreateFailure.new("Parent version not specified")
         end
 
         if data['permissions'] && !data['permissions']['public'].nil?
