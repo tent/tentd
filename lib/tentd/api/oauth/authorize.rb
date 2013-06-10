@@ -11,6 +11,8 @@ module TentD
             server['urls']['oauth_auth'] == oauth_auth_url
           end
 
+          halt!(400, "client_id missing") if env['params']['client_id'].to_s == ""
+
           app_post = Model::Post.first(:user_id => env['current_user'].id, :public_id => env['params']['client_id'])
           app_auth_post = Model::AppAuth.create(
             env['current_user'], app_post,
