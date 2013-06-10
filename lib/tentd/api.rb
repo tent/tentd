@@ -55,19 +55,34 @@ module TentD
     class GetPost < Middleware
       def action(env)
         params = env['params']
-        env['response'] = Model::Post.first(:public_id => params[:post], :entity => params[:entity])
+        env['response.post'] = Model::Post.first(:public_id => params[:post], :entity => params[:entity])
+        env
+      end
+    end
+
+    class ServePost < Middleware
+      def action(env)
+        return env unless Model::Post === (post = env.delete('response.post'))
+
+        env['response'] = {
+          :post => post.as_json
+        }
+
+        env['response.headers'] ||= {}
+        env['response.headers']['Content-Type'] = POST_CONTENT_TYPE % post.type
+
         env
       end
     end
 
     class AttachmentRedirect < Middleware
       def action(env)
-        unless Model::Post === env['response']
-          env.delete('response')
+        unless Model::Post === env['response.post']
+          env.delete('response.post')
           return env
         end
 
-        post = env.delete('response')
+        post = env.delete('response.post')
         params = env['params']
 
         if env['current_auth'] && (app_auth = env['current_auth.resource']) && TentType.new(app_auth.type).base == %(https://tent.io/types/app-auth)
@@ -218,6 +233,7 @@ module TentD
 
     get '/posts/:entity/:post' do |b|
       b.use GetPost
+      b.use ServePost
     end
 
     put '/posts/:entity/:post' do |b|
