@@ -171,7 +171,7 @@ module TentD
           end
         else
           post = Model::Post.create_from_env(env)
-          env['response'] = post.latest_version
+          env['response.post'] = post.latest_version
 
           if %w( https://tent.io/types/app https://tent.io/types/app-auth ).include?(TentType.new(post.type).base) && !env['request.import']
             if TentType.new(post.type).base == "https://tent.io/types/app"
@@ -216,7 +216,7 @@ module TentD
           end
         end
 
-        env['response'] = Model::Post.create_version_from_env(env)
+        env['response.post'] = Model::Post.create_version_from_env(env)
         env
       end
     end
@@ -235,6 +235,7 @@ module TentD
     post '/posts' do |b|
       b.use ValidatePostContentType
       b.use CreatePost
+      b.use ServePost
     end
 
     get '/posts/:entity/:post' do |b|
@@ -244,6 +245,7 @@ module TentD
 
     put '/posts/:entity/:post' do |b|
       b.use CreatePostVersion
+      b.use ServePost
     end
 
     get '/posts/:entity/:post/attachments/:name' do |b|
