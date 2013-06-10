@@ -24,6 +24,7 @@ module TentD
     require 'tentd/query'
     require 'tentd/feed'
     require 'tentd/refs'
+    require 'tentd/authorizer'
     require 'tentd/api'
   end
 

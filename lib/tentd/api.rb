@@ -55,7 +55,10 @@ module TentD
     class GetPost < Middleware
       def action(env)
         params = env['params']
-        env['response.post'] = Model::Post.first(:public_id => params[:post], :entity => params[:entity])
+        env['response.post'] = post = Model::Post.first(:public_id => params[:post], :entity => params[:entity])
+
+        halt!(404, "Not Found") unless Authorizer.new(env).read_authorized?(post)
+
         env
       end
     end
@@ -90,20 +93,6 @@ module TentD
 
         post = env.delete('response.post')
         params = env['params']
-
-        if env['current_auth'] && (app_auth = env['current_auth.resource']) && TentType.new(app_auth.type).base == %(https://tent.io/types/app-auth)
-          post_type = TentType.new(post.type)
-          unless app_auth.content['post_types']['read'].any? { |uri|
-            type = TentType.new(uri)
-            uri == 'all' || (type.base == post_type.base && (type.has_fragment? ? type.fragment == post_type.fragment : true))
-          }
-            halt!(404, "Not Found")
-          end
-        else
-          unless post.public
-            halt!(404, "Not Found")
-          end
-        end
 
         accept = env['HTTP_ACCEPT'].to_s.split(';').first
 
