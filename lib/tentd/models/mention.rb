@@ -16,6 +16,9 @@ module TentD
           :user_id => source_post.user_id,
           :post_id => source_post.id,
           :entity_id => target_post.entity_id,
+          :entity => target_post.entity,
+          :type_id => target_post.type_id,
+          :type => target_post.type,
           :post => target_post.public_id
         )
 

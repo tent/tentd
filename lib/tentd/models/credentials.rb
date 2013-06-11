@@ -37,7 +37,10 @@ module TentD
           Mention.create(
             :user_id => current_user.id,
             :post_id => post.id,
-            :entity_id => current_user.entity_id,
+            :entity_id => post.entity_id,
+            :entity => post.entity,
+            :type_id => target_post.type_id,
+            :type => target_post.type,
             :post => target_post.public_id
           )
 

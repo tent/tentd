@@ -148,7 +148,10 @@ Sequel.migration do
       foreign_key :user_id   , :users
       foreign_key :post_id   , :posts
       foreign_key :entity_id , :entities
+      foreign_key :type_id   , :types
 
+      column :type   , "text"
+      column :entity , "text"
       column :post   , "text"
       column :public , "boolean" , :default => true
 

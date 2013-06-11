@@ -245,11 +245,25 @@ module TentD
         mentions.map do |mention|
           mention_attrs = {
             :user_id => self.user_id,
-            :post_id => self.id,
-            :entity_id => mention.has_key?('entity') ? Entity.first_or_create(mention['entity']).id : self.entity_id
+            :post_id => self.id
           }
+
+          if mention['entity']
+            mention_attrs[:entity_id] = Entity.first_or_create(mention['entity']).id
+            mention_attrs[:entity] = mention['entity']
+          else
+            mention_attrs[:entity_id] = self.entity_id
+            mention_attrs[:entity] = self.entity
+          end
+
+          if mention['type']
+            mention_attrs[:type_id] = Type.find_or_create_full(mention['type']).id
+            mention_attrs[:type] = mention['type']
+          end
+
           mention_attrs[:post] = mention['post'] if mention.has_key?('post')
           mention_attrs[:public] = mention['public'] if mention.has_key?('public')
+
           Mention.create(mention_attrs)
         end
       end
