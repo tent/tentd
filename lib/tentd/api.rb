@@ -70,36 +70,9 @@ module TentD
         q.query_conditions << "mentions.post = ?"
         q.query_bindings << ref_post.public_id
 
-        if env['current_auth.resource'] && (auth_candidate = Authorizer::AuthCandidate.new(env['current_auth.resource'])) && auth_candidate.read_types.any?
-          if auth_candidate.read_all_types?
-            q.query_conditions << "(posts.public = true OR posts.entity_id = ?)"
-            q.query_bindings << env['current_user'].entity_id
-          else
-            _read_type_ids = Model::Type.find_types(auth_candidate.read_types).inject({:base => [], :full => []}) do |memo, type|
-              if type.fragment.nil?
-                memo[:base] << type.id
-              else
-                memo[:full] << type.id
-              end
-              memo
-            end
-
-            q.query_conditions << ["OR",
-              "posts.public = true",
-              ["AND",
-                "posts.entity_id = ?",
-                "posts.type_base_id IN ?"
-              ],
-              ["AND",
-                "posts.entity_id = ?",
-                "posts.type_id IN ?"
-              ]
-            ]
-            q.query_bindings << env['current_user'].entity_id
-            q.query_bindings << _read_type_ids[:base]
-            q.query_bindings << env['current_user'].entity_id
-            q.query_bindings << _read_type_ids[:full]
-          end
+        if env['current_auth'] && (auth_candidate = Authorizer::AuthCandidate.new(env['current_auth.resource'])) && auth_candidate.read_type?(ref_post.type)
+          q.query_conditions << "(posts.public = true OR posts.entity_id = ?)"
+          q.query_bindings << env['current_user'].entity_id
         else
           q.query_conditions << "posts.public = true"
         end
