@@ -250,11 +250,11 @@ module TentD
       _models = models
       res = {
         :pages => Pagination.new(self).as_json,
-        :posts => _models.map(&:as_json)
+        :posts => _models.map { |m| m.as_json(:env => env) }
       }
 
       if params['max_refs']
-        res[:refs] = Refs.fetch(env['current_user'], *_models, params['max_refs'].to_i).map(&:as_json)
+        res[:refs] = Refs.fetch(env['current_user'], *_models, params['max_refs'].to_i).map { |m| m.as_json(:env => env) }
       end
 
       res

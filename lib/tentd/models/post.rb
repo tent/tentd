@@ -294,6 +294,12 @@ module TentD
         attrs.delete(:mentions) if attrs[:mentions].nil?
         attrs.delete(:refs) if attrs[:refs].nil?
 
+        unless (env = options[:env]) && Authorizer.new(env).app?
+          attrs.delete(:received_at)
+          (attrs[:app] || {}).delete(:id)
+          attrs[:version].delete(:received_at)
+        end
+
         if Array(self.attachments).any?
           attrs[:attachments] = self.attachments
         end

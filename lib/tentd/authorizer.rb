@@ -44,6 +44,17 @@ module TentD
       @env = env
     end
 
+    def app?
+      return false unless env['current_auth']
+
+      # Private server credentials have same permissions as fully authorized app
+      return true if env['current_auth'][:credentials_resource] == env['current_user']
+
+      return false unless resource = env['current_auth.resource']
+
+      TentType.new(resource.type).base == %(https://tent.io/types/app-auth)
+    end
+
     def read_authorized?(post)
       return true if post.public
       return false unless env['current_auth']
