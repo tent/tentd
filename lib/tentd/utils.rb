@@ -69,7 +69,7 @@ module TentD
             deep_dup(v)
           when Array
             v.map { |i| deep_dup(i) }
-          when Symbol, TrueClass, FalseClass, NilClass
+          when Symbol, TrueClass, FalseClass, NilClass, Numeric
             v
           else
             v.respond_to?(:dup) ? v.dup : v
