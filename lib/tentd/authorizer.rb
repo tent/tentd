@@ -1,6 +1,44 @@
 module TentD
 
   class Authorizer
+
+    class AuthCandidate
+      attr_reader :resource
+      def initialize(resource)
+        @resource = resource
+      end
+
+      def read_types
+        @read_types ||= begin
+          case TentType.new(resource.type).base
+          when %(https://tent.io/types/app-auth)
+            resource.content['post_types']['read'].to_a
+          else
+            []
+          end
+        end
+      end
+
+      def read_type?(type_uri)
+        return true if read_all_types?
+
+        read_types.any? do |authorized_type_uri|
+          break true if authorized_type_uri == type_uri
+
+          authorized_type = TentType.new(authorized_type_uri)
+          type = TentType.new(type_uri)
+
+          break true if !authorized_type.has_fragment? && authorized_type.base == type.base
+
+          authorized_type.base == type.base && authorized_type.fragment == type.fragment
+        end
+      end
+
+      def read_all_types?
+        read_types.any? { |t| t == 'all' }
+      end
+    end
+
     attr_reader :env
     def initialize(env)
       @env = env
@@ -16,31 +54,8 @@ module TentD
       # Credentials aren't linked to a valid resource
       return false unless resource = env['current_auth.resource']
 
-      case TentType.new(resource.type).base
-      when %(https://tent.io/types/app)
-        return false
-      when %(https://tent.io/types/app-auth)
-        return resource.content['post_types']['read'].to_a.any? do |read_type_uri|
-          read_type_uri == 'all' || types_match?(read_type_uri, post.type)
-        end
-      when %(https://tent.io/types/relationship)
-        return false
-      else
-        return false
-      end
-    end
-
-    private
-
-    def types_match?(authorized_type_uri, post_type_uri)
-      return true if authorized_type_uri == post_type_uri
-
-      authorized_type = TentType.new(authorized_type_uri)
-      post_type = TentType.new(post_type_uri)
-
-      return true if !authorized_type.has_fragment? && authorized_type.base == post_type.base
-
-      authorized_type.base == post_type.base && authorized_type.fragment == post_type.fragment
+      auth_candidate = AuthCandidate.new(resource)
+      auth_candidate.read_type?(post.type)
     end
   end
 

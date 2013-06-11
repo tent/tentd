@@ -11,6 +11,8 @@ module TentD
     MULTIPART_CONTENT_TYPE = MULTIPART_CONTENT_MIME
     ATTACHMENT_DIGEST_HEADER = %(Attachment-Digest).freeze
 
+    MENTIONS_ACCEPT_HEADER = %(application/vnd.tent.post-mentions.v0+json).freeze
+
     require 'tentd/api/serialize_response'
     require 'tentd/api/middleware'
     require 'tentd/api/user_lookup'
@@ -52,12 +54,88 @@ module TentD
       end
     end
 
+    class ListPostMentions < Middleware
+      def action(env)
+        ref_post = env.delete('response.post')
+
+        q = Query.new(Model::Post)
+
+        q.select_columns = %w( posts.entity posts.public_id posts.type posts.public )
+
+        q.query_conditions << "posts.user_id = ?"
+        q.query_bindings << env['current_user'].id
+
+        q.join("INNER JOIN mentions ON mentions.post_id = posts.id")
+
+        q.query_conditions << "mentions.post = ?"
+        q.query_bindings << ref_post.public_id
+
+        if env['current_auth.resource'] && (auth_candidate = Authorizer::AuthCandidate.new(env['current_auth.resource'])) && auth_candidate.read_types.any?
+          if auth_candidate.read_all_types?
+            q.query_conditions << "(posts.public = true OR posts.entity_id = ?)"
+            q.query_bindings << env['current_user'].entity_id
+          else
+            _read_type_ids = Model::Type.find_types(auth_candidate.read_types).inject({:base => [], :full => []}) do |memo, type|
+              if type.fragment.nil?
+                memo[:base] << type.id
+              else
+                memo[:full] << type.id
+              end
+              memo
+            end
+
+            q.query_conditions << ["OR",
+              "posts.public = true",
+              ["AND",
+                "posts.entity_id = ?",
+                "posts.type_base_id IN ?"
+              ],
+              ["AND",
+                "posts.entity_id = ?",
+                "posts.type_id IN ?"
+              ]
+            ]
+            q.query_bindings << env['current_user'].entity_id
+            q.query_bindings << _read_type_ids[:base]
+            q.query_bindings << env['current_user'].entity_id
+            q.query_bindings << _read_type_ids[:full]
+          end
+        else
+          q.query_conditions << "posts.public = true"
+        end
+
+        q.sort_columns = ["posts.received_at DESC"]
+
+        q.limit = Feed::DEFAULT_PAGE_LIMIT
+
+        posts = q.all
+
+        env['response'] = {
+          :mentions => posts.map { |post|
+            m = { :type => post.type, :post => post.public_id }
+            m[:entity] = post.entity unless ref_post.entity == post.entity
+            m[:public] = false if post.public == false
+            m
+          }
+        }
+
+        env['response.headers'] = {}
+        env['response.headers']['Content-Type'] = MENTIONS_ACCEPT_HEADER
+
+        env
+      end
+    end
+
     class GetPost < Middleware
       def action(env)
         params = env['params']
         env['response.post'] = post = Model::Post.first(:public_id => params[:post], :entity => params[:entity])
 
         halt!(404, "Not Found") unless Authorizer.new(env).read_authorized?(post)
+
+        if env['HTTP_ACCEPT'] == MENTIONS_ACCEPT_HEADER
+          return ListPostMentions.new(@app).call(env)
+        end
 
         env
       end
