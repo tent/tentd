@@ -24,8 +24,8 @@ module TentD
         DEFAULT_PAGE_LIMIT
       end
 
-      if params['max-refs']
-        _limit = [MAX_PAGE_LIMIT / [Refs::MAX_REFS_PER_POST, params['max-refs'].to_i].min, _limit].min
+      if params['max_refs']
+        _limit = [MAX_PAGE_LIMIT / [Refs::MAX_REFS_PER_POST, params['max_refs'].to_i].min, _limit].min
       end
 
       _limit
@@ -253,8 +253,8 @@ module TentD
         :posts => _models.map(&:as_json)
       }
 
-      if params['max-refs']
-        res[:refs] = Refs.fetch(env['current_user'], *_models, params['max-refs'].to_i).map(&:as_json)
+      if params['max_refs']
+        res[:refs] = Refs.fetch(env['current_user'], *_models, params['max_refs'].to_i).map(&:as_json)
       end
 
       res

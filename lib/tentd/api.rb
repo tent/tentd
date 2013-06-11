@@ -70,8 +70,8 @@ module TentD
           :post => post.as_json
         }
 
-        if params['max-refs']
-          env['response'][:refs] = Refs.fetch(env['current_user'], post, params['max-refs'].to_i).map(&:as_json)
+        if params['max_refs']
+          env['response'][:refs] = Refs.fetch(env['current_user'], post, params['max_refs'].to_i).map(&:as_json)
         end
 
         env['response.headers'] ||= {}
