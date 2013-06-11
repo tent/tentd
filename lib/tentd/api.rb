@@ -60,7 +60,7 @@ module TentD
 
         q = Query.new(Model::Post)
 
-        q.select_columns = %w( posts.entity posts.public_id posts.type posts.public )
+        q.select_columns = %w( posts.entity posts.public_id posts.type mentions.public )
 
         q.query_conditions << "posts.user_id = ?"
         q.query_bindings << env['current_user'].id
@@ -71,10 +71,10 @@ module TentD
         q.query_bindings << ref_post.public_id
 
         if env['current_auth'] && (auth_candidate = Authorizer::AuthCandidate.new(env['current_auth.resource'])) && auth_candidate.read_type?(ref_post.type)
-          q.query_conditions << "(posts.public = true OR posts.entity_id = ?)"
+          q.query_conditions << "(mentions.public = true OR posts.entity_id = ?)"
           q.query_bindings << env['current_user'].entity_id
         else
-          q.query_conditions << "posts.public = true"
+          q.query_conditions << "mentions.public = true"
         end
 
         q.sort_columns = ["posts.received_at DESC"]
