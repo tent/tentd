@@ -59,7 +59,8 @@ module TentD
                 "preference" => 0
               }
             ]
-          }
+          },
+          :public => true
         )
 
         self.update(:meta_post_id => meta_post.id)

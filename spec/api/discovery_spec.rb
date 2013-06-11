@@ -8,6 +8,8 @@ describe "HEAD /" do
   it "returns link header pointing to meta post" do
     meta_post = current_user.meta_post
 
-    expect(TentClient::Discovery.discover(client, current_user.entity)).to eql('post' => TentD::Utils::Hash.stringify_keys(meta_post.as_json))
+    discovery_res = TentClient::Discovery.discover(client, current_user.entity)
+    expect(last_response.status).to eql(200)
+    expect(discovery_res).to eql('post' => TentD::Utils::Hash.stringify_keys(meta_post.as_json))
   end
 end
