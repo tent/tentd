@@ -35,7 +35,7 @@ describe "POST /posts" do
       }.to change(TentD::Model::Mention, :count).by(expected_create_mention_count)
       expect(last_response.status).to eql(200)
 
-      response_data = parse_json(last_response.body)
+      response_data = parse_json(last_response.body)['post']
       data.each_pair do |key, val|
         expect(response_data).to have_key(key.to_s)
         expect(encode_json(response_data[key.to_s])).to eql(encode_json(val))
@@ -54,8 +54,8 @@ describe "POST /posts" do
   context "without authentication" do
     context "when app registration post" do
       let(:post_type) { 'https://tent.io/types/app/v0#' }
-      let(:expected_create_post_count) { 3 } # app post + credentials post + app post version (bidirectional mentions)
-      let(:expected_create_mention_count) { 3 } # credentials post mentions app post and vice versa (app post has 2 versions)
+      let(:expected_create_post_count) { 2 } # app post + credentials post
+      let(:expected_create_mention_count) { 2 } # credentials post mentions app post and vice versa
 
       it_behaves_like "a valid create post request"
 
@@ -72,7 +72,7 @@ describe "POST /posts" do
           }.to change(TentD::Model::PostsAttachment, :count).by(1)
           expect(last_response.status).to eql(200)
 
-          response_data = parse_json(last_response.body)
+          response_data = parse_json(last_response.body)['post']
           expect(response_data['attachments']).to eql(attachments.map { |attachment|
             {
               'name' => attachment[:filename],
@@ -103,7 +103,7 @@ describe "POST /posts" do
             }.to change(TentD::Model::PostsAttachment, :count).by(1)
             expect(last_response.status).to eql(200)
 
-            response_data = parse_json(last_response.body)
+            response_data = parse_json(last_response.body)['post']
             expect(response_data['attachments']).to eql(attachments.map { |attachment|
               {
                 'name' => attachment[:filename],
