@@ -21,7 +21,7 @@ module TentD
         data = as_json
         data[:version] = {
           :parents => [
-            { :version => data[:version][:id] }
+            { :version => data[:version][:id], :post => data[:id] }
           ]
         }
 
@@ -73,6 +73,15 @@ module TentD
 
         if data['version'] && Array === data['version']['parents']
           attrs[:version_parents] = data['version']['parents']
+          attrs[:version_parents].each_with_index do |item, index|
+            unless item['version']
+              raise CreateFailure.new("/version/parents/#{index}/version is required")
+            end
+
+            unless item['post']
+              raise CreateFailure.new("/version/parents/#{index}/post is required")
+            end
+          end
         end
 
         if data['permissions'] && !data['permissions']['public'].nil?
@@ -116,6 +125,10 @@ module TentD
           post.create_attachments(env['attachments'])
         end
 
+        if Array === attrs[:version_parents]
+          post.create_version_parents(attrs[:version_parents])
+        end
+
         post
       end
 
@@ -148,6 +161,15 @@ module TentD
 
         if data['version'] && Array === data['version']['parents']
           attrs[:version_parents] = data['version']['parents']
+          attrs[:version_parents].each_with_index do |item, index|
+            unless item['version']
+              raise CreateFailure.new("/version/parents/#{index}/version is required")
+            end
+
+            unless item['post']
+              raise CreateFailure.new("/version/parents/#{index}/post is required")
+            end
+          end
         else
           raise CreateFailure.new("Parent version not specified")
         end
@@ -223,6 +245,10 @@ module TentD
           post.create_attachments(env['attachments'])
         end
 
+        if Array === attrs[:version_parents]
+          post.create_version_parents(attrs[:version_parents])
+        end
+
         post
       end
 
@@ -268,6 +294,44 @@ module TentD
         end
       end
 
+      def create_version_parents(version_parents)
+        version_parents.each do |item|
+          item['post'] ||= public_id
+          _parent = Post.where(:user_id => self.user_id, :public_id => item['post'], :version => item['version']).first
+          Parent.create(
+            :post_id => self.id,
+            :parent_post_id => _parent ? _parent.id : nil,
+            :version => item['version'],
+            :post => item['post']
+          )
+        end
+      end
+
+      def version_as_json(options = {})
+        obj = {
+          :id => self.version,
+          :parents => self.version_parents,
+          :message => self.version_message,
+          :published_at => self.version_published_at,
+          :received_at => self.version_received_at
+        }
+        obj.delete(:parents) if obj[:parents].nil?
+        obj.delete(:message) if obj[:message].nil?
+        obj.delete(:received_at) if obj[:received_at].nil?
+
+        if obj[:parents]
+          obj[:parents].each do |parent|
+            parent.delete('post') if parent['post'] == self.public_id
+          end
+        end
+
+        unless (env = options[:env]) && Authorizer.new(env).app?
+          obj.delete(:received_at)
+        end
+
+        obj
+      end
+
       def as_json(options = {})
         attrs = {
           :id => self.public_id,
@@ -278,17 +342,8 @@ module TentD
           :content => self.content,
           :mentions => self.mentions,
           :refs => self.refs,
-          :version => {
-            :id => self.version,
-            :parents => self.version_parents,
-            :message => self.version_message,
-            :published_at => self.version_published_at,
-            :received_at => self.version_received_at
-          }
+          :version => version_as_json(options)
         }
-        attrs[:version].delete(:parents) if attrs[:version][:parents].nil?
-        attrs[:version].delete(:message) if attrs[:version][:message].nil?
-        attrs[:version].delete(:received_at) if attrs[:version][:received_at].nil?
         attrs.delete(:received_at) if attrs[:received_at].nil?
         attrs.delete(:content) if attrs[:content].nil?
         attrs.delete(:mentions) if attrs[:mentions].nil?
@@ -297,7 +352,6 @@ module TentD
         unless (env = options[:env]) && Authorizer.new(env).app?
           attrs.delete(:received_at)
           (attrs[:app] || {}).delete(:id)
-          attrs[:version].delete(:received_at)
         end
 
         if Array(self.attachments).any?

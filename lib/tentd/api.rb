@@ -11,7 +11,8 @@ module TentD
     MULTIPART_CONTENT_TYPE = MULTIPART_CONTENT_MIME
     ATTACHMENT_DIGEST_HEADER = %(Attachment-Digest).freeze
 
-    MENTIONS_ACCEPT_HEADER = %(application/vnd.tent.post-mentions.v0+json).freeze
+    MENTIONS_CONTENT_TYPE = %(application/vnd.tent.post-mentions.v0+json).freeze
+    CHILDREN_CONTENT_TYPE = %(application/vnd.tent.post-children.v0+json).freeze
 
     require 'tentd/api/serialize_response'
     require 'tentd/api/middleware'
@@ -93,7 +94,68 @@ module TentD
         }
 
         env['response.headers'] = {}
-        env['response.headers']['Content-Type'] = MENTIONS_ACCEPT_HEADER
+        env['response.headers']['Content-Type'] = MENTIONS_CONTENT_TYPE
+
+        env
+      end
+    end
+
+    class ListPostChildren < Middleware
+      def action(env)
+        ref_post = env.delete('response.post')
+
+        q = Query.new(Model::Post)
+
+        q.query_conditions << "posts.user_id = ?"
+        q.query_bindings << env['current_user'].id
+
+        q.join("INNER JOIN parents ON parents.post_id = posts.id")
+
+        q.query_conditions << "parents.parent_post_id = ?"
+        q.query_bindings << ref_post.id
+
+        authorizer = Authorizer.new(env)
+        if env['current_auth'] && authorizer.auth_candidate
+          unless authorizer.auth_candidate.read_all_types?
+            _read_type_ids = Model::Type.find_types(authorizer.auth_candidate.read_types).inject({:base => [], :full => []}) do |memo, type|
+              if type.fragment.nil?
+                memo[:base] << type.id
+              else
+                memo[:full] << type.id
+              end
+              memo
+            end
+
+            q.query_conditions << ["OR",
+              "posts.public = true",
+              ["AND",
+                "posts.entity_id = ?",
+                ["OR",
+                  "posts.type_base_id IN ?",
+                  "posts.type_id IN ?"
+                ]
+              ]
+            ]
+            q.query_bindings << env['current_user'].entity_id
+            q.query_bindings << _read_type_ids[:base]
+            q.query_bindings << _read_type_ids[:full]
+          end
+        else
+          q.query_conditions << "posts.public = true"
+        end
+
+        q.sort_columns = ["posts.version_received_at DESC"]
+
+        q.limit = Feed::DEFAULT_PAGE_LIMIT
+
+        children = q.all
+
+        env['response'] = {
+          :versions => children.map { |post| post.version_as_json(:env => env).merge(:type => post.type) }
+        }
+
+        env['response.headers'] = {}
+        env['response.headers']['Content-Type'] = CHILDREN_CONTENT_TYPE
 
         env
       end
@@ -102,12 +164,20 @@ module TentD
     class GetPost < Middleware
       def action(env)
         params = env['params']
-        env['response.post'] = post = Model::Post.first(:public_id => params[:post], :entity => params[:entity])
 
-        halt!(404, "Not Found") unless Authorizer.new(env).read_authorized?(post)
+        if params['version'] && params['version'] != 'latest'
+          env['response.post'] = post = Model::Post.first(:public_id => params[:post], :entity => params[:entity], :version => params['version'])
+        else
+          env['response.post'] = post = Model::Post.where(:public_id => params[:post], :entity => params[:entity]).order(Sequel.desc(:version_received_at)).first
+        end
 
-        if env['HTTP_ACCEPT'] == MENTIONS_ACCEPT_HEADER
+        halt!(404, "Not Found") unless post && Authorizer.new(env).read_authorized?(post)
+
+        case env['HTTP_ACCEPT']
+        when MENTIONS_CONTENT_TYPE
           return ListPostMentions.new(@app).call(env)
+        when CHILDREN_CONTENT_TYPE
+          return ListPostChildren.new(@app).call(env)
         end
 
         env
@@ -210,8 +280,13 @@ module TentD
             RelationshipInitialization.call(env)
           end
         else
-          post = Model::Post.create_from_env(env)
-          env['response.post'] = post.latest_version
+          begin
+            post = Model::Post.create_from_env(env)
+          rescue Model::Post::CreateFailure => e
+            halt!(400, e.message)
+          end
+
+          env['response.post'] = post
 
           if %w( https://tent.io/types/app https://tent.io/types/app-auth ).include?(TentType.new(post.type).base) && !env['request.import']
             if TentType.new(post.type).base == "https://tent.io/types/app"

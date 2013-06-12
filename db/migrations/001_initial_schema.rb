@@ -92,6 +92,16 @@ Sequel.migration do
       index [:user_id, :entity_id, :public_id, :version], :name => :unique_posts, :unique => true
     end
 
+    create_table(:parents) do
+      foreign_key :post_id
+      foreign_key :parent_post_id
+
+      column :version, "text"
+      column :post, "text"
+
+      index [:post_id, :version, :post], :name => :unique_post_parents, :unique => true
+    end
+
     create_table(:apps) do
       primary_key :id
       foreign_key :user_id                  , :users

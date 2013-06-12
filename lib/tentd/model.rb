@@ -12,6 +12,7 @@ module TentD
     require 'tentd/models/type'
     require 'tentd/models/entity'
     require 'tentd/models/user'
+    require 'tentd/models/parent'
     require 'tentd/models/post'
     require 'tentd/models/app'
     require 'tentd/models/app_auth'

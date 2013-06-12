@@ -9,7 +9,7 @@ module TentD
       @query_conditions = []
       @query_bindings = []
 
-      @select_columns = '*'
+      @select_columns = "#{table_name}.*"
       @joins = []
       @sort_columns = nil
       @reverse_sort = false

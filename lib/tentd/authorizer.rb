@@ -44,6 +44,12 @@ module TentD
       @env = env
     end
 
+    def auth_candidate
+      return unless env['current_auth.resource']
+
+      AuthCandidate.new(env['current_auth.resource'])
+    end
+
     def app?
       return false unless env['current_auth']
 
@@ -65,7 +71,6 @@ module TentD
       # Credentials aren't linked to a valid resource
       return false unless resource = env['current_auth.resource']
 
-      auth_candidate = AuthCandidate.new(resource)
       auth_candidate.read_type?(post.type)
     end
   end
