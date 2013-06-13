@@ -57,7 +57,7 @@ module TentD
           'Link' => %(<#{meta_post_url}>; rel="https://tent.io/rels/meta-post")
         }
 
-        [201, headers, []]
+        [200, headers, []]
       end
     end
 
