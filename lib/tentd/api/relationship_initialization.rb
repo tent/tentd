@@ -129,7 +129,7 @@ module TentD
           halt!(400, "Discovery of entity #{initiating_entity_uri.inspect} failed!")
         end
 
-        meta['post']
+        meta
       end
 
       def select_initiating_server
