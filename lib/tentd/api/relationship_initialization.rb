@@ -45,13 +45,13 @@ module TentD
         # Ensure we have the correct meta post
         meta = initiating_meta_post
         unless (Hash === meta) && (Hash === meta['content']) && meta['content']['entity'] == initiating_entity_uri
-          diff = [{ :op => "replace", :path => "/content/entity", :value => initiating_entity_uri }]
+          patch = { :op => "replace", :path => "/content/entity", :value => initiating_entity_uri }
 
-          if !(Hash === meta) && !(Hash === meta['content']) || !meta['content'].has_key?('entity')
-            diff[:op] = "add"
+          if !(Hash === meta) || !(Hash === meta['content']) || !meta['content'].has_key?('entity')
+            patch[:op] = "add"
           end
 
-          halt!(400, "Entity mismatch!", :diff => diff, :post => post)
+          halt!(400, "Entity mismatch!", :diff => [patch], :post => meta)
         end
 
         ##
