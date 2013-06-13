@@ -52,7 +52,7 @@ module TentD
                   "posts_feed" => "#{self.entity}/posts",
                   "new_post" => "#{self.entity}/posts",
                   "post" => "#{self.entity}/posts/{entity}/{post}",
-                  "post_attachment" => "#{self.entity}/posts/{entity}/{post}/attachments/{name}?version={version}",
+                  "post_attachment" => "#{self.entity}/posts/{entity}/{post}/attachments/{name}",
                   "attachment" => "#{self.entity}/attachments/{entity}/{digest}",
                   "batch" => "#{self.entity}/batch",
                   "server_info" => "#{self.entity}/server"

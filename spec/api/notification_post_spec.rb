@@ -39,7 +39,7 @@ describe "POST /posts" do
               "posts_feed" => "#{remote_entity_url}/posts",
               "new_post" => "#{remote_entity_url}/posts",
               "post" => "#{remote_entity_url}/posts/{entity}/{post}",
-              "post_attachment" => "#{remote_entity_url}/posts/{entity}/{post}/attachments/{name}?version={version}",
+              "post_attachment" => "#{remote_entity_url}/posts/{entity}/{post}/attachments/{name}",
               "batch" => "#{remote_entity_url}/batch",
               "server_info" => "#{remote_entity_url}/server"
             },

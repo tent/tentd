@@ -96,7 +96,7 @@ task :validator_spec do
                   "posts_feed" => "#{server_url}/posts",
                   "new_post" => "#{server_url}/posts",
                   "post" => "#{server_url}/posts/{entity}/{post}",
-                  "post_attachment" => "#{server_url}/posts/{entity}/{post}/attachments/{name}?version={version}",
+                  "post_attachment" => "#{server_url}/posts/{entity}/{post}/attachments/{name}",
                   "attachment" => "#{server_url}/attachments/{entity}/{digest}",
                   "batch" => "#{server_url}/batch",
                   "server_info" => "#{server_url}/server"
