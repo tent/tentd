@@ -51,7 +51,8 @@ RSpec.configure do |config|
           {
             :server_meta => server_meta_post,
             :faraday_adapter => [:rack, lambda { |env|
-              current_session.request(env['PATH_INFO'], env.merge('REQUEST_PATH' => env['PATH_INFO']))
+              request_uri = env['REQUEST_URI'] = [env['PATH_INFO'], env['QUERY_STRING']].join('?')
+              current_session.request(env['PATH_INFO'], env.merge('REQUEST_PATH' => env['PATH_INFO'], 'REQUEST_URI' => request_uri))
             }]
           }.merge(client_options)
         )
