@@ -51,7 +51,7 @@ module TentD
         },
         :host => uri.host,
         :port => uri.port || (uri.scheme == 'https' ? 443 : 80),
-        :path => uri.path + (uri.query ? "?#{uri.query}" : '')
+        :request_uri => uri.path + (uri.query ? "?#{uri.query}" : '')
       )
 
       bewit = Hawk::Crypto.bewit(options)
