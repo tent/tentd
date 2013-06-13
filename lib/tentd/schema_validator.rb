@@ -10,7 +10,7 @@ module TentD
       memo
     end
 
-    def self.validate(type_uri, data)
+    def self.validation(type_uri, data)
       type = TentClient::TentType.new(type_uri)
       schema_name = "post_#{type.base.to_s.split('/').last}"
 
@@ -19,13 +19,23 @@ module TentD
       # Validate post schema
       schema = @schemas['post'].dup
       schema['properties'].each_pair { |name, property| property['required'] = false }
-      return false unless new(schema).valid?(data)
+      v = new(schema)
+      return v unless v.valid?(data)
 
       # Don't validate content of unknown post types
-      return unless schema = @schemas[schema_name]
+      return v unless schema = @schemas[schema_name]
 
       # Validate content of known post types
-      new(schema, "/content").valid?(data)
+      new(schema, "/content")
+    end
+
+    def self.diff(type_uri, data)
+      v = validation(type_uri, data)
+      v.diff(data, v.failed_assertions(data))
+    end
+
+    def self.validate(type_uri, data)
+      diff(type_uri, data).empty?
     end
 
     def valid?(data)

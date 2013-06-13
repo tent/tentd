@@ -34,6 +34,15 @@ module TentD
         end
       end
 
+      def read_post?(post)
+        case TentType.new(resource.type).base
+        when %(https://tent.io/types/relationship)
+          post == resource
+        else
+          false
+        end
+      end
+
       def read_all_types?
         read_types.any? { |t| t == 'all' }
       end
@@ -71,7 +80,7 @@ module TentD
       # Credentials aren't linked to a valid resource
       return false unless resource = env['current_auth.resource']
 
-      auth_candidate.read_type?(post.type)
+      auth_candidate.read_type?(post.type) || auth_candidate.read_post?(post)
     end
   end
 
