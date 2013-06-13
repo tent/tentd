@@ -21,7 +21,7 @@ module TentD
           :content_type => simple_content_type(env),
           :payload => rack_input(env),
           :host => request_host(env),
-          :request_uri => request_path(env),
+          :request_uri => env['REQUEST_URI'],
           :port => request_port(env),
           :method => request_method(env)
         )
@@ -40,7 +40,7 @@ module TentD
           bewit,
           :credentials_lookup => proc { |id| lookup_credentials(env, id) },
           :host => request_host(env),
-          :request_uri => request_path(env),
+          :request_uri => env['REQUEST_URI'],
           :port => request_port(env),
           :method => request_method(env)
         )
