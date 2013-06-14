@@ -128,8 +128,12 @@ Sequel.migration do
       foreign_key :user_id             , :users
       foreign_key :entity_id           , :entities
       foreign_key :post_id             , :posts
+      foreign_key :meta_post_id        , :posts
       foreign_key :credentials_post_id , :posts
       foreign_key :type_id             , :types # type of relationship , posts.type where posts.id = post_id
+
+      column :remote_credentials_id , "text" , :null => false # remote_credentials.id (public_id)
+      column :remote_credentials    , "text" , :null => false # serialized json , used to sign outgoing requests
 
       index [:user_id, :type_id], :name => :index_relationships_user_type
       index [:user_id, :post_id], :name => :unique_relationships, :unique => true

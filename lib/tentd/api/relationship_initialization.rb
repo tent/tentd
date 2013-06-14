@@ -73,7 +73,7 @@ module TentD
 
         ##
         # Store initiating meta post
-        save_initiating_post(Utils::Hash.symbolize_keys(initiating_meta_post))
+        remote_meta_post = save_initiating_post(Utils::Hash.symbolize_keys(initiating_meta_post))
 
         ##
         # Store credentials post for initial relationship post
@@ -81,17 +81,18 @@ module TentD
 
         ##
         # Create new relationship post (without fragment) mentioning initial relationship post
-        relationship_post = create_relationship_post
-
-        ##
-        # Create credentials post mentioning new relationship post
-        credentials_post = Model::Credentials.generate(current_user, relationship_post)
+        # and credentials post mentioning new relationship post
+        relationship = Model::Relationship.create_final(current_user,
+          :remote_relationship => initiating_relationship_post,
+          :remote_credentials => initiating_credentials_post,
+          :remote_meta_post => remote_meta_post
+        )
 
         ##
         # Link credentials post for new relationship post in response header
         credentials_url = Utils.expand_uri_template(current_user.preferred_server['urls']['post'],
           :entity => current_user.entity,
-          :post => credentials_post.public_id
+          :post => relationship.credentials_post.public_id
         )
         env['response.links'] ||= []
         env['response.links'].push(
@@ -237,7 +238,7 @@ module TentD
           :content => data[:content]
         }
 
-        attrs[:mentions] = data[:mentions] if Array === data[:mentions]
+        attrs[:mentions] = Utils::Hash.stringify_keys(data[:mentions]) if Array === data[:mentions]
         attrs[:refs] = data[:refs] if Array === data[:refs]
 
         post = Model::Post.create(attrs)
@@ -245,35 +246,6 @@ module TentD
         if attrs[:mentions]
           post.create_mentions(attrs[:mentions])
         end
-
-        post
-      end
-
-      def create_relationship_post
-        type, base_type = Model::Type.find_or_create(RELATIONSHIP_MIME_TYPE)
-        published_at_timestamp = Utils.timestamp
-
-        attrs = {
-          :user_id => current_user.id,
-          :entity_id => current_user.entity_id,
-          :entity => current_user.entity,
-
-          :type => type.type,
-          :type_id => type.id,
-          :type_base_id => base_type.id,
-
-          :version_published_at => published_at_timestamp,
-          :published_at => published_at_timestamp,
-          :received_at => published_at_timestamp
-        }
-
-        attrs[:mentions] = [Utils::Hash.slice(initiating_relationship_post, :entity, :type).merge(
-          :post => initiating_relationship_post[:id]
-        )]
-
-        post = Model::Post.create(attrs)
-
-        post.create_mentions(attrs[:mentions])
 
         post
       end
