@@ -40,6 +40,9 @@ task :validator_spec do
 
     $stdout.puts "Booting Tent server on port #{port}..."
 
+    ENV['RUN_SIDEKIQ'] = 'true' # Boot sidekiq server
+    ENV['SIDEKIQ_LOG'] = File.join(File.expand_path(File.dirname(__FILE__)), 'sidekiq.log')
+
     rackup_path = File.expand_path(File.join(File.dirname(__FILE__), 'config.ru'))
     cli = Puma::CLI.new ['--port', port.to_s, rackup_path]
     begin

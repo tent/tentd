@@ -28,6 +28,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency 'api-validator'
   gem.add_runtime_dependency 'tent-canonical-json'
   gem.add_runtime_dependency 'hawk-auth'
+  gem.add_runtime_dependency 'sidekiq'
 
   gem.add_development_dependency 'rack-test', '~> 0.6.1'
   gem.add_development_dependency 'rspec', '~> 2.11'

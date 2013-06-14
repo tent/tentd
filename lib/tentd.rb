@@ -13,6 +13,17 @@ module TentD
   end
 
   def self.setup!(options = {})
+    setup_database!(options)
+
+    require 'tentd/worker'
+    require 'tentd/query'
+    require 'tentd/feed'
+    require 'tentd/refs'
+    require 'tentd/authorizer'
+    require 'tentd/api'
+  end
+
+  def self.setup_database!(options = {})
     require 'sequel'
     require 'logger'
 
@@ -21,11 +32,6 @@ module TentD
     end
 
     require 'tentd/model'
-    require 'tentd/query'
-    require 'tentd/feed'
-    require 'tentd/refs'
-    require 'tentd/authorizer'
-    require 'tentd/api'
   end
 
   def self.database
