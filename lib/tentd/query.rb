@@ -82,6 +82,10 @@ module TentD
       model.with_sql(to_sql(:select_columns => "#{table_name}.id", :limit => 1), *query_bindings).to_a.any?
     end
 
+    def first
+      model.with_sql(to_sql(:limit => 1), *query_bindings).to_a.first
+    end
+
     def all(options = {})
       models = model.with_sql(to_sql(options), *query_bindings).to_a
       if reverse_sort
