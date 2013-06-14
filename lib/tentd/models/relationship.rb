@@ -90,6 +90,8 @@ module TentD
           }
         )
 
+        @post.queue_delivery
+
         relationship
       end
 

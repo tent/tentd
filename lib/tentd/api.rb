@@ -382,9 +382,11 @@ module TentD
     class CreatePostVersion < Middleware
       def action(env)
         if env['request.notification']
-          case env['request.type'].base
-          when "https://tent.io/types/relationship"
+          case env['request.type'].to_s
+          when "https://tent.io/types/relationship/v0#initial"
             RelationshipInitialization.call(env)
+          when "https://tent.io/types/relationship/v0#"
+            halt!(404, "Not Implemented")
           end
         else
           unless Authorizer.new(env).write_authorized?(env['data']['entity'], env['data']['type'])

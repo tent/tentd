@@ -46,6 +46,16 @@ module TentD
         end
       end
 
+      def queue_delivery
+        return unless deliverable?
+        Worker::NotificationDispatch.perform_async(self.id)
+      end
+
+      # Determines if notifications should be sent out
+      def deliverable?
+        self.public || self.permissions_entities.to_a.any? || self.permissions_groups.to_a.any?
+      end
+
       def self.create_from_env(env)
         data = env['data']
         current_user = env['current_user']
