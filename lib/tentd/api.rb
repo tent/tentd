@@ -77,7 +77,7 @@ module TentD
         q.query_conditions << "mentions.post = ?"
         q.query_bindings << ref_post.public_id
 
-        if env['current_auth'] && (auth_candidate = Authorizer::AuthCandidate.new(env['current_auth.resource'])) && auth_candidate.read_type?(ref_post.type)
+        if env['current_auth'] && (auth_candidate = Authorizer::AuthCandidate.new(env['current_user'], env['current_auth.resource'])) && auth_candidate.read_type?(ref_post.type)
           q.query_conditions << "(mentions.public = true OR posts.entity_id = ?)"
           q.query_bindings << env['current_user'].entity_id
         else
@@ -387,10 +387,7 @@ module TentD
             RelationshipInitialization.call(env)
           end
         else
-          unless env['current_auth'] && (app_auth = env['current_auth.resource']) && TentType.new(app_auth.type).base == %(https://tent.io/types/app-auth) && (post_type = TentType.new(env['data']['type'])) && app_auth.content['post_types']['write'].any? { |uri|
-            type = TentType.new(uri)
-            uri == 'all' || (type.has_fragment? ? type == post_type : type.base == post_type.base)
-          }
+          unless Authorizer.new(env).write_authorized?(env['data']['entity'], env['data']['type'])
             if env['current_auth']
               halt!(403, "Unauthorized")
             else
