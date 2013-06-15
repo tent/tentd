@@ -4,6 +4,8 @@ module TentD
     module PostBuilder
       extend self
 
+      CreateFailure = Post::CreateFailure
+
       def build_attributes(env, options = {})
         data = env['data']
         current_user = env['current_user']
