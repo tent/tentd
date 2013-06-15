@@ -31,6 +31,7 @@ module TentD
     require 'tentd/api/validate_input_data'
     require 'tentd/api/validate_post_content_type'
     require 'tentd/api/relationship_initialization'
+    require 'tentd/api/notification_importer'
     require 'tentd/api/oauth'
 
     include Rack::Putty::Router
@@ -385,8 +386,8 @@ module TentD
           case env['request.type'].to_s
           when "https://tent.io/types/relationship/v0#initial"
             RelationshipInitialization.call(env)
-          when "https://tent.io/types/relationship/v0#"
-            halt!(404, "Not Implemented")
+          else
+            NotificationImporter.call(env)
           end
         else
           unless Authorizer.new(env).write_authorized?(env['data']['entity'], env['data']['type'])

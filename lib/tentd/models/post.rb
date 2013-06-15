@@ -142,7 +142,7 @@ module TentD
         post
       end
 
-      def self.create_version_from_env(env)
+      def self.create_version_from_env(env, options = {})
         data = env['data']
         current_user = env['current_user']
         type, base_type = Type.find_or_create(data['type'])
@@ -181,7 +181,9 @@ module TentD
             end
           end
         else
-          raise CreateFailure.new("Parent version not specified")
+          unless options[:notification]
+            raise CreateFailure.new("Parent version not specified")
+          end
         end
 
         if data['permissions'] && !data['permissions']['public'].nil?
@@ -202,36 +204,40 @@ module TentD
           end
         end
 
-        if Array === data['attachments']
-          data['attachments'] = data['attachments'].inject([]) do |memo, attachment|
-            next memo unless attachment.has_key?('digest')
-            if attachment['model'] = Attachment.where(:digest => attachment['digest']).first
-              memo << attachment
+        if options[:notification]
+          attrs[:attachments] = data['attachments'] if Array === data['attachments']
+        else
+          if Array === data['attachments']
+            data['attachments'] = data['attachments'].inject([]) do |memo, attachment|
+              next memo unless attachment.has_key?('digest')
+              if attachment['model'] = Attachment.where(:digest => attachment['digest']).first
+                memo << attachment
+              end
+              memo
             end
-            memo
+
+            attrs[:attachments] = data['attachments'].map do |attachment|
+              {
+                :digest => attachment['digest'],
+                :size => attachment['model'].size,
+                :name => attachment['name'],
+                :category => attachment['category'],
+                :content_type => attachment['content_type']
+              }
+            end
           end
 
-          attrs[:attachments] = data['attachments'].map do |attachment|
-            {
-              :digest => attachment['digest'],
-              :size => attachment['model'].size,
-              :name => attachment['name'],
-              :category => attachment['category'],
-              :content_type => attachment['content_type']
-            }
-          end
-        end
-
-        if Array === env['attachments']
-          attrs[:attachments] = env['attachments'].inject(attrs[:attachments] || Array.new) do |memo, attachment|
-            memo << {
-              :digest => TentD::Utils.hex_digest(attachment[:tempfile]),
-              :size => attachment[:tempfile].size,
-              :name => attachment[:name],
-              :category => attachment[:category],
-              :content_type => attachment[:content_type]
-            }
-            memo
+          if Array === env['attachments']
+            attrs[:attachments] = env['attachments'].inject(attrs[:attachments] || Array.new) do |memo, attachment|
+              memo << {
+                :digest => TentD::Utils.hex_digest(attachment[:tempfile]),
+                :size => attachment[:tempfile].size,
+                :name => attachment[:name],
+                :category => attachment[:category],
+                :content_type => attachment[:content_type]
+              }
+              memo
+            end
           end
         end
 
@@ -241,18 +247,20 @@ module TentD
           post.create_mentions(data['mentions'])
         end
 
-        if Array === data['attachments']
-          data['attachments'].each do |attachment|
-            PostsAttachment.create(
-              :attachment_id => attachment['model'].id,
-              :content_type => attachment['content_type'],
-              :post_id => post.id
-            )
+        unless options[:notification]
+          if Array === data['attachments']
+            data['attachments'].each do |attachment|
+              PostsAttachment.create(
+                :attachment_id => attachment['model'].id,
+                :content_type => attachment['content_type'],
+                :post_id => post.id
+              )
+            end
           end
-        end
 
-        if Array === env['attachments']
-          post.create_attachments(env['attachments'])
+          if Array === env['attachments']
+            post.create_attachments(env['attachments'])
+          end
         end
 
         if Array === attrs[:version_parents]
@@ -260,6 +268,10 @@ module TentD
         end
 
         post
+      end
+
+      def self.import_notification(env)
+        create_version_from_env(env, :notification => true)
       end
 
       def create_attachments(attachments)
