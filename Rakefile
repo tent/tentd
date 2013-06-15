@@ -54,13 +54,18 @@ task :validator_spec do
   end
 
   validator_pid = fork do
+    validator_pid = Process.pid
     at_exit do
-      $stdout.puts "Stopping Tent server (PID: #{tentd_pid})..."
-      begin
-        Process.kill("INT", tentd_pid)
-      rescue Errno::ESRCH
+      if Process.pid == validator_pid
+        $stdout.puts "Stopping Tent server (PID: #{tentd_pid})..."
+        begin
+          Process.kill("INT", tentd_pid)
+        rescue Errno::ESRCH
+        end
       end
     end
+
+    ENV['SIDEKIQ_LOG'] = File.join(File.expand_path(File.dirname(__FILE__)), 'validator-sidekiq.log')
 
     # wait until tentd server boots
     tentd_started = false
