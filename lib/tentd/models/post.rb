@@ -69,58 +69,15 @@ module TentD
       end
 
       def create_attachments(attachments)
-        attachments.each_with_index do |attachment, index|
-          data = attachment[:tempfile].read
-          attachment[:tempfile].rewind
-
-          PostsAttachment.create(
-            :attachment_id => Attachment.find_or_create(
-              TentD::Utils::Hash.slice(self.attachments[index], 'digest', 'size').merge(:data => data)
-            ).id,
-            :post_id => self.id,
-            :content_type => attachment[:content_type]
-          )
-        end
+        PostBuilder.create_attachments(self, attachments)
       end
 
       def create_mentions(mentions)
-        mentions.map do |mention|
-          mention_attrs = {
-            :user_id => self.user_id,
-            :post_id => self.id
-          }
-
-          if mention['entity']
-            mention_attrs[:entity_id] = Entity.first_or_create(mention['entity']).id
-            mention_attrs[:entity] = mention['entity']
-          else
-            mention_attrs[:entity_id] = self.entity_id
-            mention_attrs[:entity] = self.entity
-          end
-
-          if mention['type']
-            mention_attrs[:type_id] = Type.find_or_create_full(mention['type']).id
-            mention_attrs[:type] = mention['type']
-          end
-
-          mention_attrs[:post] = mention['post'] if mention.has_key?('post')
-          mention_attrs[:public] = mention['public'] if mention.has_key?('public')
-
-          Mention.create(mention_attrs)
-        end
+        PostBuilder.create_mentions(self, mentions)
       end
 
       def create_version_parents(version_parents)
-        version_parents.each do |item|
-          item['post'] ||= public_id
-          _parent = Post.where(:user_id => self.user_id, :public_id => item['post'], :version => item['version']).first
-          Parent.create(
-            :post_id => self.id,
-            :parent_post_id => _parent ? _parent.id : nil,
-            :version => item['version'],
-            :post => item['post']
-          )
-        end
+        PostBuilder.create_version_parents(self, version_parents)
       end
 
       def version_as_json(options = {})
