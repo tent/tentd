@@ -5,11 +5,13 @@ module TentD
       plugin :serialization
       serialize_attributes :json, :remote_credentials
 
+      attr_writer :post, :credentials_post, :meta_post
+
       def self.create_initial(current_user, target_entity)
         type, base_type = Type.find_or_create("https://tent.io/types/relationship/v0#initial")
         published_at_timestamp = TentD::Utils.timestamp
 
-        post = Post.create(
+        attrs = {
           :user_id => current_user.id,
           :entity_id => current_user.entity_id,
           :entity => current_user.entity,
@@ -25,15 +27,26 @@ module TentD
           :mentions => [
             { "entity" => target_entity }
           ]
-        )
+        }
 
-        Mention.create(
+        post = Post.create(attrs)
+        post.create_mentions(attrs[:mentions])
+
+        credentials_post = Model::Credentials.generate(current_user, post)
+
+        relationship = create(
           :user_id => current_user.id,
+          :entity_id => Entity.first_or_create(target_entity).id,
+          :entity => target_entity,
           :post_id => post.id,
-          :entity_id => Entity.first_or_create(target_entity).id
+          :type_id => post.type_id,
+          :credentials_post_id => credentials_post.id,
         )
 
-        post
+        relationship.post = post
+        relationship.credentials_post = credentials_post
+
+        relationship
       end
 
       def self.create_final(current_user, parts = {})
@@ -67,20 +80,21 @@ module TentD
           'post' => remote_relationship[:id]
         }]
 
-        @post = Post.create(attrs)
-        @post.create_mentions(attrs[:mentions])
+        post = Post.create(attrs)
+        post.create_mentions(attrs[:mentions])
 
-        @credentials_post = Model::Credentials.generate(current_user, @post)
+        credentials_post = Model::Credentials.generate(current_user, post)
 
         remote_entity_id = Entity.first_or_create(remote_entity).id
 
         relationship = create(
           :user_id => current_user.id,
           :entity_id => remote_entity_id,
-          :post_id => @post.id,
-          :type_id => @post.type_id,
+          :entity => remote_entity,
+          :post_id => post.id,
+          :type_id => post.type_id,
           :meta_post_id => remote_meta_post.id,
-          :credentials_post_id => @credentials_post.id,
+          :credentials_post_id => credentials_post.id,
 
           :remote_credentials_id => remote_credentials[:id], # for easy lookup
           :remote_credentials => {
@@ -90,7 +104,11 @@ module TentD
           }
         )
 
-        @post.queue_delivery
+        relationship.post = post
+        relationship.credentials_post = credentials_post
+        relationship.meta_post = remote_meta_post
+
+        post.queue_delivery
 
         relationship
       end
