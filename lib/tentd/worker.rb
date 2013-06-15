@@ -5,7 +5,7 @@ module TentD
 
     def self.configure_client(redis_opts = {}, &block)
       Sidekiq.configure_client do |config|
-        config.redis = { :namespace => 'tentd.worker', :size => 1, :url => ENV['REDIS_URL'] }.merge(redis_opts)
+        config.redis = { :namespace => ENV['REDIS_NAMESPACE'] || 'tentd.worker', :size => 1, :url => ENV['REDIS_URL'] }.merge(redis_opts)
         yield(config) if block_given?
       end
     end
@@ -13,7 +13,7 @@ module TentD
     def self.configure_server(redis_opts = {}, &block)
       TentD.setup_database!
       Sidekiq.configure_server do |config|
-        config.redis = { :namespace => 'tentd.worker', :url => ENV['REDIS_URL'] }.merge(redis_opts)
+        config.redis = { :namespace => ENV['REDIS_NAMESPACE'] || 'tentd.worker', :url => ENV['REDIS_URL'] }.merge(redis_opts)
         yield(config) if block_given?
       end
     end
@@ -22,6 +22,7 @@ module TentD
       sidekiq_pid = fork do
         begin
           require 'sidekiq/cli'
+          require 'tentd'
 
           STDOUT.reopen(ENV['SIDEKIQ_LOG'] || STDOUT)
           STDERR.reopen(ENV['SIDEKIQ_LOG'] || STDERR)

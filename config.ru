@@ -4,9 +4,6 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'bundler/setup'
 
 if !ENV['RUN_SIDEKIQ'].nil?
-  # load sidekiq config
-  require './sidekiq'
-
   # run sidekiq server
   require 'tentd/worker'
   sidekiq_pid = TentD::Worker.run_server
