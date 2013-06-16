@@ -32,10 +32,8 @@ module TentD
         ).where(
           Sequel.|({ :type_id => [post.type_id, post.type_base_id] }, { :type => 'all' })
         ).where(
-          Sequel.~(:relationship_id => nil)
-        ).where(
           Sequel.~(:subscriber_entity_id => post.entity_id)
-        )
+        ).qualify.join(:relationships, :relationships__entity_id => :subscriptions__subscriber_entity_id)
 
         logger.info "#{subscriptions.sql}"
 
@@ -48,7 +46,7 @@ module TentD
 
         # queue delivery for each subscription
         subscriptions.each do |subscription|
-          NotificationDeliverer.perform_async(post_id, subscription.entity, subscription.relationship_id)
+          NotificationDeliverer.perform_async(post_id, subscription.entity, subscription.entity_id)
         end
 
         # exclude entities matching a subscription

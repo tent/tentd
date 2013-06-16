@@ -114,8 +114,6 @@ module TentD
         relationship.credentials_post = credentials_post
         relationship.meta_post = remote_meta_post
 
-        relationship.link_subscriptions
-
         post.queue_delivery
 
         relationship
@@ -146,14 +144,6 @@ module TentD
         self.type_id = type.id
 
         save
-      end
-
-      def link_subscriptions
-        Subscription.where(
-          :user_id => user_id,
-          :subscriber_entity_id => entity_id,
-          :relationship_id => nil
-        ).update(:relationship_id => self.id)
       end
     end
 

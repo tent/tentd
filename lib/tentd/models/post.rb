@@ -93,7 +93,7 @@ module TentD
         obj.delete(:message) if obj[:message].nil?
         obj.delete(:received_at) if obj[:received_at].nil?
 
-        if obj[:parents]
+        if obj[:parents] && !options[:delivery]
           obj[:parents].each do |parent|
             parent.delete('post') if parent['post'] == self.public_id
           end

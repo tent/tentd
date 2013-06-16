@@ -137,16 +137,16 @@ module TentD
 
         if TentType.new(env['data']['type']).base == %(https://tent.io/types/subscription)
           if options[:notification]
-            subscription = Subscription.create_from_notification(env['current_user'], attrs)
+            subscription = Subscription.create_from_notification(env['current_user'], attrs, env['current_auth.resource'])
             post = subscription.post
           else
             subscription = Subscription.find_or_create(attrs)
             post = subscription.post
-          end
 
-          unless subscription.relationship_id
-            # this will happen as part of the relaitonship init job
-            options[:deliver_notification] = false
+            if subscription.deliver == false
+              # this will happen as part of the relaitonship init job
+              options[:deliver_notification] = false
+            end
           end
         else
           post = Post.create(attrs)

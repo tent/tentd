@@ -26,7 +26,7 @@ module TentD
         unless relationship
           logger.info "Relationship(#{user_id}, #{target_entity_id}) already exists"
 
-          queue_post_delivery(deliver_post_id, target_entity) if deliver_post_id
+          queue_post_delivery(deliver_post_id, target_entity, target_entity_id) if deliver_post_id
 
           return
         end
@@ -149,16 +149,16 @@ module TentD
         relationship.finalize
 
         ##
-        # Update existing subscription posts
-        relationship.link_subscriptions
+        # Deliver relationship post
+        NotificationDeliverer.perform_async(relationship.post_id, target_entity, target_entity_id)
 
         ##
         # Deliver dependent post
-        NotificationDeliverer.perform_async(deliver_post_id, target_entity, relationship.id)
+        NotificationDeliverer.perform_async(deliver_post_id, target_entity, target_entity_id)
       rescue InitiationFailure
         # something went wrong, queue deliver_post_id
         if deliver_post_id
-          queue_post_delivery(deliver_post_id, target_entity, relationship ? relationship.id : nil)
+          queue_post_delivery(deliver_post_id, target_entity, target_entity_id)
         end
 
         # re-raise error
@@ -179,10 +179,10 @@ module TentD
         Model::Post.create(attrs)
       end
 
-      def queue_post_delivery(post_id, entity, relationship_id = nil)
-        logger.info "Queuing Post(#{post_id}) for delivery" if post_id
+      def queue_post_delivery(post_id, entity, entity_id)
+        logger.info "Queuing Post(#{post_id}) for delivery"
 
-        NotificationDeliverer.perform_in(5, post_id, entity, relationship_id)
+        NotificationDeliverer.perform_in(5, post_id, entity, entity_id)
       end
     end
 

@@ -11,16 +11,17 @@ module TentD
 
       MAX_RELATIONSHIP_RETRY = 10.freeze
 
-      def perform(post_id, entity, relationship_id=nil, relationship_retry = nil)
+      def perform(post_id, entity, entity_id=nil, relationship_retry = nil)
         unless post = Model::Post.where(:id => post_id).first
           logger.info "#{post_id} deleted"
           return
         end
 
-        unless relationship_id && (relationship = Model::Relationship.where(:id => relationship_id).first)
+        unless entity_id
           entity_id = Model::Entity.first_or_create(entity).id
-          relationship = Model::Relationship.where(:user_id => post.user_id, :entity_id => entity_id).first
         end
+
+        relationship = Model::Relationship.where(:user_id => post.user_id, :entity_id => entity_id).first
 
         unless relationship && relationship.remote_credentials_id
           logger.error "Failed to deliver Post(#{post_id}) to Entity(#{entity}), No viable relationship exists."
@@ -35,8 +36,7 @@ module TentD
             # slowly backoff (1, 2, 5, 10, 17, 26, 37, 50, 65, 82, and 101 seconds)
             delay = 1 + (relationship_retry['retries'] ** 2)
             relationship_retry['retries'] += 1
-            relationship_id = relationship.id if relationship
-            NotificationDeliverer.perform_in(delay, post_id, entity, relationship_id, relationship_retry)
+            NotificationDeliverer.perform_in(delay, post_id, entity, entity_id, relationship_retry)
             return
           end
         end
@@ -48,7 +48,7 @@ module TentD
 
         current_user = Model::User.where(:id => post.user_id).first
 
-        res = client.post.update(post.entity, post.public_id, post.as_json, {}, :notification => true)
+        res = client.post.update(post.entity, post.public_id, post.as_json(:delivery => true), {}, :notification => true)
 
         unless res.status == 200
           # TODO: create/update delivery failure post
