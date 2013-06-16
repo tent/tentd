@@ -37,7 +37,7 @@ module TentD
         unless res.status == 200
           # TODO: create/update delivery failure post
 
-          raise DeliveryFailure.new("Failed deliver post(id: #{post.id})!")
+          raise DeliveryFailure.new("Failed deliver post(id: #{post.id}) via #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}\nREQUEST_BODY: #{post.as_json.inspect}\n\nRESPONSE_BODY: #{res.body.inspect}")
         end
       end
 
