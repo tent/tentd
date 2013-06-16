@@ -7,7 +7,7 @@ module TentD
 
       attr_writer :post, :credentials_post, :meta_post
 
-      def self.create_initial(current_user, target_entity)
+      def self.create_initial(current_user, target_entity, relationship = nil)
         type, base_type = Type.find_or_create("https://tent.io/types/relationship/v0#initial")
         published_at_timestamp = TentD::Utils.timestamp
 
@@ -34,14 +34,20 @@ module TentD
 
         credentials_post = Model::Credentials.generate(current_user, post)
 
-        relationship = create(
+        relationship_attrs = {
           :user_id => current_user.id,
           :entity_id => Entity.first_or_create(target_entity).id,
           :entity => target_entity,
           :post_id => post.id,
           :type_id => post.type_id,
           :credentials_post_id => credentials_post.id,
-        )
+        }
+
+        if relationship
+          relationship.update(relationship_attrs)
+        else
+          relationship = create(relationship_attrs)
+        end
 
         relationship.post = post
         relationship.credentials_post = credentials_post
@@ -107,6 +113,8 @@ module TentD
         relationship.post = post
         relationship.credentials_post = credentials_post
         relationship.meta_post = remote_meta_post
+
+        relationship.link_subscriptions
 
         post.queue_delivery
 

@@ -6,23 +6,36 @@ module TentD
 
       sidekiq_options :retry => 10
 
-      DiscoveryFailure = Class.new(StandardError)
-      DeliveryFailure = Class.new(StandardError)
-      InvalidResponse = Class.new(StandardError)
+      InitiationFailure = Class.new(StandardError)
+      DiscoveryFailure = Class.new(InitiationFailure)
+      DeliveryFailure = Class.new(InitiationFailure)
+      InvalidResponse = Class.new(InitiationFailure)
 
-      def perform(user_id, target_entity_id)
-        # already in progress
-        return if Model::Relationship.where(:user_id => user_id, :entity_id => target_entity_id).first
-
+      def perform(user_id, target_entity_id, deliver_post_id=nil)
+        # user no longer exists, abort
         return unless current_user = Model::User.where(:id => user_id).first
-        return unless entity_model = Model::Entity.where(:id => target_entity_id).first
-        target_entity = entity_model.entity
+
+        target_entity = Model::Entity.where(:id => target_entity_id).first.entity
+
+        relationship = begin
+          Model::Relationship.create(:user_id => user_id, :entity_id => target_entity_id)
+        rescue Sequel::UniqueConstraintViolation
+        end
+
+        # already created
+        unless relationship
+          logger.info "Relationship(#{user_id}, #{target_entity_id}) already exists"
+
+          queue_post_delivery(deliver_post_id, target_entity) if deliver_post_id
+
+          return
+        end
 
         ##
         # Create relationship#initial post with credentials
         ##
 
-        relationship = Model::Relationship.create_initial(current_user, target_entity)
+        Model::Relationship.create_initial(current_user, target_entity, relationship)
 
         relationship_data = relationship.post.as_json
         credentials_post = relationship.credentials_post
@@ -138,6 +151,18 @@ module TentD
         ##
         # Update existing subscription posts
         relationship.link_subscriptions
+
+        ##
+        # Deliver dependent post
+        NotificationDeliverer.perform_async(deliver_post_id, target_entity, relationship.id)
+      rescue InitiationFailure
+        # something went wrong, queue deliver_post_id
+        if deliver_post_id
+          queue_post_delivery(deliver_post_id, target_entity, relationship ? relationship.id : nil)
+        end
+
+        # re-raise error
+        raise
       end
 
       def retries_exhausted(user_id, target_entity_id)
@@ -152,6 +177,12 @@ module TentD
           'current_user' => current_user,
         }, { :entity => entity, :public_id => post['id'] })
         Model::Post.create(attrs)
+      end
+
+      def queue_post_delivery(post_id, entity, relationship_id = nil)
+        logger.info "Queuing Post(#{deliver_post_id}) for delivery" if post_id
+
+        NotificationDeliverer.perform_in(5, post_id, entity, relationship_id)
       end
     end
 

@@ -7,16 +7,23 @@ module TentD
       sidekiq_options :retry => 10
 
       DeliveryFailure = Class.new(StandardError)
+      RelationshipNotFound = Class.new(DeliveryFailure)
 
-      def perform(post_id, entity)
-        return unless post = Model::Post.where(:id => post_id).first
+      def perform(post_id, entity, relationship_id=nil)
+        unless post = Model::Post.where(:id => post_id).first
+          logger.info "#{post_id} deleted"
+          return
+        end
 
-        # only deliver relationship posts for now
-        return unless post.type == %(https://tent.io/types/relationship/v0#)
-        return unless mention = post.mentions.to_a.find { |m| m['entity'] == entity && m['type'] == %(https://tent.io/types/relationship/v0#initial) }
+        unless relationship_id && (relationship = Model::Relationship.where(:id => relationship_id).first)
+          entity_id = Model::Entity.first_or_create(entity).id
+          relationship = Model::Relationship.where(:user_id => post.user_id, :entity_id => entity_id).first
+        end
 
-        entity_id = Model::Entity.first_or_create(entity).id
-        return unless relationship = Model::Relationship.where(:user_id => post.user_id, :entity_id => entity_id).first
+        unless relationship && relationship.remote_credentials_id
+          logger.error "Failed to deliver Post(#{post_id}) to Entity(#{entity}), No viable relationship exists."
+          raise RelationshipNotFound.new("No viable Relationship(#{post.user_id}, #{entity_id})")
+        end
 
         client = TentClient.new(entity,
           :credentials => Utils::Hash.symbolize_keys(relationship.remote_credentials),
@@ -30,7 +37,7 @@ module TentD
         unless res.status == 200
           # TODO: create/update delivery failure post
 
-          # raise DeliveryFailure.new("Failed deliver post(id: #{post.id})!")
+          raise DeliveryFailure.new("Failed deliver post(id: #{post.id})!")
         end
       end
 
