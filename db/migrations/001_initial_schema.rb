@@ -145,7 +145,11 @@ Sequel.migration do
       foreign_key :user_id         , :users
       foreign_key :post_id         , :posts
       foreign_key :relationship_id , :relationships
-      foreign_key :type_id         , :types
+      foreign_key :entity_id       , :entities
+      foreign_key :type_id         , :types # null if type = 'all'
+
+      column :entity , "text"
+      column :type   , "text" # type uri or 'all'
 
       index [:user_id, :type_id], :name => :index_subscriptions_user_type
       index [:user_id, :relationship_id, :post_id, :type_id], :name => :unique_subscriptions, :unique => true

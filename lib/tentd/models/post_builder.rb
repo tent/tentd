@@ -135,7 +135,12 @@ module TentD
       def create_from_env(env, options = {})
         attrs = build_attributes(env, options)
 
-        post = Post.create(attrs)
+        if !options[:notification] && TentType.new(env['data']['type']).base == %(https://tent.io/types/subscription)
+          subscription = Subscription.find_or_create(attrs)
+          post = subscription.post
+        else
+          post = Post.create(attrs)
+        end
 
         if Array === env['data']['mentions']
           post.create_mentions(env['data']['mentions'])

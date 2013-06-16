@@ -20,6 +20,7 @@ module TentD
     require 'tentd/models/attachment'
     require 'tentd/models/posts_attachment'
     require 'tentd/models/relationship'
+    require 'tentd/models/subscription'
     require 'tentd/models/credentials'
     require 'tentd/models/mention'
 
