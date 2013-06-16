@@ -20,8 +20,6 @@ module TentD
 
         attrs = {
           :user_id => current_user.id,
-          :entity_id => current_user.entity_id,
-          :entity => current_user.entity,
 
           :type => type.type,
           :type_id => type.id,
@@ -34,6 +32,18 @@ module TentD
 
           :content => data['content'],
         }
+
+        if options[:entity]
+          attrs.merge!(
+            :entity_id => Entity.first_or_create(options[:entity]).id,
+            :entity => options[:entity]
+          )
+        else
+          attrs.merge!(
+            :entity_id => current_user.entity_id,
+            :entity => current_user.entity,
+          )
+        end
 
         if options[:public_id]
           attrs[:public_id] = options[:public_id]

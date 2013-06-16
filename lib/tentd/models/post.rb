@@ -65,7 +65,7 @@ module TentD
       end
 
       def self.import_notification(env)
-        create_version_from_env(env, :notification => true)
+        create_version_from_env(env, :notification => true, :entity => env['params']['entity'])
       end
 
       def create_attachments(attachments)
