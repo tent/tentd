@@ -180,7 +180,7 @@ module TentD
       end
 
       def queue_post_delivery(post_id, entity, relationship_id = nil)
-        logger.info "Queuing Post(#{deliver_post_id}) for delivery" if post_id
+        logger.info "Queuing Post(#{post_id}) for delivery" if post_id
 
         NotificationDeliverer.perform_in(5, post_id, entity, relationship_id)
       end
