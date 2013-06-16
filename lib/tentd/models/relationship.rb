@@ -140,8 +140,9 @@ module TentD
         post.type_id = type.id
         post.type_base_id = base_type.id
 
-        post.save_version(:public_id => post.public_id)
+        @post = post.save_version(:public_id => post.public_id)
 
+        self.post_id = post.id
         self.type_id = type.id
 
         save
