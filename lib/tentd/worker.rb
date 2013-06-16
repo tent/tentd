@@ -45,6 +45,7 @@ module TentD
       sidekiq_pid
     end
 
+    require 'tentd/worker/relationship_initiation'
     require 'tentd/worker/notification_dispatch'
     require 'tentd/worker/notification_deliverer'
 

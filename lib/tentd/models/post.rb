@@ -17,7 +17,7 @@ module TentD
         self.version = TentD::Utils.hex_digest(canonical_json)
       end
 
-      def save_version
+      def save_version(options = {})
         data = as_json
         data[:version] = {
           :parents => [
@@ -30,7 +30,7 @@ module TentD
           'current_user' => User.first(:id => user_id)
         }
 
-        self.class.create_from_env(env)
+        self.class.create_from_env(env, options)
       end
 
       def latest_version
@@ -56,8 +56,8 @@ module TentD
         self.public || self.permissions_entities.to_a.any? || self.permissions_groups.to_a.any?
       end
 
-      def self.create_from_env(env)
-        PostBuilder.create_from_env(env)
+      def self.create_from_env(env, options = {})
+        PostBuilder.create_from_env(env, options)
       end
 
       def self.create_version_from_env(env, options = {})

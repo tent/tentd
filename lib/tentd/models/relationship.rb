@@ -124,6 +124,28 @@ module TentD
       def meta_post
         @meta_post ||= Post.where(:id => self.meta_post_id).first
       end
+
+      def finalize
+        type, base_type = Type.find_or_create("https://tent.io/types/relationship/v0#")
+
+        post.type = type.type
+        post.type_id = type.id
+        post.type_base_id = base_type.id
+
+        post.save_version(:public_id => post.public_id)
+
+        self.type_id = type.id
+
+        save
+      end
+
+      def link_subscriptions
+        Subscription.where(
+          :user_id => user_id,
+          :entity_id => entity_id,
+          :relationship_id => nil
+        ).update(:relationship_id => self.id)
+      end
     end
 
   end
