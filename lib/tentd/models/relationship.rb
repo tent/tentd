@@ -150,7 +150,7 @@ module TentD
       def link_subscriptions
         Subscription.where(
           :user_id => user_id,
-          :entity_id => entity_id,
+          :subscriber_entity_id => entity_id,
           :relationship_id => nil
         ).update(:relationship_id => self.id)
       end
