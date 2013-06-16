@@ -118,7 +118,7 @@ module TentD
       end
 
       def parse_credentials_link
-        unless link = env['request.links'].find { |link| link[:rel] == CREDENTIALS_LINK_REL }
+        unless link = env['request.links'].to_a.find { |link| link[:rel] == CREDENTIALS_LINK_REL }
           halt!(400, "Expected link to credentials post!")
         end
 
