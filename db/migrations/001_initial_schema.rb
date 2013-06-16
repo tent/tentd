@@ -142,13 +142,14 @@ Sequel.migration do
 
     create_table(:subscriptions) do
       primary_key :id
-      foreign_key :user_id         , :users
-      foreign_key :post_id         , :posts
-      foreign_key :relationship_id , :relationships
-      foreign_key :entity_id       , :entities
-      foreign_key :type_id         , :types # null if type = 'all'
+      foreign_key :user_id              , :users
+      foreign_key :post_id              , :posts
+      foreign_key :subscriber_entity_id , :entities # entity of subscriber
+      foreign_key :relationship_id      , :relationships
+      foreign_key :entity_id            , :entities # entity subscribed to
+      foreign_key :type_id              , :types # null if type = 'all'
 
-      column :entity , "text"
+      column :entity , "text" # entity subscribed to
       column :type   , "text" # type uri or 'all'
 
       index [:user_id, :type_id], :name => :index_subscriptions_user_type
