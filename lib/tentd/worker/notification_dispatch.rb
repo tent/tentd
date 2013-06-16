@@ -55,8 +55,6 @@ module TentD
         # don't attempt to deliver notification to ourself
         mentioned_entities -= [post.entity]
 
-        # TODO: create relationship if none exists
-
         # queue delivery for each mentioned entity
         mentioned_entities.each do |entity|
           NotificationDeliverer.perform_async(post_id, entity)

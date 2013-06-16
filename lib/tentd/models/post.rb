@@ -57,6 +57,20 @@ module TentD
         self.public || self.permissions_entities.to_a.any? || self.permissions_groups.to_a.any?
       end
 
+      class << self
+        alias _create create
+        def create(attrs)
+          _create(attrs)
+        rescue Sequel::UniqueConstraintViolation => e
+          first(
+            :user_id => attrs[:user_id],
+            :entity_id => attrs[:entity_id],
+            :public_id => attrs[:public_id],
+            :version => attrs[:version]
+          )
+        end
+      end
+
       def self.create_from_env(env, options = {})
         PostBuilder.create_from_env(env, options)
       end

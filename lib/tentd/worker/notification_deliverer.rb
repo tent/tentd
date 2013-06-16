@@ -23,9 +23,7 @@ module TentD
 
         relationship = Model::Relationship.where(:user_id => post.user_id, :entity_id => entity_id).first
 
-        unless relationship && relationship.remote_credentials_id
-          logger.error "Failed to deliver Post(#{post_id}) to Entity(#{entity}), No viable relationship exists."
-
+        if relationship && !relationship.remote_credentials_id
           relationship_retry ||= { 'retries' => 0 }
 
           if relationship_retry['retries'] >= MAX_RELATIONSHIP_RETRY
@@ -35,10 +33,20 @@ module TentD
           else
             # slowly backoff (1, 2, 5, 10, 17, 26, 37, 50, 65, 82, and 101 seconds)
             delay = 1 + (relationship_retry['retries'] ** 2)
+
+            logger.warn "Failed to deliver Post(#{post_id}) to Entity(#{entity}), No viable relationship exists. Will retry in #{delay}s."
+
             relationship_retry['retries'] += 1
             NotificationDeliverer.perform_in(delay, post_id, entity, entity_id, relationship_retry)
             return
           end
+        end
+
+        unless relationship
+          logger.info "Creating relationship to deliver Post(#{post_id}) to Entity(#{entity})."
+
+          RelationshipInitiation.perform_async(post.user_id, entity_id, post_id)
+          return
         end
 
         client = TentClient.new(entity,
