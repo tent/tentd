@@ -23,7 +23,7 @@ DATABASE_URL=postgres://localhost/tentd bundle exec rake db:migrate
 ### Running Server
 
 ```bash
-bundle exec puma
+bundle exec unicorn
 ```
 
 ### Running Sidekiq
@@ -35,7 +35,17 @@ bundle exec sidekiq -r ./sidekiq.rb
 or
 
 ```bash
-RUN_SIDEKIQ=true bundle exec puma
+RUN_SIDEKIQ=true bundle exec unicorn
+```
+
+### Heroku
+
+```bash
+heroku create --addons heroku-postgresql:dev
+heroku pg:promote $(heroku pg | head -1 | cut -f2 -d" ")
+heroku config:add TENT_ENTITY=$(heroku info -s | grep web_url | cut -f2 -d"=" | sed 's/http/https/')
+git push heroku master
+heroku run rake db:migrate
 ```
 
 ## Testing
