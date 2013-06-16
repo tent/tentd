@@ -9,7 +9,9 @@ module TentD
       DeliveryFailure = Class.new(StandardError)
       RelationshipNotFound = Class.new(DeliveryFailure)
 
-      def perform(post_id, entity, relationship_id=nil)
+      MAX_RELATIONSHIP_RETRY = 10.freeze
+
+      def perform(post_id, entity, relationship_id=nil, relationship_retry = nil)
         unless post = Model::Post.where(:id => post_id).first
           logger.info "#{post_id} deleted"
           return
@@ -22,7 +24,21 @@ module TentD
 
         unless relationship && relationship.remote_credentials_id
           logger.error "Failed to deliver Post(#{post_id}) to Entity(#{entity}), No viable relationship exists."
-          raise RelationshipNotFound.new("No viable Relationship(#{post.user_id}, #{entity_id})")
+
+          relationship_retry ||= { 'retries' => 0 }
+
+          if relationship_retry['retries'] >= MAX_RELATIONSHIP_RETRY
+            # no viable relationship after 396 seconds
+            # raise error and let sidekiq take over with a more aggressive backoff
+            raise RelationshipNotFound.new("No viable Relationship(#{post.user_id}, #{entity_id})")
+          else
+            # slowly backoff (1, 2, 5, 10, 17, 26, 37, 50, 65, 82, and 101 seconds)
+            delay = 1 + (relationship_retry['retries'] ** 2)
+            relationship_retry['retries'] += 1
+            relationship_id = relationship.id if relationship
+            NotificationDeliverer.perform_in(delay, post_id, entity, relationship_id, relationship_retry)
+            return
+          end
         end
 
         client = TentClient.new(entity,
