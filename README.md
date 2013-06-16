@@ -58,6 +58,7 @@ name                             | required | description
 -------------------------------- | -------- | -----------
 TEST_DATABASE_URL                | Required | URL of postgres database.
 TEST_VALIDATOR_TEND_DATABASE_URL | Required | URL of postgres database.
+REDIS_URL                        | Optional | Defaults to `redis://localhost:6379/0`. A redis server is required.
 
 ### Running Tests
 
