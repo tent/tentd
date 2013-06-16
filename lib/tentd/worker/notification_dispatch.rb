@@ -54,6 +54,9 @@ module TentD
         # exclude entities matching a subscription
         mentioned_entities -= subscriptions.map(&:entity)
 
+        # don't attempt to deliver notification to ourself
+        mentioned_entities -= [post.entity]
+
         # TODO: create relationship if none exists
 
         # queue delivery for each mentioned entity
