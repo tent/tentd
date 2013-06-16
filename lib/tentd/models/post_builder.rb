@@ -135,9 +135,19 @@ module TentD
       def create_from_env(env, options = {})
         attrs = build_attributes(env, options)
 
-        if !options[:notification] && TentType.new(env['data']['type']).base == %(https://tent.io/types/subscription)
-          subscription = Subscription.find_or_create(attrs)
-          post = subscription.post
+        if TentType.new(env['data']['type']).base == %(https://tent.io/types/subscription)
+          if options[:notification]
+            subscription = Subscription.create_from_notification(env['current_user'], attrs)
+            post = subscription.post
+          else
+            subscription = Subscription.find_or_create(attrs)
+            post = subscription.post
+          end
+
+          unless subscription.relationship_id
+            # this will happen as part of the relaitonship init job
+            options[:deliver_notification] = false
+          end
         else
           post = Post.create(attrs)
         end
@@ -166,7 +176,7 @@ module TentD
           post.create_version_parents(attrs[:version_parents])
         end
 
-        unless options[:notification]
+        if !options[:notification] && options[:deliver_notification] != false
           post.queue_delivery
         end
 
