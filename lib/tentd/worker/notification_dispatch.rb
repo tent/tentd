@@ -24,12 +24,39 @@ module TentD
           # TODO: permissions.groups
         end
 
-        # TODO: subscriptions
+        # Lookup all subscriptions linked to a relationship
+        # where the type matches post.type
+        # and someone other than us created the subscription
+        subscriptions = Model::Subscription.where(
+          :user_id => post.user_id
+        ).where(
+          Sequel.|({ :type_id => [post.type_id, post.type_base_id] }, { :type => 'all' })
+        ).where(
+          Sequel.~(:relationship_id => nil)
+        ).where(
+          Sequel.~(:subscriber_entity_id => post.entity_id)
+        )
 
-        # TODO: relationship lookup / create
+        logger.info "#{subscriptions.sql}"
 
-        return if mentioned_entities.empty?
+        subscriptions = subscriptions.all.to_a
 
+        logger.info "Found #{subscriptions.size} subscriptions for #{post_id}"
+
+        # get rid of duplicates
+        subscriptions.uniq! { |s| s.relationship_id }
+
+        # queue delivery for each subscription
+        subscriptions.each do |subscription|
+          NotificationDeliverer.perform_async(post_id, subscription.entity, subscription.relationship_id)
+        end
+
+        # exclude entities matching a subscription
+        mentioned_entities -= subscriptions.map(&:entity)
+
+        # TODO: create relationship if none exists
+
+        # queue delivery for each mentioned entity
         mentioned_entities.each do |entity|
           NotificationDeliverer.perform_async(post_id, entity)
         end
