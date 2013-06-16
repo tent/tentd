@@ -108,3 +108,7 @@ end
 ```
 
 *Note that blocks are called after calling `config.redis = options` (see `lib/tentd/worker.rb`)*
+
+## Contributing
+
+- Refactor. The current code was hacked together quickly and is pretty ugly.
