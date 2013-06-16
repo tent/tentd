@@ -137,7 +137,7 @@ Sequel.migration do
       column :remote_credentials    , "text" # serialized json, used to sign outgoing requests
 
       index [:user_id, :type_id], :name => :index_relationships_user_type
-      index [:user_id, :post_id], :name => :unique_relationships, :unique => true
+      index [:user_id, :entity_id], :name => :unique_relationships, :unique => true
     end
 
     create_table(:subscriptions) do
