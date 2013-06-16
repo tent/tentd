@@ -19,6 +19,7 @@ module TentD
           subscription = create(
             :user_id => post.user_id,
             :post_id => post.id,
+            :subscriber_entity_id => post.entity_id,
             :entity_id => target_entity_id,
             :entity => target_entity,
             :relationship_id => (existing_relationship ? existing_relationship.id : nil),
@@ -27,7 +28,7 @@ module TentD
           )
 
           unless existing_relationship
-            Worker::RelationshipInitiation.perform_async(post.user_id, target_entity_id)
+            Worker::RelationshipInitiation.perform_async(post.user_id, target_entity_id, subscription.post_id)
           end
 
           subscription.post = post
