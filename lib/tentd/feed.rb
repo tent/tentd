@@ -257,6 +257,10 @@ module TentD
         res[:refs] = Refs.fetch(env['current_user'], *_models, params['max_refs'].to_i).map { |m| m.as_json(:env => env) }
       end
 
+      if params['profiles']
+        res[:profiles] = API::MetaProfile.new(env['current_user'].id, _models).profiles(params['profiles'].split(','))
+      end
+
       res
     end
   end
