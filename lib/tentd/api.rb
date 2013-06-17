@@ -70,7 +70,7 @@ module TentD
 
         q = Query.new(Model::Post)
 
-        q.select_columns = %w( posts.entity posts.public_id posts.type mentions.public )
+        q.select_columns = %w( posts.entity posts.entity_id posts.public_id posts.type mentions.public )
 
         q.query_conditions << "posts.user_id = ?"
         q.query_bindings << env['current_user'].id
@@ -101,6 +101,12 @@ module TentD
             m
           }
         }
+
+        if env['params']['profiles']
+          env['response'][:profiles] = MetaProfile.new(env['current_user'].id, posts).profiles(
+            env['params']['profiles'].split(',') & ['entity']
+          )
+        end
 
         env['response.headers'] = {}
         env['response.headers']['Content-Type'] = MENTIONS_CONTENT_TYPE
