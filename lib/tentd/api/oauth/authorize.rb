@@ -31,6 +31,7 @@ module TentD
 
           hawk_key = credentials_post.content['hawk_key']
           code_param = "code=#{URI.encode_www_form_component(hawk_key)}"
+          code_param += "&state=#{env['params']['state']}" if env['params']['state']
           redirect_uri = URI(app_post.content['redirect_uri'])
           redirect_uri.query ? redirect_uri.query << "&#{code_param}" : redirect_uri.query = code_param
 
