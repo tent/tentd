@@ -23,6 +23,7 @@ module TentD
 
       def next_posts_exist?
         return false unless feed.models.any?
+        return false if feed.params['since'].to_s == '0'
 
         if feed.params['since']
           params = base_params.dup
