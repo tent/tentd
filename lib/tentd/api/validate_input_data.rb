@@ -16,16 +16,23 @@ module TentD
       private
 
       def validate_post!(env)
-        invalid_attributes! if env['data'].has_key?('content') && !(Hash === env['data']['content'])
-        invalid_attributes! unless env['data'].has_key?('type')
+        if env['data'].has_key?('content') && !(Hash === env['data']['content'])
+          halt!(400, "Malformed content: #{encode(env['data']['content']).inspect}") 
+        end
 
-        env['data.valid?'] = SchemaValidator.validate(env['data']['type'], env['data'])
-        invalid_attributes! if env['data.valid?'] == false
+        unless env['data'].has_key?('type')
+          halt!(400, "Type not specified: #{encode(env['data']).inspect}")
+        end
+
+        diff = SchemaValidator.diff(env['data']['type'], env['data'])
+        if diff.any?
+          halt!(400, "Invalid Attributes", :diff => diff)
+        end
       end
 
       def validate_attachments!(env)
         return unless env['attachments']
-        invalid_attributes! unless Array === env['attachments']
+        halt!(400, "Malformed Request") unless Array === env['attachments']
 
         env['attachments'].each do |attachment|
           validate_attachment_hash!(attachment)
@@ -36,7 +43,14 @@ module TentD
         return unless attachment[:headers].has_key?(ATTACHMENT_DIGEST_HEADER)
 
         digest = TentD::Utils.hex_digest(attachment[:tempfile])
-        invalid_attributes! unless digest == attachment[:headers][ATTACHMENT_DIGEST_HEADER]
+
+        unless digest == attachment[:headers][ATTACHMENT_DIGEST_HEADER]
+          halt!(400, "Attachment digest mismatch: #{digest}")
+        end
+      end
+
+      def encode(data)
+        Yajl::Encoder.encode(data)
       end
     end
 

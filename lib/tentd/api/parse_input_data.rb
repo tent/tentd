@@ -32,7 +32,7 @@ module TentD
         env
 
       rescue Yajl::ParseError
-        invalid_attributes!
+        halt!(400, "Invalid JSON")
       end
 
       private

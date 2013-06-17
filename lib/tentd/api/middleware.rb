@@ -22,14 +22,6 @@ module TentD
         Yajl::Encoder.encode(data)
       end
 
-      def invalid_attributes!
-        halt!(400, "Invalid Attributes")
-      end
-
-      def malformed_request!
-        halt!(400, "Malformed Request")
-      end
-
       def halt!(status, message, attributes = {})
         raise Halt.new(status, message, attributes)
       end
