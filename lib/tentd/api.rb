@@ -163,6 +163,12 @@ module TentD
           :versions => children.map { |post| post.version_as_json(:env => env).merge(:type => post.type) }
         }
 
+        if env['params']['profiles']
+          env['response'][:profiles] = MetaProfile.new(env['current_user'].id, children).profiles(
+            env['params']['profiles'].split(',') & ['entity']
+          )
+        end
+
         env['response.headers'] = {}
         env['response.headers']['Content-Type'] = CHILDREN_CONTENT_TYPE
 
