@@ -54,11 +54,15 @@ module TentD
         return unless tent_type.base
 
         unless base_type = where(:base => tent_type.base, :fragment => nil).first
-          base_type = create(
-            :base => tent_type.base,
-            :version => tent_type.version,
-            :fragment => nil
-          )
+          begin
+            base_type = create(
+              :base => tent_type.base,
+              :version => tent_type.version,
+              :fragment => nil
+            )
+          rescue Sequel::UniqueConstraintViolation
+            where(:base => tent_type.base, :fragment => nil, :version => tent_type.version).first
+          end
         end
 
         base_type
@@ -71,11 +75,15 @@ module TentD
         return unless tent_type.base
 
         unless type = where(:base => tent_type.base, :fragment => fragment).first
-          type = create(
-            :base => tent_type.base,
-            :version => tent_type.version,
-            :fragment => fragment
-          )
+          begin
+            type = create(
+              :base => tent_type.base,
+              :version => tent_type.version,
+              :fragment => fragment
+            )
+          rescue Sequel::UniqueConstraintViolation
+            where(:base => tent_type.base, :fragment => fragment, :version => tent_type.version).first
+          end
         end
 
         type
