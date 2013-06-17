@@ -34,6 +34,8 @@ module TentD
     require 'tentd/api/notification_importer'
     require 'tentd/api/oauth'
 
+    require 'tentd/api/meta_profile'
+
     include Rack::Putty::Router
 
     stack_base SerializeResponse
@@ -267,28 +269,7 @@ module TentD
         end
 
         if params['profiles']
-          entity_ids = params['profiles'].split(',').inject([]) do |memo, specifier|
-            case specifier
-            when 'entity'
-              memo << post.entity_id
-            when 'mentions'
-              _entities = post.mentions.to_a.map { |m| m['entity'] || post.entity }
-              _entity_ids = Model::Entity.select(:id).where(:entity => _entities.uniq).all.to_a.map(&:id)
-              memo += _entity_ids
-            end
-
-            memo
-          end
-
-          meta_type = Model::Type.find_or_create_full("https://tent.io/types/meta/v0#")
-          env['response'][:profiles] = Model::Post.where(
-            :user_id => env['current_user'].id,
-            :type_id => meta_type.id,
-            :entity_id => entity_ids.uniq
-          ).order(:public_id, Sequel.desc(:version_received_at)).distinct(:public_id).all.to_a.inject({}) { |memo, post|
-            memo[post.entity] = post.content['profile']
-            memo
-          }
+          env['response'][:profiles] = MetaProfile.new(env['current_user'].id, [post]).profiles(params['profiles'].split(','))
         end
 
         env['response.headers'] ||= {}
