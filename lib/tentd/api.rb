@@ -271,6 +271,10 @@ module TentD
             case specifier
             when 'entity'
               memo << post.entity_id
+            when 'mentions'
+              _entities = post.mentions.to_a.map { |m| m['entity'] || post.entity }
+              _entity_ids = Model::Entity.select(:id).where(:entity => _entities.uniq).all.to_a.map(&:id)
+              memo += _entity_ids
             end
 
             memo
