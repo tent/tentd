@@ -361,7 +361,7 @@ module TentD
         end
 
         env['response'] = attachment.data.lit
-        (env['response.headers'] ||= {})['Content-Length'] = attachment.data.bytesize
+        (env['response.headers'] ||= {})['Content-Length'] = attachment.data.bytesize.to_s
         env['response.headers']['Content-Type'] = post_attachment.content_type
         env
       end
