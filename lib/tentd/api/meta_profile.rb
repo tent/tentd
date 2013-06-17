@@ -23,12 +23,18 @@ module TentD
           :type_id => meta_type_id,
           :entity_id => _entity_ids
         ).order(:public_id, Sequel.desc(:version_received_at)).distinct(:public_id).all.to_a.inject({}) { |memo, post|
-          memo[post.entity] = post.content['profile']
+          memo[post.entity] = profile_as_json(post)
           memo
         }
       end
 
       private
+
+      def profile_as_json(post)
+        data = post.content['profile']
+        data['avatar_digest'] = post.attachments.first['digest'] if post.attachments.to_a.any?
+        data
+      end
 
       def meta_type_id
         self.class.meta_type_id
