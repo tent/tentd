@@ -266,6 +266,27 @@ module TentD
           env['response'][:refs] = Refs.fetch(env['current_user'], post, params['max_refs'].to_i).map { |m| m.as_json(:env => env) }
         end
 
+        if params['profiles']
+          entity_ids = params['profiles'].split(',').inject([]) do |memo, specifier|
+            case specifier
+            when 'entity'
+              memo << post.entity_id
+            end
+
+            memo
+          end
+
+          meta_type = Model::Type.find_or_create_full("https://tent.io/types/meta/v0#")
+          env['response'][:profiles] = Model::Post.where(
+            :user_id => env['current_user'].id,
+            :type_id => meta_type.id,
+            :entity_id => entity_ids.uniq
+          ).order(:public_id, Sequel.desc(:version_received_at)).distinct(:public_id).all.to_a.inject({}) { |memo, post|
+            memo[post.entity] = post.content['profile']
+            memo
+          }
+        end
+
         env['response.headers'] ||= {}
         env['response.headers']['Content-Type'] = POST_CONTENT_TYPE % post.type
 
