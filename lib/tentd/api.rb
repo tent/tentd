@@ -21,7 +21,9 @@ module TentD
     VERSIONS_CONTENT_TYPE = %(application/vnd.tent.post-versions.v0+json).freeze
 
     require 'tentd/api/serialize_response'
+    require 'tentd/api/cors_headers'
     require 'tentd/api/middleware'
+    require 'tentd/api/user_lookup'
     require 'tentd/api/user_lookup'
     require 'tentd/api/authentication'
     require 'tentd/api/authorization'
@@ -40,6 +42,7 @@ module TentD
 
     stack_base SerializeResponse
 
+    middleware CorsHeaders
     middleware UserLookup
     middleware Authentication
     middleware Authorization
@@ -442,6 +445,10 @@ module TentD
 
     head '/' do |b|
       b.use HelloWorld
+    end
+
+    options %r{/.*} do |b|
+      b.use CorsPreflight
     end
 
     post '/posts' do |b|
