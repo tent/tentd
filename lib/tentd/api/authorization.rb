@@ -18,7 +18,10 @@ module TentD
           end
           return env unless mention
 
-          resource = Model::Post.first(:user_id => env['current_user'].id, :public_id => mention['post'])
+          resource = Model::Post.where(
+            :user_id => env['current_user'].id,
+            :public_id => mention['post']
+          ).order(Sequel.desc(:version_received_at)).first
           return env unless resource
 
           env['current_auth.resource'] = resource
