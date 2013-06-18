@@ -120,6 +120,10 @@ module TentD
         env['response.headers'] = {}
         env['response.headers']['Content-Type'] = MENTIONS_CONTENT_TYPE
 
+        if env['REQUEST_METHOD'] == 'HEAD'
+          env['response.headers']['Count'] = q.count.to_s
+        end
+
         env
       end
     end
@@ -187,6 +191,10 @@ module TentD
         env['response.headers'] = {}
         env['response.headers']['Content-Type'] = CHILDREN_CONTENT_TYPE
 
+        if env['REQUEST_METHOD'] == 'HEAD'
+          env['response.headers']['Count'] = q.count.to_s
+        end
+
         env
       end
     end
@@ -251,6 +259,10 @@ module TentD
 
         env['response.headers'] = {}
         env['response.headers']['Content-Type'] = VERSIONS_CONTENT_TYPE
+
+        if env['REQUEST_METHOD'] == 'HEAD'
+          env['response.headers']['Count'] = q.count.to_s
+        end
 
         env
       end
