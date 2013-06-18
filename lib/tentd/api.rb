@@ -67,6 +67,12 @@ module TentD
       end
     end
 
+    class NotFound < Middleware
+      def action(env)
+        halt!(404, "Not Found")
+      end
+    end
+
     class ListPostMentions < Middleware
       def action(env)
         ref_post = env.delete('response.post')
@@ -486,6 +492,10 @@ module TentD
 
     post '/oauth/token' do |b|
       b.use OAuth::Token
+    end
+
+    match %r{/.*} do |b|
+      b.use NotFound
     end
 
   end
