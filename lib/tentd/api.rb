@@ -63,7 +63,7 @@ module TentD
           'Link' => %(<#{meta_post_url}>; rel="https://tent.io/rels/meta-post")
         }
 
-        [200, headers, []]
+        [200, headers, ['Tent!']]
       end
     end
 
@@ -449,7 +449,7 @@ module TentD
       end
     end
 
-    head '/' do |b|
+    match '/' do |b|
       b.use HelloWorld
     end
 
