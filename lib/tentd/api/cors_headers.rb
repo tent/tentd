@@ -6,7 +6,7 @@ module TentD
         'Access-Control-Allow-Origin' => '*',
         'Access-Control-Allow-Methods' => 'GET, POST, HEAD, PUT, DELETE, PATCH, OPTIONS',
         'Access-Control-Allow-Headers' => 'Content-Type, Accept, Authorization',
-        'Access-Control-Expose-Headers' => 'Count, Link, Server-Authorization',
+        'Access-Control-Expose-Headers' => 'Count, Link, Server-Authorization, Content-Type',
         'Access-Control-Max-Age' => '2592000' # 30 days
       }.freeze
 
