@@ -59,23 +59,33 @@ module TentD
     end
 
     def to_sql(options = {})
-      q = ["SELECT #{options[:select_columns] || select_columns} FROM #{table_name}"].concat(joins)
+      if options[:count]
+        q = ["SELECT COUNT(#{options[:select_columns] || select_columns}) AS tally FROM #{table_name}"].concat(joins)
+      else
+        q = ["SELECT #{options[:select_columns] || select_columns} FROM #{table_name}"].concat(joins)
+      end
 
       if query_conditions.any?
         q << "WHERE #{build_query_conditions(options)}"
       end
 
-      if sort_columns
-        if reverse_sort
-          q << "ORDER BY #{sort_columns.gsub("DESC", "ASC")}"
-        else
-          q << "ORDER BY #{sort_columns}"
+      unless options[:count]
+        if sort_columns
+          if reverse_sort
+            q << "ORDER BY #{sort_columns.gsub("DESC", "ASC")}"
+          else
+            q << "ORDER BY #{sort_columns}"
+          end
         end
+
+        q << "LIMIT #{options[:limit] || limit.to_i}" if limit
       end
 
-      q << "LIMIT #{options[:limit] || limit.to_i}" if limit
-
       q.join(' ')
+    end
+
+    def count
+      model.with_sql(to_sql(:select_columns => "#{table_name}.id", :count => true), *query_bindings).to_a.first[:tally]
     end
 
     def any?

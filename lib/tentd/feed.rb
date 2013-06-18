@@ -227,6 +227,10 @@ module TentD
       q
     end
 
+    def count
+      build_query.count
+    end
+
     def fetch_query
       @models = build_query.all
 
