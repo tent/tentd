@@ -80,6 +80,8 @@ module TentD
                 attrs[:permissions_entities] = data['permissions']['entities']
               end
             end
+          else
+            attrs[:public] = true
           end
         end
 
