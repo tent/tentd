@@ -15,6 +15,8 @@ module TentD
       def before_create
         self.public_id ||= TentD::Utils.random_id
         self.version = TentD::Utils.hex_digest(canonical_json)
+        self.received_at ||= TentD::Utils.timestamp
+        self.version_received_at ||= TentD::Utils.timestamp
       end
 
       def save_version(options = {})

@@ -17,6 +17,7 @@ module TentD
           :type_base_id => base_type.id,
 
           :version_published_at => published_at_timestamp,
+          :version_received_at => published_at_timestamp,
           :published_at => published_at_timestamp,
           :received_at => published_at_timestamp,
 
