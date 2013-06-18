@@ -148,8 +148,9 @@ Sequel.migration do
       foreign_key :entity_id            , :entities # entity subscribed to
       foreign_key :type_id              , :types # null if type = 'all'
 
-      column :entity , "text" # entity subscribed to
-      column :type   , "text" # type uri or 'all'
+      column :subscriber_entity , "text" # entity of subscriber
+      column :entity            , "text" # entity subscribed to
+      column :type              , "text" # type uri or 'all'
 
       index [:user_id, :type_id], :name => :index_subscriptions_user_type
       index [:user_id, :post_id, :type_id], :name => :unique_subscriptions, :unique => true

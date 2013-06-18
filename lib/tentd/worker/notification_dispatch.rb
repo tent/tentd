@@ -46,7 +46,7 @@ module TentD
 
         # queue delivery for each subscription
         subscriptions.each do |subscription|
-          NotificationDeliverer.perform_async(post_id, subscription.entity, subscription.entity_id)
+          NotificationDeliverer.perform_async(post_id, subscription.subscriber_entity, subscription.subscriber_entity_id)
         end
 
         # exclude entities matching a subscription

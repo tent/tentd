@@ -19,6 +19,7 @@ module TentD
             :user_id => post.user_id,
             :post_id => post.id,
             :subscriber_entity_id => post.entity_id,
+            :subscriber_entity => post.entity,
             :entity_id => target_entity_id,
             :entity => target_entity,
             :type_id => (type ? type.id : nil), # nil if 'all'
@@ -43,22 +44,23 @@ module TentD
         end
 
         unless subscription = where(:user_id => current_user.id, :type => post_attrs[:content]['type']).first
-          type = Type.find_or_create_full(post_attrs[:content]['type'])
           post = Post.create(post_attrs)
 
           # Don't create a subscription record if we're not the target
-          if target_entity == current_user.entity
+          unless target_entity == current_user.entity
             subscription = new
             subscription.post = post
             return subscription
           end
 
+          type = Type.find_or_create_full(post_attrs[:content]['type'])
           target_entity_id = current_user.entity_id
 
           subscription = create(
             :user_id => post.user_id,
             :post_id => post.id,
             :subscriber_entity_id => post.entity_id,
+            :subscriber_entity => post.entity,
             :entity_id => target_entity_id,
             :entity => target_entity,
             :type_id => (type ? type.id : nil), # nil if 'all'
