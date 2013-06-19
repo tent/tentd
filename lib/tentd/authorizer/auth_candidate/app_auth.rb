@@ -22,6 +22,10 @@ module TentD
           entity == current_user.entity
         end
 
+        def write_post?(post)
+          write_type?(post.type)
+        end
+
         def write_types
           resource.content['post_types']['write'].to_a
         end

@@ -268,7 +268,7 @@ module TentD
       end
     end
 
-    class GetPost < Middleware
+    class LookupPost < Middleware
       def action(env)
         params = env['params']
 
@@ -278,15 +278,23 @@ module TentD
           env['response.post'] = post = Model::Post.where(:public_id => params[:post], :entity => params[:entity]).order(Sequel.desc(:version_received_at)).first
         end
 
-        halt!(404, "Not Found") unless post && Authorizer.new(env).read_authorized?(post)
+        env
+      end
+    end
 
-        case env['HTTP_ACCEPT']
-        when MENTIONS_CONTENT_TYPE
-          return ListPostMentions.new(@app).call(env)
-        when CHILDREN_CONTENT_TYPE
-          return ListPostChildren.new(@app).call(env)
-        when VERSIONS_CONTENT_TYPE
-          return ListPostVersions.new(@app).call(env)
+    class GetPost < Middleware
+      def action(env)
+        if post = env['response.post']
+          halt!(404, "Not Found") unless post && Authorizer.new(env).read_authorized?(post)
+
+          case env['HTTP_ACCEPT']
+          when MENTIONS_CONTENT_TYPE
+            return ListPostMentions.new(@app).call(env)
+          when CHILDREN_CONTENT_TYPE
+            return ListPostChildren.new(@app).call(env)
+          when VERSIONS_CONTENT_TYPE
+            return ListPostVersions.new(@app).call(env)
+          end
         end
 
         env
@@ -454,6 +462,24 @@ module TentD
       end
     end
 
+    class DeletePost < Middleware
+      def action(env)
+        return env unless post = env['response.post']
+
+        if Authorizer.new(env).write_post?(post)
+          post.destroy
+        else
+          if post.public
+            halt!(403, "Unauthorized")
+          else
+            halt!(404, "Not Found")
+          end
+        end
+
+        env
+      end
+    end
+
     class PostsFeed < Middleware
       def action(env)
         feed = Feed.new(env)
@@ -483,6 +509,7 @@ module TentD
     end
 
     get '/posts/:entity/:post' do |b|
+      b.use LookupPost
       b.use GetPost
       b.use ServePost
     end
@@ -492,7 +519,14 @@ module TentD
       b.use ServePost
     end
 
+    delete '/posts/:entity/:post' do |b|
+      b.use LookupPost
+      b.use DeletePost
+      b.use ServePost
+    end
+
     get '/posts/:entity/:post/attachments/:name' do |b|
+      b.use LookupPost
       b.use GetPost
       b.use AttachmentRedirect
     end

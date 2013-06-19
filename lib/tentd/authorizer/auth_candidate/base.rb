@@ -32,6 +32,10 @@ module TentD
           false
         end
 
+        def write_post?(post)
+          false
+        end
+
         def write_all_types?
           false
         end
