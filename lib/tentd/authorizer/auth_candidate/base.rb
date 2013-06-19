@@ -44,6 +44,10 @@ module TentD
           false
         end
 
+        def has_scope?(scope)
+          false
+        end
+
         private
 
         def type_authorized?(type_uri, authorized_type_uris)

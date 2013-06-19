@@ -33,7 +33,12 @@ module TentD
           :content => data['content'],
         }
 
-        if options[:entity]
+        if options[:import]
+          attrs.merge!(
+            :entity_id => Entity.first_or_create(data['entity']).id,
+            :entity => data['entity']
+          )
+        elsif options[:entity]
           attrs.merge!(
             :entity_id => Entity.first_or_create(options[:entity]).id,
             :entity => options[:entity]
@@ -195,7 +200,7 @@ module TentD
           post.create_version_parents(attrs[:version_parents])
         end
 
-        if !options[:notification] && options[:deliver_notification] != false
+        if !options[:notification] && !options[:import] && options[:deliver_notification] != false
           post.queue_delivery
         end
 

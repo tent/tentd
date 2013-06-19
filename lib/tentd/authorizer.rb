@@ -60,7 +60,11 @@ module TentD
       # Credentials aren't linked to a valid resource
       return false unless auth_candidate
 
-      auth_candidate.write_entity?(entity) && auth_candidate.write_type?(post_type)
+      if env['request.import']
+        auth_candidate.has_scope?('import') && auth_candidate.write_type?(post_type)
+      else
+        auth_candidate.write_entity?(entity) && auth_candidate.write_type?(post_type)
+      end
     end
   end
 

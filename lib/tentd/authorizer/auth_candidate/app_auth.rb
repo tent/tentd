@@ -38,6 +38,14 @@ module TentD
           return true if write_all_types?
           type_authorized?(type_uri, write_types)
         end
+
+        def scopes
+          resource.content['scopes'].to_a
+        end
+
+        def has_scope?(scope)
+          scopes.include?(scope.to_s)
+        end
       end
 
     end

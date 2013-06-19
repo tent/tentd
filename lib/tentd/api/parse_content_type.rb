@@ -19,6 +19,8 @@ module TentD
         case env['request.rel']
         when "https://tent.io/rels/notification"
           env['request.notification'] = true
+        when "https://tent.io/rels/import"
+          env['request.import'] = true
         end
 
         ##

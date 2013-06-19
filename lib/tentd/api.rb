@@ -456,8 +456,11 @@ module TentD
             end
           end
 
+          create_options = {}
+          create_options[:import] = true if env['request.import']
+
           begin
-            env['response.post'] = Model::Post.create_version_from_env(env)
+            env['response.post'] = Model::Post.create_version_from_env(env, create_options)
           rescue Model::Post::CreateFailure => e
             halt!(400, e.message)
           end
