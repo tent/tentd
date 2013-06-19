@@ -27,4 +27,10 @@ namespace :db do
 
     %x{dropdb #{opts} #{dbname}}
   end
+
+  task :setup => [:create, :migrate] do
+  end
+
+  task :reset => [:drop, :setup] do
+  end
 end
