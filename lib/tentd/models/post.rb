@@ -90,7 +90,9 @@ module TentD
       end
 
       def destroy(options = {})
-        if options.delete(:create_delete_post)
+        _id = self.id
+
+        _res = if options.delete(:create_delete_post)
           if super(options)
             PostBuilder.create_delete_post(self)
           else
@@ -99,6 +101,17 @@ module TentD
         else
           super(options)
         end
+
+        if _res
+          # delete all parents and children
+          children = Post.qualify.join(:parents, :parents__post_id => :posts__id).where(:parents__parent_post_id => _id).all.to_a
+          parents = Post.qualify.join(:parents, :parents__parent_post_id => :posts__id).where(:parents__post_id => _id).all.to_a
+          Parent.where(Sequel.|(:post_id => _id, :parent_post_id => _id)).destroy
+          children.each { |child| child.destroy(options) }
+          parents.each { |child| child.destroy(options) }
+        end
+
+        _res
       end
 
       def user
