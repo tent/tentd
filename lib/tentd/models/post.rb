@@ -12,6 +12,8 @@ module TentD
       serialize_attributes :pg_array, :permissions_entities, :permissions_groups
       serialize_attributes :json, :mentions, :refs, :attachments, :version_parents, :licenses, :content
 
+      attr_writer :user
+
       def before_create
         self.public_id ||= TentD::Utils.random_id
         self.version = TentD::Utils.hex_digest(canonical_json)
@@ -83,6 +85,22 @@ module TentD
 
       def self.import_notification(env)
         create_version_from_env(env, :notification => true, :entity => env['params']['entity'])
+      end
+
+      def destroy(options = {})
+        if options.delete(:create_delete_post)
+          if super(options)
+            PostBuilder.create_delete_post(self)
+          else
+            false
+          end
+        else
+          super(options)
+        end
+      end
+
+      def user
+        @user ||= User.where(:id => self.user_id).first
       end
 
       def create_attachments(attachments)

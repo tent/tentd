@@ -139,6 +139,18 @@ module TentD
         attrs
       end
 
+      def create_delete_post(post)
+        create_from_env(
+          'current_user' => post.user,
+          'data' => {
+            'type' => 'https://tent.io/types/delete/v0#',
+            'refs' => [
+              { 'entity' => post.entity, 'post' => post.public_id }
+            ]
+          }
+        )
+      end
+
       def create_from_env(env, options = {})
         attrs = build_attributes(env, options)
 

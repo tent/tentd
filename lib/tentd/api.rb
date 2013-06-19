@@ -311,12 +311,14 @@ module TentD
           :post => post.as_json(:env => env)
         }
 
-        if params['max_refs']
-          env['response'][:refs] = Refs.fetch(env['current_user'], post, params['max_refs'].to_i).map { |m| m.as_json(:env => env) }
-        end
+        if env['REQUEST_METHOD'] == 'GET'
+          if params['max_refs']
+            env['response'][:refs] = Refs.fetch(env['current_user'], post, params['max_refs'].to_i).map { |m| m.as_json(:env => env) }
+          end
 
-        if params['profiles']
-          env['response'][:profiles] = MetaProfile.new(env['current_user'].id, [post]).profiles(params['profiles'].split(','))
+          if params['profiles']
+            env['response'][:profiles] = MetaProfile.new(env['current_user'].id, [post]).profiles(params['profiles'].split(','))
+          end
         end
 
         env['response.headers'] ||= {}
@@ -464,10 +466,23 @@ module TentD
 
     class DeletePost < Middleware
       def action(env)
-        return env unless post = env['response.post']
+        return env unless post = env.delete('response.post')
 
         if Authorizer.new(env).write_post?(post)
-          post.destroy
+          if env['HTTP_CREATE_DELETE_POST'] != "false"
+            post.user = env['current_user'] if post.user_id == env['current_user'].id # spare db lookup
+            if delete_post = post.destroy(:create_delete_post => true)
+              env['response.post'] = delete_post
+            else
+              halt!(500, "Internal Server Error")
+            end
+          else
+            if post.destroy
+              env['response.status'] = 200
+            else
+              halt!(500, "Internal Server Error")
+            end
+          end
         else
           if post.public
             halt!(403, "Unauthorized")
