@@ -24,6 +24,10 @@ module TentD
           false
         end
 
+        def read_entity?(entity_uri)
+          false
+        end
+
         def write_types
           []
         end

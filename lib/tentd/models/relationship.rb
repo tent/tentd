@@ -134,6 +134,13 @@ module TentD
         @meta_post ||= Post.where(:id => self.meta_post_id).first
       end
 
+      def client(options = {})
+        TentClient.new(self.entity, options.merge(
+          :credentials => Utils::Hash.symbolize_keys(self.remote_credentials),
+          :server_meta => Utils::Hash.stringify_keys(self.meta_post.as_json)
+        ))
+      end
+
       def finalize
         type, base_type = Type.find_or_create("https://tent.io/types/relationship/v0#")
 

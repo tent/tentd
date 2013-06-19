@@ -271,14 +271,66 @@ module TentD
       end
     end
 
+    class AuthorizeGetEntity < Middleware
+      def action(env)
+        entity = env['params'][:entity]
+        unless entity == env['current_user'].entity
+          auth_candidate = Authorizer.new(env).auth_candidate
+          halt!(404, "Not Found") unless auth_candidate && auth_candidate.read_entity?(entity)
+        end
+
+        env
+      end
+    end
+
     class LookupPost < Middleware
       def action(env)
         params = env['params']
 
-        if params['version'] && params['version'] != 'latest'
-          env['response.post'] = post = Model::Post.first(:public_id => params[:post], :entity => params[:entity], :version => params['version'])
+        _should_proxy = if (params[:entity] == env['current_user'].entity) || (env['REQUEST_METHOD'] != 'GET')
+          :never
         else
-          env['response.post'] = post = Model::Post.where(:public_id => params[:post], :entity => params[:entity]).order(Sequel.desc(:version_received_at)).first
+          case env['HTTP_CACHE_CONTROL']
+          when 'no-cache'
+            :always
+          when 'proxy-if-miss'
+            :on_miss
+          else # 'only-if-cached' (default)
+            :never
+          end
+        end
+
+        post = unless _should_proxy == :always
+          if params['version'] && params['version'] != 'latest'
+            Model::Post.first(:public_id => params[:post], :entity => params[:entity], :version => params['version'])
+          else
+            Model::Post.where(:public_id => params[:post], :entity => params[:entity]).order(Sequel.desc(:version_received_at)).first
+          end
+        end
+
+        if !post && _should_proxy != :never
+          # proxy request
+          proxy_client = if relationship = Model::Relationship.where(
+            :user_id => env['current_user'].id,
+            :entity => params[:entity],
+          ).where(Sequel.~(:remote_credentials_id => nil)).first
+            relationship.client(:skip_response_serialization => true)
+          else
+            TentClient.new(params[:entity], :skip_response_serialization => true)
+          end
+
+          begin
+            res = proxy_client.post.get(params[:entity], params[:post])
+
+            body = res.body.respond_to?(:each) ? res.body : [res.body]
+            return [res.status, res.headers, body]
+          rescue Faraday::Error::TimeoutError
+            halt!(504, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
+          rescue Faraday::Error::ConnectionFailed
+            halt!(502, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
+          end
+        else
+          env['response.post'] = post
         end
 
         env
@@ -531,6 +583,7 @@ module TentD
     end
 
     get '/posts/:entity/:post' do |b|
+      b.use AuthorizeGetEntity
       b.use LookupPost
       b.use GetPost
       b.use ServePost

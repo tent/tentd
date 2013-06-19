@@ -16,6 +16,10 @@ module TentD
           read_types.any? { |t| t == 'all' }
         end
 
+        def read_entity?(entity)
+          true
+        end
+
         def write_entity?(entity)
           return true if entity.nil? # entity not included in request body
           return true if resource.content['scopes'].to_a.find { |s| s == 'import' }
