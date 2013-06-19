@@ -4,7 +4,7 @@ module TentD
     class CorsHeaders
       HEADERS = {
         'Access-Control-Allow-Origin' => '*',
-        'Access-Control-Allow-Headers' => 'Server-Authorization, Count, ETag, Link',
+        'Access-Control-Expose-Headers' => 'Content-Type, Count, ETag, Link, Server-Authorization, WWW-Authenticate',
         'Access-Control-Max-Age' => '2592000' # 30 days
       }.freeze
 
