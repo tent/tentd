@@ -50,10 +50,7 @@ module TentD
           return
         end
 
-        client = TentClient.new(entity,
-          :credentials => Utils::Hash.symbolize_keys(relationship.remote_credentials),
-          :server_meta => Utils::Hash.stringify_keys(relationship.meta_post.as_json)
-        )
+        client = relationship.client
 
         current_user = Model::User.where(:id => post.user_id).first
 
