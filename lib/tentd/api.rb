@@ -471,7 +471,8 @@ module TentD
       def action(env)
         return env unless post = env.delete('response.post')
 
-        if Authorizer.new(env).write_post?(post)
+        authorizer = Authorizer.new(env)
+        if authorizer.write_post?(post)
           if env['HTTP_CREATE_DELETE_POST'] != "false"
             post.user = env['current_user'] if post.user_id == env['current_user'].id # spare db lookup
             if delete_post = post.destroy(:create_delete_post => true)
@@ -487,7 +488,7 @@ module TentD
             end
           end
         else
-          if post.public
+          if authorizer.read_authorized?(post)
             halt!(403, "Unauthorized")
           else
             halt!(404, "Not Found")

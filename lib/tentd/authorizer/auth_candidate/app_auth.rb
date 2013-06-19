@@ -9,7 +9,7 @@ module TentD
 
         def read_type?(type_uri)
           return true if read_all_types?
-          type_authorized?(type_uri, read_types)
+          type_authorized?(type_uri, read_types) || write_type?(type_uri)
         end
 
         def read_all_types?
