@@ -2,6 +2,7 @@ module TentD
   module Model
 
     class Type < Sequel::Model(TentD.database[:types])
+      plugin :paranoia if Model.soft_delete
 
       def self.find_or_create(type_uri)
         base_type = find_or_create_base(type_uri)

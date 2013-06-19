@@ -32,6 +32,8 @@ module TentD
     end
 
     require 'tentd/model'
+
+    Model.soft_delete = ENV['SOFT_DELETE'].to_s != 'false'
   end
 
   def self.database

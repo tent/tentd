@@ -2,6 +2,8 @@ module TentD
   module Model
 
     class Attachment < Sequel::Model(TentD.database[:attachments])
+      plugin :paranoia if Model.soft_delete
+
       def self.find_or_create(attrs)
         create(attrs)
       rescue Sequel::UniqueConstraintViolation => e

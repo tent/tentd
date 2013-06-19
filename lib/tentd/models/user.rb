@@ -5,6 +5,8 @@ module TentD
       plugin :serialization
       serialize_attributes :json, :server_credentials
 
+      plugin :paranoia if Model.soft_delete
+
       def self.create(attrs)
         entity = Entity.first_or_create(attrs[:entity])
         user = super(attrs.merge(

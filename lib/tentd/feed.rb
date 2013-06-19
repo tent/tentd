@@ -73,6 +73,7 @@ module TentD
 
     def _build_query(params)
       q = Query.new(Model::Post)
+      q.deleted_at_table_names = %w( posts )
 
       # TODO: handle sort columns/order better
       sort_columns = case params['sort_by']
@@ -176,6 +177,7 @@ module TentD
       if params['mentions']
         mentions_table = Model::Mention.table_name
         q.join("INNER JOIN #{mentions_table} ON #{mentions_table}.post_id = #{q.table_name}.id")
+        q.deleted_at_table_names << 'mentions'
 
         mentions = Array(params['mentions']).map do |mentions_param|
           mentions_param.split(',').map do |mention|

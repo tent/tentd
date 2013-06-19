@@ -1,5 +1,6 @@
 require 'sequel-json'
 require 'sequel-pg_array'
+require 'tentd/sequel/plugins/paranoia'
 
 module TentD
   module Model
@@ -7,6 +8,14 @@ module TentD
     NoDatabaseError = Class.new(StandardError)
     unless TentD.database
       raise NoDatabaseError.new("You need to set ENV['DATABASE_URL'] or pass database_url option to TentD.setup!")
+    end
+
+    class << self
+      attr_writer :soft_delete
+    end
+
+    def self.soft_delete
+      @soft_delete.nil? ? true : @soft_delete
     end
 
     require 'tentd/models/type'

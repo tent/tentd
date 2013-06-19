@@ -5,6 +5,8 @@ module TentD
       plugin :serialization
       serialize_attributes :json, :remote_credentials
 
+      plugin :paranoia if Model.soft_delete
+
       attr_writer :post, :credentials_post, :meta_post
 
       def self.create_initial(current_user, target_entity, relationship = nil)

@@ -2,12 +2,13 @@ module TentD
 
   class Query
     attr_reader :model, :table_name, :select_columns, :joins, :sort_columns, :query_conditions, :query_bindings
-    attr_accessor :limit, :reverse_sort
+    attr_accessor :limit, :reverse_sort, :deleted_at_table_names
     def initialize(model)
       @model = model
       @table_name = model.table_name
       @query_conditions = []
       @query_bindings = []
+      @deleted_at_table_names = [table_name]
 
       @select_columns = "#{table_name}.*"
       @joins = []
@@ -65,8 +66,18 @@ module TentD
         q = ["SELECT #{options[:select_columns] || select_columns} FROM #{table_name}"].concat(joins)
       end
 
+      _deleted_at_conditions = if Model.soft_delete && deleted_at_table_names.any?
+        deleted_at_table_names.uniq.map { |t| "#{t}.deleted_at IS NULL" }.join(" AND ")
+      end
+
       if query_conditions.any?
-        q << "WHERE #{build_query_conditions(options)}"
+        if _deleted_at_conditions
+          q << "WHERE #{build_query_conditions(options)} AND #{_deleted_at_conditions}"
+        else
+          q << "WHERE #{build_query_conditions(options)}"
+        end
+      elsif _deleted_at_conditions
+        q << "WHERE #{_deleted_at_conditions}"
       end
 
       unless options[:count]

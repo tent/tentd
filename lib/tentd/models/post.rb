@@ -12,6 +12,8 @@ module TentD
       serialize_attributes :pg_array, :permissions_entities, :permissions_groups
       serialize_attributes :json, :mentions, :refs, :attachments, :version_parents, :licenses, :content
 
+      plugin :paranoia if Model.soft_delete
+
       attr_writer :user
 
       def before_create

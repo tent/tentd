@@ -5,6 +5,8 @@ module TentD
       plugin :serialization
       serialize_attributes :pg_array, :read_post_types, :read_post_type_ids, :write_post_types, :scopes
 
+      plugin :paranoia if Model.soft_delete
+
       def self.find_by_client_id(current_user, client_id)
         qualify.join(:posts, :posts__id => :apps__post_id).where(:posts__user_id => current_user.id, :posts__public_id => client_id).first
       end

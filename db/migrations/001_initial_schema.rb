@@ -19,7 +19,8 @@ Sequel.migration do
     create_table(:entities) do
       primary_key :id
 
-      column :entity, "text", :null => false
+      column :entity     , "text"   , :null => false
+      column :deleted_at , "timestamp without time zone"
 
       index [:entity], :name => :unique_entities, :unique => true
     end
@@ -27,9 +28,10 @@ Sequel.migration do
     create_table(:types) do
       primary_key :id
 
-      column :base     , "text" , :null => false
-      column :version  , "text" , :null => false
-      column :fragment , "text"
+      column :base       , "text"   , :null => false
+      column :version    , "text"   , :null => false
+      column :fragment   , "text"
+      column :deleted_at , "timestamp without time zone"
 
       index [:base, :version, :fragment], :name => :unique_types, :unique => true
     end
@@ -41,7 +43,8 @@ Sequel.migration do
       column :entity       , "text"   , :null => false # entities.entity
       column :meta_post_id , "bigint" # posts.id
 
-      column :server_credentials , "text" , :null => false
+      column :server_credentials , "text"   , :null => false
+      column :deleted_at         , "timestamp without time zone"
 
       index [:entity], :name => :unique_users, :unique => true
     end
@@ -63,9 +66,9 @@ Sequel.migration do
 
       column :published_at         , "bigint"                 , :null => false
       column :received_at          , "bigint"
-      column :deleted_at           , "bigint"
       column :version_published_at , "bigint"
       column :version_received_at  , "bigint"
+      column :deleted_at           , "timestamp without time zone"
 
       column :app_id               , "text"
       column :app_name             , "text"
@@ -98,6 +101,7 @@ Sequel.migration do
 
       column :version, "text"
       column :post, "text"
+      column :deleted_at , "timestamp without time zone"
 
       index [:post_id, :version, :post], :name => :unique_post_parents, :unique => true
     end
@@ -118,6 +122,7 @@ Sequel.migration do
       column :read_post_type_ids , "text[]" # auth_post.content.post_types.read ids
       column :write_post_types   , "text[]" # auth_post.content.post_types.write
       column :scopes             , "text[]" # auth_post.content.scopes
+      column :deleted_at         , "timestamp without time zone"
 
       index [:user_id, :auth_hawk_key], :name => :index_apps_user_auth_hawk_key
       index [:user_id, :post_id], :name => :unique_app, :unique => true
@@ -134,7 +139,8 @@ Sequel.migration do
 
       column :entity                , "text"
       column :remote_credentials_id , "text" # remote_credentials.id (public_id)
-      column :remote_credentials    , "text" # serialized json, used to sign outgoing requests
+      column :remote_credentials    , "text" # serialized as json (used to sign outgoing requests)
+      column :deleted_at            , "timestamp without time zone"
 
       index [:user_id, :type_id], :name => :index_relationships_user_type
       index [:user_id, :entity_id], :name => :unique_relationships, :unique => true
@@ -151,6 +157,7 @@ Sequel.migration do
       column :subscriber_entity , "text" # entity of subscriber
       column :entity            , "text" # entity subscribed to
       column :type              , "text" # type uri or 'all'
+      column :deleted_at        , "timestamp without time zone"
 
       index [:user_id, :type_id], :name => :index_subscriptions_user_type
       index [:user_id, :post_id, :type_id], :name => :unique_subscriptions, :unique => true
@@ -161,6 +168,8 @@ Sequel.migration do
       foreign_key :user_id , :users
       foreign_key :post_id , :posts
 
+      column :deleted_at , "timestamp without time zone"
+
       index [:user_id, :post_id], :name => :unique_groups, :unique => true
     end
 
@@ -170,10 +179,11 @@ Sequel.migration do
       foreign_key :entity_id , :entities
       foreign_key :type_id   , :types
 
-      column :type   , "text"
-      column :entity , "text"
-      column :post   , "text"
-      column :public , "boolean" , :default => true
+      column :type       , "text"
+      column :entity     , "text"
+      column :post       , "text"
+      column :public     , "boolean" , :default => true
+      column :deleted_at , "timestamp without time zone"
 
       index [:user_id, :post_id, :entity_id, :post], :name => :unique_mentions, :unique => true
     end
@@ -183,7 +193,8 @@ Sequel.migration do
       foreign_key :post_id   , :posts
       foreign_key :entity_id , :entities
 
-      column :post, "text"
+      column :post       , "text"
+      column :deleted_at , "timestamp without time zone"
 
       index [:user_id, :post_id, :entity_id, :post], :name => :unique_refs, :unique => true
     end
@@ -195,9 +206,10 @@ Sequel.migration do
     create_table(:attachments) do
       primary_key :id
 
-      column :digest       , "text"   , :null => false
-      column :size         , "bigint" , :null => false
-      column :data         , "bytea"  , :null => false
+      column :digest     , "text"   , :null => false
+      column :size       , "bigint" , :null => false
+      column :data       , "bytea"  , :null => false
+      column :deleted_at , "timestamp without time zone"
 
       index [:digest, :size], :name => :unique_attachments, :unique => true
     end
@@ -207,7 +219,8 @@ Sequel.migration do
       foreign_key :post_id       , :posts       , :on_delete => :cascade
       foreign_key :attachment_id , :attachments , :on_delete => :cascade
 
-      column :content_type , "text" , :null => false
+      column :content_type , "text"   , :null => false
+      column :deleted_at   , "timestamp without time zone"
 
       index [:post_id, :attachment_id, :content_type], :name => :unique_posts_attachments, :unique => true
     end
@@ -217,6 +230,8 @@ Sequel.migration do
       foreign_key :post_id   , :posts
       foreign_key :entity_id , :entities
       foreign_key :group_id  , :groups
+
+      column :deleted_at , "timestamp without time zone"
 
       index [:user_id, :post_id, :entity_id, :group_id], :name => :unique_permissions, :unique => true
     end

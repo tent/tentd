@@ -2,6 +2,8 @@ module TentD
   module Model
 
     class Subscription < Sequel::Model(TentD.database[:subscriptions])
+      plugin :paranoia if Model.soft_delete
+
       attr_writer :post
       attr_accessor :deliver
       def self.find_or_create(post_attrs)
