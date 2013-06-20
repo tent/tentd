@@ -70,8 +70,25 @@ module TentD
         meta_post
       end
 
+      def update_meta_post_id(meta_post)
+        return unless meta_post.entity_id == self.entity_id
+
+        self.update(:meta_post_id => meta_post.id)
+        @meta_post = meta_post
+      end
+
+      def reload
+        super
+        reload_meta_post
+        self
+      end
+
+      def reload_meta_post
+        @meta_post = Post.first(:id => self.meta_post_id)
+      end
+
       def meta_post
-        @meta_post ||= Post.first(:id => self.meta_post_id)
+        @meta_post || reload_meta_post
       end
 
       def preferred_server

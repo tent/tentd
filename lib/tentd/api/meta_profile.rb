@@ -9,6 +9,12 @@ module TentD
         @meta_type_id ||= Model::Type.find_or_create_full("https://tent.io/types/meta/v0#").id
       end
 
+      def self.profile_as_json(post)
+        data = post.content['profile']
+        data['avatar_digest'] = post.attachments.first['digest'] if post.attachments.to_a.any?
+        data
+      end
+
       attr_reader :current_user_id, :posts
       def initialize(current_user_id, posts)
         @current_user_id, @posts = current_user_id, posts

@@ -176,6 +176,11 @@ module TentD
           post = Post.create(attrs)
         end
 
+        if TentType.new(post.type).base == %(https://tent.io/types/meta)
+          env['current_user'].update_meta_post_id(post)
+          Relationship.update_meta_post_ids(post)
+        end
+
         if Array === env['data']['mentions']
           post.create_mentions(env['data']['mentions'])
         end

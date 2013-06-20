@@ -122,6 +122,10 @@ module TentD
         relationship
       end
 
+      def self.update_meta_post_ids(meta_post)
+        where(:user_id => meta_post.user_id, :entity_id => meta_post.entity_id).update(:meta_post_id => meta_post.id)
+      end
+
       def post
         @post ||= Post.where(:id => self.post_id).first
       end
