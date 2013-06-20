@@ -368,7 +368,7 @@ module TentD
 
         if env['REQUEST_METHOD'] == 'GET'
           if params['max_refs']
-            env['response'][:refs] = Refs.fetch(env['current_user'], post, params['max_refs'].to_i).map { |m| m.as_json(:env => env) }
+            env['response'][:refs] = Refs.new(env).fetch(post, params['max_refs'].to_i)
           end
 
           if params['profiles']

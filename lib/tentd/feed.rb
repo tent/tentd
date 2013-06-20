@@ -260,7 +260,7 @@ module TentD
       }
 
       if params['max_refs']
-        res[:refs] = Refs.fetch(env['current_user'], *_models, params['max_refs'].to_i).map { |m| m.as_json(:env => env) }
+        res[:refs] = Refs.new(env).fetch(*_models, params['max_refs'].to_i)
       end
 
       if params['profiles']
