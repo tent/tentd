@@ -10,44 +10,82 @@ module TentD
       end
 
       def self.profile_as_json(post)
-        data = post.content['profile']
+        return unless Hash === post.content['profile']
+        data = Utils::Hash.deep_dup(post.content['profile'])
         data['avatar_digest'] = post.attachments.first['digest'] if post.attachments.to_a.any?
         data
       end
 
-      attr_reader :current_user_id, :posts
-      def initialize(current_user_id, posts)
-        @current_user_id, @posts = current_user_id, posts
+      attr_reader :env, :posts
+      def initialize(env, posts)
+        @env, @posts = env, posts
       end
 
       def profiles(specifiers)
-        _entity_ids = entity_ids(specifiers)
+        _entities = entities(specifiers)
+        _entity_ids = entity_ids(_entities)
         return {} unless _entity_ids.any?
 
-        Model::Post.where(
-          :user_id => current_user_id,
-          :type_id => meta_type_id,
-          :entity_id => _entity_ids
-        ).order(:public_id, Sequel.desc(:version_received_at)).distinct(:public_id).all.to_a.inject({}) { |memo, post|
+        unless request_proxy_manager.proxy_condition == :always
+          models = Model::Post.where(
+            :user_id => current_user_id,
+            :type_id => meta_type_id,
+            :entity_id => _entity_ids
+          ).order(:public_id, Sequel.desc(:version_received_at)).distinct(:public_id).all.to_a
+
+          _entities -= models.map(&:entity)
+        else
+          models = []
+        end
+
+        unless request_proxy_manager.proxy_condition == :never
+          _meta_profiles = _entities.inject({}) do |memo, entity|
+            fetch_meta_profile(entity) do |meta_profile|
+              memo[entity] = meta_profile
+            end
+
+            memo
+          end
+        else
+          _meta_profiles = {}
+        end
+
+        models.inject(_meta_profiles) { |memo, post|
           memo[post.entity] = profile_as_json(post)
           memo
         }
       end
 
+      def profile_as_json(post)
+        self.class.profile_as_json(post)
+      end
+
       private
 
-      def profile_as_json(post)
-        data = post.content['profile']
-        data['avatar_digest'] = post.attachments.first['digest'] if post.attachments.to_a.any?
-        data
+      def fetch_meta_profile(entity, &block)
+        return unless meta_post = TentClient.new(entity).server_meta_post
+        return unless meta_profile = meta_post['content']['profile']
+
+        if meta_post['attachments'].to_a.any?
+          meta_profile['avatar_digest'] = meta_post['attachments'][0]['digest']
+        end
+
+        yield meta_profile
+      end
+
+      def current_user_id
+        @current_user_id = env['current_user'].id
+      end
+
+      def request_proxy_manager
+        @request_proxy_manager ||= env['request_proxy_manager']
       end
 
       def meta_type_id
         self.class.meta_type_id
       end
 
-      def entity_ids(specifiers)
-        _entities = entities(specifiers)
+      def entity_ids(_entities)
         return [] unless _entities.any?
 
         _entity_id_mapping = {}

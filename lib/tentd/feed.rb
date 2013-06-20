@@ -17,6 +17,15 @@ module TentD
       env['params']
     end
 
+    def authorizer
+      Authorizer.new(env)
+    end
+
+    def entities
+      return unless params['entities']
+      params['entities'].split(',').uniq.select { |entity| authorizer.read_entity?(entity) }
+    end
+
     def limit
       _limit = if params['limit']
         [params['limit'].to_i, MAX_PAGE_LIMIT].min
@@ -169,9 +178,9 @@ module TentD
         q.query_bindings << full_type_ids
       end
 
-      if params['entities']
+      if entities
         q.query_conditions << "entity IN ?"
-        q.query_bindings << params['entities'].split(',').uniq
+        q.query_bindings << entities
       end
 
       if params['mentions']
@@ -264,7 +273,7 @@ module TentD
       end
 
       if params['profiles']
-        res[:profiles] = API::MetaProfile.new(env['current_user'].id, _models).profiles(params['profiles'].split(','))
+        res[:profiles] = API::MetaProfile.new(env, _models).profiles(params['profiles'].split(','))
       end
 
       res

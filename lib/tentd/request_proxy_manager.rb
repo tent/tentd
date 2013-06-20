@@ -57,6 +57,8 @@ module TentD
     end
 
     def proxy_condition
+      return :never unless authorizer.proxy_authorized?
+
       case env['HTTP_CACHE_CONTROL']
       when 'no-cache'
         :always
@@ -65,6 +67,10 @@ module TentD
       else # 'only-if-cached' (default)
         :never
       end
+    end
+
+    def authorizer
+      @authorizer ||= Authorizer.new(env)
     end
 
     def current_user

@@ -121,7 +121,7 @@ module TentD
         }
 
         if env['params']['profiles']
-          env['response'][:profiles] = MetaProfile.new(env['current_user'].id, posts).profiles(
+          env['response'][:profiles] = MetaProfile.new(env, posts).profiles(
             env['params']['profiles'].split(',') & ['entity']
           )
         end
@@ -193,7 +193,7 @@ module TentD
         }
 
         if env['params']['profiles']
-          env['response'][:profiles] = MetaProfile.new(env['current_user'].id, children).profiles(
+          env['response'][:profiles] = MetaProfile.new(env, children).profiles(
             env['params']['profiles'].split(',') & ['entity']
           )
         end
@@ -263,7 +263,7 @@ module TentD
         }
 
         if env['params']['profiles']
-          env['response'][:profiles] = MetaProfile.new(env['current_user'].id, versions).profiles(
+          env['response'][:profiles] = MetaProfile.new(env, versions).profiles(
             env['params']['profiles'].split(',') & ['entity']
           )
         end
@@ -367,7 +367,7 @@ module TentD
           end
 
           if params['profiles']
-            env['response'][:profiles] = MetaProfile.new(env['current_user'].id, [post]).profiles(params['profiles'].split(','))
+            env['response'][:profiles] = MetaProfile.new(env, [post]).profiles(params['profiles'].split(','))
           end
         end
 

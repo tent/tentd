@@ -66,6 +66,32 @@ module TentD
         auth_candidate.write_entity?(entity) && auth_candidate.write_type?(post_type)
       end
     end
+
+    def proxy_authorized?
+      return false unless env['current_auth']
+
+      # Private server credentials have full authorization
+      return true if env['current_auth'][:credentials_resource] == env['current_user']
+
+      # Credentials aren't linked to a valid resource
+      return false unless auth_candidate
+
+      TentType.new(auth_candidate.resource.type).base == %(https://tent.io/types/app-auth)
+    end
+
+    def read_entity?(entity)
+      return true if entity == env['current_user'].entity
+
+      return false unless env['current_auth']
+
+      # Private server credentials have full authorization
+      return true if env['current_auth'][:credentials_resource] == env['current_user']
+
+      # Credentials aren't linked to a valid resource
+      return false unless auth_candidate
+
+      auth_candidate.read_entity?(entity)
+    end
   end
 
 end
