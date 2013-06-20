@@ -15,7 +15,7 @@ module TentD
           raise CreateFailure.new("Invalid type: #{data['type'].inspect}")
         end
 
-        received_at_timestamp = TentD::Utils.timestamp
+        received_at_timestamp = (options[:import] && data['received_at']) ? data['received_at'] : TentD::Utils.timestamp
         published_at_timestamp = (data['published_at'] || received_at_timestamp).to_i
 
         attrs = {
