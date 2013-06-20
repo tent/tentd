@@ -47,7 +47,7 @@ module TentD
       return [] if ref_conditions.empty?
       q.query_conditions << ["OR"].concat(ref_conditions)
 
-      unless proxy_condition == :always
+      unless request_proxy_manager.proxy_condition == :always
         reffed_posts = q.all.uniq
       else
         reffed_posts = []
@@ -64,7 +64,7 @@ module TentD
             end
           }
 
-          fetch_via_proxy(ref) do |post|
+          request_proxy_manager.get_post(ref['entity'], ref['post'], ref['version']) do |post|
             memo << post
           end
 
@@ -77,55 +77,15 @@ module TentD
       reffed_posts.map { |p| p.as_json(:env => env) } + foreign_refs
     end
 
-    def fetch_via_proxy(ref, &block)
-      return unless can_proxy?(ref['entity'])
-
-      client = proxy_client(ref['entity'])
-
-      params = {}
-      params[:version] = ref['version'] if ref['version']
-
-      res = client.post.get(ref['entity'], ref['post'], params)
-
-      if res.status == 200 && (Hash === res.body) && (Hash === res.body['post'])
-        yield Utils::Hash.symbolize_keys(res.body['post'])
-      end
-    rescue Faraday::Error::TimeoutError
-    rescue Faraday::Error::ConnectionFailed
-    end
-
     private
-
-    def can_proxy?(entity)
-      return false if entity == current_user.entity
-      proxy_condition != :never && can_read?(entity)
-    end
 
     def can_read?(entity)
       auth_candidate = Authorizer.new(env).auth_candidate
       auth_candidate && auth_candidate.read_entity?(entity)
     end
 
-    def proxy_client(entity)
-      @proxy_clients[entity] ||= if relationship = Model::Relationship.where(
-        :user_id => current_user.id,
-        :entity => entity,
-      ).where(Sequel.~(:remote_credentials_id => nil)).first
-        relationship.client
-      else
-        TentClient.new(entity)
-      end
-    end
-
-    def proxy_condition
-      case env['HTTP_CACHE_CONTROL']
-      when 'no-cache'
-        :always
-      when 'proxy-if-miss'
-        :on_miss
-      else # 'only-if-cached' (default)
-        :never
-      end
+    def request_proxy_manager
+      @request_proxy_manager ||= env['request_proxy_manager']
     end
 
     def current_user

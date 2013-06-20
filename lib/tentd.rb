@@ -20,6 +20,7 @@ module TentD
     require 'tentd/feed'
     require 'tentd/refs'
     require 'tentd/authorizer'
+    require 'tentd/request_proxy_manager'
     require 'tentd/api'
   end
 

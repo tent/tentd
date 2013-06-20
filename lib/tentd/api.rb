@@ -38,6 +38,13 @@ module TentD
 
     require 'tentd/api/meta_profile'
 
+    class SetRequestProxyManager < Middleware
+      def action(env)
+        env['request_proxy_manager'] = RequestProxyManager.new(env)
+        env
+      end
+    end
+
     include Rack::Putty::Router
 
     stack_base SerializeResponse
@@ -50,6 +57,7 @@ module TentD
     middleware ParseContentType
     middleware ParseLinkHeader
     middleware ValidateInputData
+    middleware SetRequestProxyManager
 
     class HelloWorld < Middleware
       def action(env)
@@ -286,21 +294,15 @@ module TentD
     class LookupPost < Middleware
       def action(env)
         params = env['params']
+        request_proxy_manager = env['request_proxy_manager']
 
-        _should_proxy = if (params[:entity] == env['current_user'].entity) || (env['REQUEST_METHOD'] != 'GET')
+        proxy_condition = if (params[:entity] == env['current_user'].entity) || (env['REQUEST_METHOD'] != 'GET')
           :never
         else
-          case env['HTTP_CACHE_CONTROL']
-          when 'no-cache'
-            :always
-          when 'proxy-if-miss'
-            :on_miss
-          else # 'only-if-cached' (default)
-            :never
-          end
+          request_proxy_manager.proxy_condition
         end
 
-        post = unless _should_proxy == :always
+        post = unless proxy_condition == :always
           if params['version'] && params['version'] != 'latest'
             Model::Post.first(:public_id => params[:post], :entity => params[:entity], :version => params['version'])
           else
@@ -308,16 +310,9 @@ module TentD
           end
         end
 
-        if !post && _should_proxy != :never
+        if !post && proxy_condition != :never
           # proxy request
-          proxy_client = if relationship = Model::Relationship.where(
-            :user_id => env['current_user'].id,
-            :entity => params[:entity],
-          ).where(Sequel.~(:remote_credentials_id => nil)).first
-            relationship.client(:skip_response_serialization => true)
-          else
-            TentClient.new(params[:entity], :skip_response_serialization => true)
-          end
+          proxy_client = request_proxy_manager.proxy_client(params[:entity], :skip_response_serialization => true)
 
           begin
             res = proxy_client.post.get(params[:entity], params[:post])
