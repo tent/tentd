@@ -62,7 +62,11 @@ module TentD
             end
 
             unless item['post']
-              raise CreateFailure.new("/version/parents/#{index}/post is required")
+              if options[:import]
+                item['post'] = attrs[:public_id]
+              else
+                raise CreateFailure.new("/version/parents/#{index}/post is required")
+              end
             end
           end
         elsif options[:version]
