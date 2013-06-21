@@ -62,6 +62,10 @@ module TentD
 
       private
 
+      def authorizer
+        @authorizer ||= Authorizer.new(env)
+      end
+
       def fetch_meta_profile(entity, &block)
         return unless meta_post = TentClient.new(entity).server_meta_post
         return unless meta_profile = meta_post['content']['profile']
@@ -110,6 +114,8 @@ module TentD
         return [] unless specifiers.any?
 
         posts.inject([]) do |memo, post|
+          next memo unless authorizer.read_entity?(post.entity)
+
           specifiers.each do |specifier|
             case specifier
             when 'entity'
