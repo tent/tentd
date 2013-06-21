@@ -24,7 +24,8 @@ module TentD
       def profiles(specifiers)
         _entities = entities(specifiers)
         _entity_ids = entity_ids(_entities)
-        return {} unless _entity_ids.any?
+
+        return {} unless _entities.any?
 
         unless request_proxy_manager.proxy_condition == :always
           models = Model::Post.where(
