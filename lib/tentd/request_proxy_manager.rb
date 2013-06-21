@@ -48,11 +48,11 @@ module TentD
 
     def proxy_client(entity, options = nil)
       if options == {:skip_response_serialization => true}
-        @proxy_clients[entity + 'skip_response_serialization'] ||= self.class.proxy_client(current_user, entity, options)
+        self.class.proxy_client(current_user, entity, options)
       elsif options
         self.class.proxy_client(current_user, entity, options)
       else
-        @proxy_clients[entity] ||= self.class.proxy_client(current_user, entity)
+        self.class.proxy_client(current_user, entity)
       end
     end
 

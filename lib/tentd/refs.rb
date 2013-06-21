@@ -26,6 +26,7 @@ module TentD
 
       ref_conditions = []
       posts.each do |post|
+        # mixture of Model::Post and TentD::ProxiedPost
         next unless post.refs.to_a.any?
 
         post.refs.slice(0, max_refs).each do |ref|
@@ -37,11 +38,11 @@ module TentD
 
           ref_conditions << ["AND",
             "#{q.table_name}.public_id = ?",
-            ref['entity'].nil? ? "#{q.table_name}.entity_id = ?" : "#{q.table_name}.entity = ?"
+            (ref['entity'] || !post.entity_id) ? "#{q.table_name}.entity = ?" : "#{q.table_name}.entity_id = ?"
           ]
 
           q.query_bindings << ref['post']
-          q.query_bindings << (ref['entity'] || post.entity_id)
+          q.query_bindings << (ref['entity'] || post.entity_id || post.entity)
         end
       end
       return [] if ref_conditions.empty?

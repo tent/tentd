@@ -13,8 +13,24 @@ module TentD
       @env = env
     end
 
+    def build_params
+      params = env['params']
+
+      if params['entities']
+        params['entities'] = params['entities'].split(',').uniq.select { |entity|
+          authorizer.read_entity?(entity)
+        }
+      end
+
+      params
+    end
+
     def params
-      env['params']
+      @params ||= build_params
+    end
+
+    def current_user
+      env['current_user']
     end
 
     def authorizer
@@ -23,7 +39,6 @@ module TentD
 
     def entities
       return unless params['entities']
-      params['entities'].split(',').uniq.select { |entity| authorizer.read_entity?(entity) }
     end
 
     def limit
@@ -178,9 +193,9 @@ module TentD
         q.query_bindings << full_type_ids
       end
 
-      if entities
+      if params['entities']
         q.query_conditions << "entity IN ?"
-        q.query_bindings << entities
+        q.query_bindings << params['entities']
       end
 
       if params['mentions']
@@ -243,7 +258,17 @@ module TentD
     end
 
     def fetch_query
-      @models = build_query.all
+      _params = Utils::Hash.deep_dup(params)
+
+      if _params['entities'] && request_proxy_manager.proxy_condition == :always
+        # separate entities to be proxied
+        _proxy_entities = _params['entities'] - [current_user.entity]
+        _params['entities'] = _params['entities'] - _proxy_entities
+
+        @models = merge_results(build_query(_params).all, fetch_via_proxy(_proxy_entities))
+      else
+        @models = build_query(_params).all
+      end
 
       if check_beyond_limit
         if @models.size == limit + 1
@@ -255,6 +280,31 @@ module TentD
       end
 
       @models
+    end
+
+    def fetch_via_proxy(entities)
+      posts = []
+      entities.each do |entity|
+        client = request_proxy_manager.proxy_client(entity)
+        res = client.post.list(params.merge('entities' => entity))
+        if res.status == 200
+          posts.concat res.body['posts']
+        end
+      end
+      posts.map { |post| ProxiedPost.new(post) }
+    end
+
+    def merge_results(models, proxied_posts)
+      (models + proxied_posts).sort_by do |item|
+        case params['sort_by']
+        when 'published_at'
+          item.published_at
+        when 'version.published_at'
+          item.version_published_at
+        else
+          item.received_at || item.published_at
+        end
+      end
     end
 
     def models
@@ -277,6 +327,12 @@ module TentD
       end
 
       res
+    end
+
+    private
+
+    def request_proxy_manager
+      @request_proxy_manager ||= env['request_proxy_manager']
     end
   end
 

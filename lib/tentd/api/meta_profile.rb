@@ -18,6 +18,7 @@ module TentD
 
       attr_reader :env, :posts
       def initialize(env, posts)
+        # posts is a mixture of Model::Post and TentD::ProxiedPost
         @env, @posts = env, posts
       end
 

@@ -19,6 +19,7 @@ module TentD
     require 'tentd/query'
     require 'tentd/feed'
     require 'tentd/refs'
+    require 'tentd/proxied_post'
     require 'tentd/authorizer'
     require 'tentd/request_proxy_manager'
     require 'tentd/api'

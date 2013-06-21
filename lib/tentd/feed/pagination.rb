@@ -4,6 +4,8 @@ module TentD
     class Pagination
       attr_reader :feed
       def initialize(feed)
+        # feed.models is a mixture of Model::Post and TentD::ProxiedPost
+
         @feed = feed
       end
 

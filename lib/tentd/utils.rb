@@ -62,20 +62,19 @@ module TentD
     module Hash
       extend self
 
-      def deep_dup(hash)
-        hash.inject({}) do |memo, (k,v)|
-          memo[k] = case v
-          when ::Hash
-            deep_dup(v)
-          when Array
-            v.map { |i| deep_dup(i) }
-          when Symbol, TrueClass, FalseClass, NilClass, Numeric
-            v
-          else
-            v.respond_to?(:dup) ? v.dup : v
+      def deep_dup(item)
+        case item
+        when ::Hash
+          item.inject({}) do |memo, (k,v)|
+            memo[k] = deep_dup(v)
+            memo
           end
-
-          memo
+        when Array
+          item.map { |i| deep_dup(i) }
+        when Symbol, TrueClass, FalseClass, NilClass, Numeric
+          item
+        else
+          item.respond_to?(:dup) ? item.dup : item
         end
       end
 
@@ -89,32 +88,32 @@ module TentD
         hash.replace(slice(hash, *keys))
       end
 
-      def stringify_keys(hash)
-        transform_keys(hash, :to_s).first
+      def stringify_keys(hash, options = {})
+        transform_keys(hash, :to_s, options).first
       end
 
-      def stringify_keys!(hash)
-        hash.replace(stringify_keys(hash))
+      def stringify_keys!(hash, options = {})
+        hash.replace(stringify_keys(hash, options))
       end
 
-      def symbolize_keys(hash)
-        transform_keys(hash, :to_sym).first
+      def symbolize_keys(hash, options = {})
+        transform_keys(hash, :to_sym, options).first
       end
 
-      def symbolize_keys!(hash)
-        hash.replace(symbolize_keys(hash))
+      def symbolize_keys!(hash, options = {})
+        hash.replace(symbolize_keys(hash, options))
       end
 
-      def transform_keys(*items, method)
+      def transform_keys(*items, method, options)
         items.map do |item|
           case item
           when ::Hash
             item.inject(::Hash.new) do |new_hash, (k,v)|
-              new_hash[k.send(method)] = transform_keys(v, method).first
+              new_hash[k.send(method)] = (options[:deep] != false) ? transform_keys(v, method, options).first : v
               new_hash
             end
           when ::Array
-            item.map { |i| transform_keys(i, method).first }
+            item.map { |i| transform_keys(i, method, options).first }
           else
             item
           end
