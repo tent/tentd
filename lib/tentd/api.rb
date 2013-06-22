@@ -405,6 +405,38 @@ module TentD
       end
     end
 
+    class ProxyAttachmentRedirect < Middleware
+      def action(env)
+        params = env['params']
+        request_proxy_manager = env['request_proxy_manager']
+
+        return env if request_proxy_manager.proxy_condition == :never
+
+        proxy_client = request_proxy_manager.proxy_client(params[:entity], :skip_response_serialization => true)
+
+        _params = Utils::Hash.slice(params, :version)
+        res = proxy_client.post.get_attachment(params[:entity], params[:post], params[:name], _params) do |request|
+          request.headers['Accept'] = env['HTTP_ACCEPT']
+        end
+
+        body = res.body.respond_to?(:each) ? res.body : [res.body]
+
+        if res.headers['Location']
+          digest = res.headers['Attachment-Digest']
+          headers = {
+            'Location' => "/attachments/#{URI.encode_www_form_component(params[:entity])}/#{digest}"
+          }
+          return [302, headers, []]
+        else
+          halt!(404, "Not Found")
+        end
+      rescue Faraday::Error::TimeoutError
+        halt!(504, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
+      rescue Faraday::Error::ConnectionFailed
+        halt!(502, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
+      end
+    end
+
     class AttachmentRedirect < Middleware
       def action(env)
         unless Model::Post === env['response.post']
@@ -432,6 +464,7 @@ module TentD
         )
 
         (env['response.headers'] ||= {})['Location'] = attachment_url
+        env['response.headers']['Attachment-Digest'] = attachment['digest']
         env['response.status'] = 302
 
         env
@@ -655,6 +688,7 @@ module TentD
     end
 
     get '/posts/:entity/:post/attachments/:name' do |b|
+      b.use ProxyAttachmentRedirect
       b.use LookupPost
       b.use GetPost
       b.use AttachmentRedirect
