@@ -94,7 +94,7 @@ module TentD
 
         proxy_client = request_proxy_manager.proxy_client(params[:entity], :skip_response_serialization => true)
 
-        _params = Utils::Hash.slice(params, :limit)
+        _params = Utils::Hash.slice(params, :limit, :version)
         res = proxy_client.post.get(params[:entity], params[:post], _params) do |request|
           request.headers['Accept'] = env['HTTP_ACCEPT']
         end
