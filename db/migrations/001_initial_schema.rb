@@ -137,6 +137,7 @@ Sequel.migration do
       foreign_key :credentials_post_id , :posts
       foreign_key :type_id             , :types # type of relationship, posts.type where posts.id = post_id
 
+      column :active                , "boolean"
       column :entity                , "text"
       column :remote_credentials_id , "text" # remote_credentials.id (public_id)
       column :remote_credentials    , "text" # serialized as json (used to sign outgoing requests)

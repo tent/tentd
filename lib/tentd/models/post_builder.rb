@@ -177,6 +177,18 @@ module TentD
               options[:deliver_notification] = false
             end
           end
+        elsif options[:import] &&
+          (
+            TentType.new(attrs[:type]).base == %(https://tent.io/types/relationship) ||
+            (TentType.new(attrs[:type]).base == %(https://tent.io/types/credentials) &&
+              attrs[:mentions].any? { |m|
+                TentType.new(m['type']).base == %(https://tent.io/types/relationship)
+              })
+          )
+          # is a relationship post or credentials mentioning one
+
+          import_results = RelationshipImporter.import(env['current_user'], attrs)
+          post = import_results.post
         else
           post = Post.create(attrs)
         end
