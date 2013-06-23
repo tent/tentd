@@ -24,7 +24,7 @@ module TentD
         q = Model::Relationship.where(:user_id => post.user_id, :entity_id => entity_id)
         relationship = q.where(Sequel.~(:remote_credentials_id => nil)).first || q.first
 
-        if relationship && !relationship.remote_credentials_id
+        if relationship && !relationship.active
           relationship_retry ||= { 'retries' => 0 }
 
           if relationship_retry['retries'] >= MAX_RELATIONSHIP_RETRY
