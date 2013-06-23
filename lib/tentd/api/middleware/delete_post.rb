@@ -9,7 +9,11 @@ module TentD
         authorizer = Authorizer.new(env)
         unless authorizer.write_post?(post)
           if authorizer.read_authorized?(post)
-            halt!(403, "Unauthorized")
+            if authorizer.auth_candidate
+              halt!(403, "Unauthorized")
+            else
+              halt!(401, "Unauthorized")
+            end
           else
             halt!(404, "Not Found")
           end
