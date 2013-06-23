@@ -4,28 +4,40 @@ module TentD
     class DeletePost < Middleware
       def action(env)
         return env unless post = env.delete('response.post')
+        params = env['params']
 
         authorizer = Authorizer.new(env)
-        if authorizer.write_post?(post)
-          if env['HTTP_CREATE_DELETE_POST'] != "false"
-            post.user = env['current_user'] if post.user_id == env['current_user'].id # spare db lookup
-            if delete_post = post.destroy(:create_delete_post => true)
-              env['response.post'] = delete_post
-            else
-              halt!(500, "Internal Server Error")
-            end
-          else
-            if post.destroy
-              env['response.status'] = 200
-            else
-              halt!(500, "Internal Server Error")
-            end
-          end
-        else
+        unless authorizer.write_post?(post)
           if authorizer.read_authorized?(post)
             halt!(403, "Unauthorized")
           else
             halt!(404, "Not Found")
+          end
+        end
+
+        delete_options = {}
+
+        if env['HTTP_CREATE_DELETE_POST'] != "false"
+          delete_options[:create_delete_post] = true
+        end
+
+        if params[:version]
+          delete_options[:delete_version] = params[:version]
+        end
+
+        post.user = env['current_user'] if post.user_id == env['current_user'].id # spare db lookup
+
+        if delete_options[:create_delete_post]
+          if delete_post = post.destroy(delete_options)
+            env['response.post'] = delete_post
+          else
+            halt!(500, "Internal Server Error")
+          end
+        else
+          if post.destroy
+            env['response.status'] = 200
+          else
+            halt!(500, "Internal Server Error")
           end
         end
 

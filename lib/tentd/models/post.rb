@@ -94,7 +94,11 @@ module TentD
 
         _res = if options.delete(:create_delete_post)
           if super(options)
-            PostBuilder.create_delete_post(self)
+            if options[:delete_version]
+              PostBuilder.create_delete_post(self, :version => true)
+            else
+              PostBuilder.create_delete_post(self)
+            end
           else
             false
           end
@@ -102,7 +106,7 @@ module TentD
           super(options)
         end
 
-        if _res
+        if _res && !options[:delete_version]
           # delete all parents and children
           children = Post.qualify.join(:parents, :parents__post_id => :posts__id).where(:parents__parent_post_id => _id).all.to_a
           parents = Post.qualify.join(:parents, :parents__parent_post_id => :posts__id).where(:parents__post_id => _id).all.to_a

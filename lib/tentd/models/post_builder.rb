@@ -148,14 +148,15 @@ module TentD
         attrs
       end
 
-      def create_delete_post(post)
+      def create_delete_post(post, options = {})
+        ref = { 'entity' => post.entity, 'post' => post.public_id }
+        ref['version'] = post.version if options[:version]
+
         create_from_env(
           'current_user' => post.user,
           'data' => {
             'type' => 'https://tent.io/types/delete/v0#',
-            'refs' => [
-              { 'entity' => post.entity, 'post' => post.public_id }
-            ]
+            'refs' => [ ref ]
           }
         )
       end
