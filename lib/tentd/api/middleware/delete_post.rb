@@ -21,7 +21,7 @@ module TentD
 
         delete_options = {}
 
-        if env['HTTP_CREATE_DELETE_POST'] != "false"
+        if env['HTTP_CREATE_DELETE_POST'] != "false" && post.entity_id == env['current_user'].entity_id
           delete_options[:create_delete_post] = true
         end
 
