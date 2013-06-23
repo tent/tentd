@@ -161,6 +161,34 @@ module TentD
         )
       end
 
+      def delete_from_notification(env, post)
+        post_conditions = post.refs.to_a.inject({}) do |memo, ref|
+          next memo unless !ref['entity'] || ref['entity'] == post.entity
+
+          memo[ref['post']] ||= []
+          memo[ref['post']] << ref['version'] if ref['version']
+
+          memo
+        end.inject([]) do |memo, (public_id, versions)|
+          memo << if versions.any?
+            { :public_id => public_id, :version => versions }
+          else
+            { :public_id => public_id }
+          end
+
+          memo
+        end
+
+        q = Post.where(:user_id => env['current_user'].id, :entity_id => post.entity_id)
+        q = q.where(Sequel.|(*post_conditions))
+
+        q.all.to_a.each do |post|
+          delete_opts = { :create_delete_post => false }
+          delete_opts[:version] = !!post_conditions.find { |c| c[:public_id] == post.public_id }[:version]
+          post.destroy(delete_opts)
+        end
+      end
+
       def create_from_env(env, options = {})
         attrs = build_attributes(env, options)
 
@@ -191,6 +219,10 @@ module TentD
           post = import_results.post
         else
           post = Post.create(attrs)
+        end
+
+        if options[:notification] && TentType.new(post.type).base == %(https://tent.io/types/delete)
+          delete_from_notification(env, post)
         end
 
         if TentType.new(post.type).base == %(https://tent.io/types/meta)
