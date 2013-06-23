@@ -37,6 +37,6 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency 'webmock'
   gem.add_development_dependency 'bundler'
   gem.add_development_dependency 'rake'
-  gem.add_development_dependency 'puma'
+  gem.add_development_dependency 'puma', '2.0.1'
   gem.add_development_dependency 'tent-validator', '~> 0.2.0'
 end
