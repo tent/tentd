@@ -18,6 +18,14 @@ module TentD
         received_at_timestamp = (options[:import] && data['received_at']) ? data['received_at'] : TentD::Utils.timestamp
         published_at_timestamp = (data['published_at'] || received_at_timestamp).to_i
 
+        if data['version']
+          version_published_at_timestamp = data['version']['published_at'] || published_at_timestamp
+          version_received_at_timestamp = (options[:import] && data['version']['received_at']) ? data['version']['received_at'] : received_at_timestamp
+        else
+          version_published_at_timestamp = published_at_timestamp
+          version_received_at_timestamp = received_at_timestamp
+        end
+
         attrs = {
           :user_id => current_user.id,
 
@@ -25,8 +33,8 @@ module TentD
           :type_id => type.id,
           :type_base_id => base_type.id,
 
-          :version_published_at => published_at_timestamp,
-          :version_received_at => received_at_timestamp,
+          :version_published_at => version_published_at_timestamp,
+          :version_received_at => version_received_at_timestamp,
           :published_at => published_at_timestamp,
           :received_at => received_at_timestamp,
 
