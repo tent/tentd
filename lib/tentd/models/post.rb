@@ -43,6 +43,16 @@ module TentD
         self.class.where(:public_id => public_id).order(Sequel.desc(:version_published_at)).first
       end
 
+      def around_save
+        if (self.changed_columns & [:public]).any?
+          if super
+            queue_delivery
+          end
+        else
+          super
+        end
+      end
+
       def after_create
         return if version_parents && version_parents.any? # initial version only
 
