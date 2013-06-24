@@ -9,11 +9,9 @@ module TentD
 
       attr_writer :post, :credentials_post, :meta_post
 
-      # before_save has issues
-      def after_save
-        if !self.active && self.post_id && self.credentials_post_id && self.remote_credentials_id && self.remote_credentials
-          self.update(:active => true)
-        end
+      def before_save
+        self.active = true
+        super
       end
 
       def self.create_initial(current_user, target_entity, relationship = nil)
