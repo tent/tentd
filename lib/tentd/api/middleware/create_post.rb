@@ -11,7 +11,7 @@ module TentD
 
         env['response.post'] = post
 
-        if %w( https://tent.io/types/app https://tent.io/types/app-auth ).include?(TentType.new(post.type).base) && !env['request.import']
+        if %w( https://tent.io/types/app https://tent.io/types/app-auth ).include?(TentType.new(post.type).base)
           if TentType.new(post.type).base == "https://tent.io/types/app"
             # app
             credentials_post = Model::Post.first(:id => Model::App.first(:user_id => env['current_user'].id, :post_id => post.id).credentials_post_id)

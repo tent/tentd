@@ -229,6 +229,10 @@ module TentD
           post = Post.create(attrs)
         end
 
+        if !options[:import] && TentType.new(post.type).base == %(https://tent.io/types/app)
+          App.update_or_create_from_post(post)
+        end
+
         if options[:notification] && TentType.new(post.type).base == %(https://tent.io/types/delete)
           delete_from_notification(env, post)
         end

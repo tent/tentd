@@ -53,15 +53,6 @@ module TentD
         end
       end
 
-      def after_create
-        return if version_parents && version_parents.any? # initial version only
-
-        case TentType.new(type).base
-        when 'https://tent.io/types/app'
-          app = App.update_or_create_from_post(self)
-        end
-      end
-
       def queue_delivery
         return unless deliverable?
         Worker::NotificationDispatch.perform_async(self.id)
