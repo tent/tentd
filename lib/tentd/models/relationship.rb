@@ -166,6 +166,10 @@ module TentD
 
         save
       end
+
+      def set_public
+        post.update(:public => true)
+      end
     end
 
   end

@@ -48,6 +48,13 @@ module TentD
         unless subscription = where(:user_id => current_user.id, :type => post_attrs[:content]['type']).first
           post = Post.create(post_attrs)
 
+          if post.public
+            Relationship.where(
+              :user_id => current_user.id,
+              :entity_id => post.entity_id
+            ).first.set_public
+          end
+
           # Don't create a subscription record if we're not the target
           unless target_entity == current_user.entity
             subscription = new
