@@ -2,8 +2,6 @@ module TentD
   module Model
 
     class Mention < Sequel::Model(TentD.database[:mentions])
-      plugin :paranoia if Model.soft_delete
-
       def self.link_posts(source_post, target_post, options = {})
         source_post.mentions ||= []
         source_post.mentions << { "entity" => target_post.entity, "type" => target_post.type, "post" => target_post.public_id }

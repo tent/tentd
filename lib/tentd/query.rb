@@ -8,7 +8,12 @@ module TentD
       @table_name = model.table_name
       @query_conditions = []
       @query_bindings = []
-      @deleted_at_table_names = [table_name]
+
+      if TentD.database[table_name].columns.include?(:deleted_at)
+        @deleted_at_table_names = [table_name]
+      else
+        @deleted_at_table_names = []
+      end
 
       @select_columns = "#{table_name}.*"
       @joins = []

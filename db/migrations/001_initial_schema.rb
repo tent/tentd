@@ -20,7 +20,6 @@ Sequel.migration do
       primary_key :id
 
       column :entity     , "text"   , :null => false
-      column :deleted_at , "timestamp without time zone"
 
       index [:entity], :name => :unique_entities, :unique => true
     end
@@ -31,7 +30,6 @@ Sequel.migration do
       column :base       , "text"   , :null => false
       column :version    , "text"   , :null => false
       column :fragment   , "text"
-      column :deleted_at , "timestamp without time zone"
 
       index [:base, :version, :fragment], :name => :unique_types, :unique => true
     end
@@ -46,7 +44,7 @@ Sequel.migration do
       column :server_credentials , "text"   , :null => false
       column :deleted_at         , "timestamp without time zone"
 
-      index [:entity], :name => :unique_users, :unique => true
+      index [:entity_id, :deleted_at], :name => :unique_users, :unique => true
     end
 
     create_table(:posts) do
@@ -92,7 +90,7 @@ Sequel.migration do
 
       index [:user_id], :name => :index_posts_user
       index [:user_id, :public_id], :name => :index_posts_user_public_id
-      index [:user_id, :entity_id, :public_id, :version], :name => :unique_posts, :unique => true
+      index [:user_id, :entity_id, :public_id, :version, :deleted_at], :name => :unique_posts, :unique => true
     end
 
     create_table(:parents) do
@@ -101,7 +99,6 @@ Sequel.migration do
 
       column :version, "text"
       column :post, "text"
-      column :deleted_at , "timestamp without time zone"
 
       index [:post_id, :version, :post], :name => :unique_post_parents, :unique => true
     end
@@ -127,7 +124,7 @@ Sequel.migration do
       column :deleted_at            , "timestamp without time zone"
 
       index [:user_id, :auth_hawk_key], :name => :index_apps_user_auth_hawk_key
-      index [:user_id, :post_id], :name => :unique_app, :unique => true
+      index [:user_id, :post_id, :deleted_at], :name => :unique_app, :unique => true
     end
 
     create_table(:relationships) do
@@ -146,7 +143,7 @@ Sequel.migration do
       column :deleted_at            , "timestamp without time zone"
 
       index [:user_id, :type_id], :name => :index_relationships_user_type
-      index [:user_id, :entity_id], :name => :unique_relationships, :unique => true
+      index [:user_id, :entity_id, :deleted_at], :name => :unique_relationships, :unique => true
     end
 
     create_table(:subscriptions) do
@@ -163,15 +160,13 @@ Sequel.migration do
       column :deleted_at        , "timestamp without time zone"
 
       index [:user_id, :type_id], :name => :index_subscriptions_user_type
-      index [:user_id, :post_id, :type_id], :name => :unique_subscriptions, :unique => true
+      index [:user_id, :post_id, :type_id, :deleted_at], :name => :unique_subscriptions, :unique => true
     end
 
     create_table(:groups) do
       primary_key :id
       foreign_key :user_id , :users
       foreign_key :post_id , :posts
-
-      column :deleted_at , "timestamp without time zone"
 
       index [:user_id, :post_id], :name => :unique_groups, :unique => true
     end
@@ -186,7 +181,6 @@ Sequel.migration do
       column :entity     , "text"
       column :post       , "text"
       column :public     , "boolean" , :default => true
-      column :deleted_at , "timestamp without time zone"
 
       index [:user_id, :post_id, :entity_id, :post], :name => :unique_mentions, :unique => true
     end
@@ -197,7 +191,6 @@ Sequel.migration do
       foreign_key :entity_id , :entities
 
       column :post       , "text"
-      column :deleted_at , "timestamp without time zone"
 
       index [:user_id, :post_id, :entity_id, :post], :name => :unique_refs, :unique => true
     end
@@ -212,7 +205,6 @@ Sequel.migration do
       column :digest     , "text"   , :null => false
       column :size       , "bigint" , :null => false
       column :data       , "bytea"  , :null => false
-      column :deleted_at , "timestamp without time zone"
 
       index [:digest, :size], :name => :unique_attachments, :unique => true
     end
@@ -223,7 +215,6 @@ Sequel.migration do
       foreign_key :attachment_id , :attachments , :on_delete => :cascade
 
       column :content_type , "text"   , :null => false
-      column :deleted_at   , "timestamp without time zone"
 
       index [:post_id, :attachment_id, :content_type], :name => :unique_posts_attachments, :unique => true
     end
@@ -233,8 +224,6 @@ Sequel.migration do
       foreign_key :post_id   , :posts
       foreign_key :entity_id , :entities
       foreign_key :group_id  , :groups
-
-      column :deleted_at , "timestamp without time zone"
 
       index [:user_id, :post_id, :entity_id, :group_id], :name => :unique_permissions, :unique => true
     end

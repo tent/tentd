@@ -6,7 +6,7 @@ module TentD
         ref_post = env.delete('response.post')
 
         q = Query.new(Model::Post)
-        q.deleted_at_table_names = %w( posts mentions )
+        q.deleted_at_table_names = %w( posts )
 
         q.select_columns = %w( posts.entity posts.entity_id posts.public_id posts.type mentions.public )
 

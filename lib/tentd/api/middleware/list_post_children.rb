@@ -6,7 +6,7 @@ module TentD
         ref_post = env.delete('response.post')
 
         q = Query.new(Model::Post)
-        q.deleted_at_table_names = %w( posts parents )
+        q.deleted_at_table_names = %w( posts )
 
         q.query_conditions << "posts.user_id = ?"
         q.query_bindings << env['current_user'].id
