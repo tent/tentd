@@ -69,7 +69,7 @@ module TentD
 
       # Determines if notifications should be sent out
       def deliverable?
-        self.entity_id == User.select(:entity_id).where(:id => self.user_id).first.entity_id
+        return false unless self.entity_id == User.select(:entity_id).where(:id => self.user_id).first.entity_id
         self.public || self.permissions_entities.to_a.any? || self.permissions_groups.to_a.any?
       end
 
