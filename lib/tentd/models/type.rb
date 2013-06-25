@@ -32,8 +32,6 @@ module TentD
       end
 
       def self.find_or_create_types(type_uris)
-        return [] if type_uris == %w( all )
-
         tent_types = type_uris.map { |uri| TentType.new(uri) }
 
         types = find_types(type_uris)
