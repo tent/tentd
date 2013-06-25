@@ -47,6 +47,7 @@ module TentD
 
     require 'tentd/worker/relationship_initiation'
     require 'tentd/worker/notification_dispatch'
+    require 'tentd/worker/notification_app_deliverer'
     require 'tentd/worker/notification_deliverer'
 
   end

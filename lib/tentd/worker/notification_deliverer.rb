@@ -13,7 +13,7 @@ module TentD
 
       def perform(post_id, entity, entity_id=nil, relationship_retry = nil)
         unless post = Model::Post.where(:id => post_id).first
-          logger.info "#{post_id} deleted"
+          logger.info "Post(#{post_id}) deleted"
           return
         end
 

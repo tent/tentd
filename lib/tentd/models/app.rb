@@ -11,6 +11,56 @@ module TentD
         qualify.join(:posts, :posts__id => :apps__post_id).where(:posts__user_id => current_user.id, :posts__public_id => client_id).first
       end
 
+      def self.subscriber_query(post, options = {})
+        q = Query.new(App)
+
+        if columns = options.delete(:select)
+          q.select_columns = Array(columns)
+        end
+
+        q.query_conditions << "user_id = ?"
+        q.query_bindings << post.user_id
+
+        q.query_conditions << "notification_url IS NOT NULL"
+        q.query_conditions << "notification_type_ids IS NOT NULL"
+        q.query_conditions << "read_type_ids IS NOT NULL"
+
+        q.query_conditions << "credentials_post_id IS NOT NULL"
+
+        q.query_conditions << ["AND",
+          ["OR",
+            "(?)::text = ANY (notification_type_ids)",
+            "(?)::text = ANY (notification_type_ids)"
+          ],
+          ["OR",
+            "(?)::text = ANY (read_type_ids)",
+            "(?)::text = ANY (read_type_ids)",
+            "(?)::text = ANY (read_type_ids)"
+          ]
+        ]
+
+        all_type_id = Type.find_or_create_full('all').id
+
+        # notification_type_ids
+        q.query_bindings << post.type_id
+        q.query_bindings << all_type_id
+
+        # read_type_ids
+        q.query_bindings << post.type_id
+        q.query_bindings << post.type_base_id
+        q.query_bindings << all_type_id
+
+        q
+      end
+
+      def self.subscribers?(post)
+        subscriber_query(post).any?
+      end
+
+      def self.subscribers(post, options = {})
+        subscriber_query(post, options).all
+      end
+
       def self.update_or_create_from_post(post, options = {})
         attrs = {
           :notification_url => post.content['notification_url'],

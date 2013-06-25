@@ -59,6 +59,12 @@ module TentD
         mentioned_entities.each do |entity|
           NotificationDeliverer.perform_async(post_id, entity)
         end
+
+        # queue delivery for each subscribed app
+        subscribed_apps = Model::App.subscribers(post, :select => :id)
+        subscribed_apps.each do |app|
+          NotificationAppDeliverer.perform_async(post_id, app.id)
+        end
       end
     end
 
