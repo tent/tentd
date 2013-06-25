@@ -30,8 +30,10 @@ module TentD
             body = res.body.respond_to?(:each) ? res.body : [res.body]
             return [res.status, res.headers, body]
           rescue Faraday::Error::TimeoutError
+            res ||= Faraday::Response.new({})
             halt!(504, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
           rescue Faraday::Error::ConnectionFailed
+            res ||= Faraday::Response.new({})
             halt!(502, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
           end
         else
