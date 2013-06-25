@@ -216,38 +216,18 @@ module TentD
       end
 
       def save_initiating_post(data)
-        type, base_type = Model::Type.find_or_create(data[:type])
-        received_at_timestamp = Utils.timestamp
-
-        attrs = {
-          :user_id => current_user.id,
-          :entity_id => initiating_entity.id,
+        Model::PostBuilder.create_from_env(
+          {
+            'current_user' => current_user,
+            'data' => Utils::Hash.stringify_keys(data).merge(
+              'version' => data[:version][:id],
+            )
+          },
+          :notification => true,
+          :public_id => data[:id],
           :entity => initiating_entity_uri,
-
-          :type => data[:type],
-          :type_id => type.id,
-          :type_base_id => base_type.id,
-
-          :version_published_at => data[:version][:published_at],
-          :version_received_at => received_at_timestamp,
-          :published_at => data[:published_at],
-          :received_at => received_at_timestamp,
-
-          :version => data[:version][:id],
-
-          :content => data[:content]
-        }
-
-        attrs[:mentions] = Utils::Hash.stringify_keys(data[:mentions]) if Array === data[:mentions]
-        attrs[:refs] = data[:refs] if Array === data[:refs]
-
-        post = Model::Post.create(attrs)
-
-        if attrs[:mentions]
-          post.create_mentions(attrs[:mentions])
-        end
-
-        post
+          :entity_id => initiating_entity.id
+        )
       end
     end
 
