@@ -22,10 +22,6 @@ module TentD
           attachment = nil
         end
 
-        if proxy_condition == :never && !attachment
-          halt!(404, "Not Found")
-        end
-
         if !attachment && proxy_condition != :never && request_proxy_manager.can_proxy?(params[:entity])
           # proxy request
           proxy_client = request_proxy_manager.proxy_client(params[:entity])
@@ -40,6 +36,8 @@ module TentD
           rescue Faraday::Error::ConnectionFailed
             halt!(502, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
           end
+        elsif !attachment
+          halt!(404, "Not Found")
         end
 
         env['response'] = attachment.data.lit
