@@ -37,11 +37,12 @@ module TentD
         # Update app record
         app = App.first(:post_id => app_post.id)
         app.update(
+          :auth_post_id => post.id,
           :auth_hawk_key => credentials_post.content['hawk_key'],
           :auth_credentials_post_id => credentials_post.id,
 
-          :read_post_types => post_types['read'],
-          :read_post_type_ids => Type.find_types(post_types['read']).map(&:id),
+          :read_types => post_types['read'],
+          :read_type_ids => Type.find_types(post_types['read']).map(&:id),
           :write_post_types => post_types['write']
         )
 

@@ -66,7 +66,7 @@ module TentD
         Post.first(
           :user_id => current_user.id,
           :public_id => public_id,
-          :type_id => Type.find_or_create_full("https://tent.io/types/credentials/v0#").id
+          :type_base_id => Type.find_or_create_base("https://tent.io/types/credentials/v0#").id
         )
       end
     end

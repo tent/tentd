@@ -229,8 +229,21 @@ module TentD
           post = Post.create(attrs)
         end
 
-        if !options[:import] && TentType.new(post.type).base == %(https://tent.io/types/app)
-          App.update_or_create_from_post(post)
+        case TentType.new(post.type).base
+        when %(https://tent.io/types/app)
+          App.update_or_create_from_post(post, :create_credentials => !options[:import])
+        when %(https://tent.io/types/app-auth)
+          if options[:import] && (m = post.mentions.find { |m| TentType.new(m['type']).base == %(https://tent.io/types/app) })
+            App.update_app_auth(post, m['post'])
+          end
+        when %(https://tent.io/types/credentials)
+          if options[:import]
+            if m = post.mentions.find { |m| TentType.new(m['type']).base == %(https://tent.io/types/app) }
+              App.update_credentials(post, m['post'])
+            elsif m = post.mentions.find { |m| TentType.new(m['type']).base == %(https://tent.io/types/app-auth) }
+              App.update_app_auth_credentials(post, m['post'])
+            end
+          end
         end
 
         if options[:notification] && TentType.new(post.type).base == %(https://tent.io/types/delete)

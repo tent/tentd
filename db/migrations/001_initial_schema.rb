@@ -110,19 +110,21 @@ Sequel.migration do
       primary_key :id
       foreign_key :user_id                  , :users
       foreign_key :post_id                  , :posts
+      foreign_key :auth_post_id             , :posts
       foreign_key :credentials_post_id      , :posts
       foreign_key :auth_credentials_post_id , :posts
 
-      column :hawk_key           , "text" # credentials_post.content.hawk_key
-      column :auth_hawk_key      , "text" # auth_credentials_post.content.hawk_key
+      column :hawk_key              , "text" # credentials_post.content.hawk_key
+      column :auth_hawk_key         , "text" # auth_credentials_post.content.hawk_key
 
-      column :notification_url   , "text" # post.content.notification_url
+      column :notification_url      , "text" # post.content.notification_url
+      column :notification_type_ids , "text[]"
 
-      column :read_post_types    , "text[]" # auth_post.content.post_types.read
-      column :read_post_type_ids , "text[]" # auth_post.content.post_types.read ids
-      column :write_post_types   , "text[]" # auth_post.content.post_types.write
-      column :scopes             , "text[]" # auth_post.content.scopes
-      column :deleted_at         , "timestamp without time zone"
+      column :read_types            , "text[]" # auth_post.content.post_types.read
+      column :read_type_ids         , "text[]" # auth_post.content.post_types.read ids
+      column :write_post_types      , "text[]" # auth_post.content.post_types.write
+      column :scopes                , "text[]" # auth_post.content.scopes
+      column :deleted_at            , "timestamp without time zone"
 
       index [:user_id, :auth_hawk_key], :name => :index_apps_user_auth_hawk_key
       index [:user_id, :post_id], :name => :unique_app, :unique => true
