@@ -17,30 +17,13 @@ module TentD
         end
 
         unless proxy_condition == :always
-          attachment = Model::Attachment.where(:digest => params[:digest]).first
-          halt!(404, "Not Found") unless attachment
-
-          post_attachment = Model::PostsAttachment.where(:attachment_id => attachment.id).first
-          halt!(404, "Not Found") unless post_attachment
-
-          post = Model::Post.where(:id => post_attachment.post_id, :user_id => env['current_user'].id).first
-          halt!(404, "Not Found") unless post
-
-          if env['current_auth'] && (app_auth = env['current_auth.resource']) && TentType.new(app_auth.type).base == %(https://tent.io/types/app-auth)
-            post_type = TentType.new(post.type)
-            unless app_auth.content['post_types']['read'].any? { |uri|
-              type = TentType.new(uri)
-              uri == 'all' || (type.base == post_type.base && (type.has_fragment? ? type.fragment == post_type.fragment : true))
-            }
-              halt!(404, "Not Found")
-            end
-          else
-            unless post.public
-              halt!(404, "Not Found")
-            end
-          end
+          attachment, post_attachment = lookup_attachment(env)
         else
           attachment = nil
+        end
+
+        if proxy_condition == :never && !attachment
+          halt!(404, "Not Found")
         end
 
         if !attachment && proxy_condition != :never && request_proxy_manager.can_proxy?(params[:entity])
@@ -63,6 +46,37 @@ module TentD
         (env['response.headers'] ||= {})['Content-Length'] = attachment.data.bytesize.to_s
         env['response.headers']['Content-Type'] = post_attachment.content_type
         env
+      end
+
+      private
+
+      def lookup_attachment(env)
+        params = env['params']
+
+        attachment = Model::Attachment.where(:digest => params[:digest]).first
+        return unless attachment
+
+        post_attachment = Model::PostsAttachment.where(:attachment_id => attachment.id).first
+        return unless post_attachment
+
+        post = Model::Post.where(:id => post_attachment.post_id, :user_id => env['current_user'].id).first
+        return unless post
+
+        if env['current_auth'] && (app_auth = env['current_auth.resource']) && TentType.new(app_auth.type).base == %(https://tent.io/types/app-auth)
+          post_type = TentType.new(post.type)
+          unless app_auth.content['post_types']['read'].any? { |uri|
+            type = TentType.new(uri)
+            uri == 'all' || (type.base == post_type.base && (type.has_fragment? ? type.fragment == post_type.fragment : true))
+          }
+            return
+          end
+        else
+          unless post.public
+            return
+          end
+        end
+
+        [attachment, post_attachment]
       end
     end
 
