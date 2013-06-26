@@ -60,18 +60,8 @@ module TentD
         post = Model::Post.where(:id => post_attachment.post_id, :user_id => env['current_user'].id).first
         return unless post
 
-        if env['current_auth'] && (app_auth = env['current_auth.resource']) && TentType.new(app_auth.type).base == %(https://tent.io/types/app-auth)
-          post_type = TentType.new(post.type)
-          unless app_auth.content['post_types']['read'].any? { |uri|
-            type = TentType.new(uri)
-            uri == 'all' || (type.base == post_type.base && (type.has_fragment? ? type.fragment == post_type.fragment : true))
-          }
-            return
-          end
-        else
-          unless post.public
-            return
-          end
+        unless Authorizer.new(env).read_authorized?(post)
+          return
         end
 
         [attachment, post_attachment]
