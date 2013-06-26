@@ -155,17 +155,13 @@ module TentD
         ##
         # Deliver dependent post
         NotificationDeliverer.perform_async(deliver_post_id, target_entity, target_entity_id)
-      rescue InitiationFailure
-        # something went wrong, queue deliver_post_id
+      end
+
+      def retries_exhausted(user_id, target_entity_id, deliver_post_id=nil)
         if deliver_post_id
           queue_post_delivery(deliver_post_id, target_entity, target_entity_id)
         end
 
-        # re-raise error
-        raise
-      end
-
-      def retries_exhausted(user_id, target_entity_id)
         # TODO: destroy relationship and subscriptions
       end
 
