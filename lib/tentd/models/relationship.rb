@@ -144,9 +144,12 @@ module TentD
       end
 
       def client(options = {})
+        if self.meta_post
+          options.merge!(:server_meta => Utils::Hash.stringify_keys(self.meta_post.as_json))
+        end
+
         TentClient.new(self.entity, options.merge(
-          :credentials => Utils::Hash.symbolize_keys(self.remote_credentials),
-          :server_meta => Utils::Hash.stringify_keys(self.meta_post.as_json)
+          :credentials => Utils::Hash.symbolize_keys(self.remote_credentials)
         ))
       end
 
