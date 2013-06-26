@@ -7,10 +7,14 @@ module TentD
           return env
         end
 
+        env['request.post_list'] = true
+
         params = env['params']
         request_proxy_manager = env['request_proxy_manager']
 
+        return env if params[:entity] == env['current_user'].entity
         return env if request_proxy_manager.proxy_condition == :never
+        return env if request_proxy_manager.proxy_condition == :on_miss && !env['request.post_lookup_attempted']
 
         proxy_client = request_proxy_manager.proxy_client(params[:entity], :skip_response_serialization => true)
 

@@ -64,8 +64,10 @@ module TentD
         :always
       when 'proxy-if-miss'
         :on_miss
-      else # 'only-if-cached' (default)
+      when 'only-if-cached'
         :never
+      else
+        env['request.feed'] ? :never : :on_miss
       end
     end
 

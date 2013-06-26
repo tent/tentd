@@ -3,7 +3,10 @@ module TentD
 
     class PostsFeed < Middleware
       def action(env)
+        env['request.feed'] = true
+
         feed = Feed.new(env)
+
         env['response'] = feed
 
         if env['REQUEST_METHOD'] == 'HEAD'

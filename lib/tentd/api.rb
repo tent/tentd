@@ -87,6 +87,7 @@ module TentD
       b.use AuthorizeGetEntity
       b.use ProxyPostList
       b.use LookupPost
+      b.use ProxyPostList # lookup failed, proxy_condition is :on_miss
       b.use GetPost
       b.use ServePost
     end
@@ -105,6 +106,7 @@ module TentD
     get '/posts/:entity/:post/attachments/:name' do |b|
       b.use ProxyAttachmentRedirect
       b.use LookupPost
+      b.use ProxyAttachmentRedirect # lookup failed, proxy_condition is :on_miss
       b.use GetPost
       b.use AttachmentRedirect
     end

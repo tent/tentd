@@ -6,13 +6,15 @@ module TentD
         params = env['params']
         request_proxy_manager = env['request_proxy_manager']
 
-        proxy_condition = if (params[:entity] == env['current_user'].entity) || (env['REQUEST_METHOD'] != 'GET')
+        proxy_condition = if (params[:entity] == env['current_user'].entity) || !['GET', 'HEAD'].include?(env['REQUEST_METHOD'])
           :never
         else
           request_proxy_manager.proxy_condition
         end
 
         post = unless proxy_condition == :always
+          env['request.post_lookup_attempted'] = true
+
           if params['version'] && params['version'] != 'latest'
             Model::Post.first(:public_id => params[:post], :entity => params[:entity], :version => params['version'])
           else
@@ -20,7 +22,7 @@ module TentD
           end
         end
 
-        if !post && proxy_condition != :never
+        if !post && proxy_condition != :never && !env['request.post_list']
           # proxy request
           proxy_client = request_proxy_manager.proxy_client(params[:entity], :skip_response_serialization => true)
 
@@ -30,11 +32,15 @@ module TentD
             body = res.body.respond_to?(:each) ? res.body : [res.body]
             return [res.status, res.headers, body]
           rescue Faraday::Error::TimeoutError
-            res ||= Faraday::Response.new({})
-            halt!(504, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
+            if proxy_condition == :always
+              res ||= Faraday::Response.new({})
+              halt!(504, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
+            end
           rescue Faraday::Error::ConnectionFailed
-            res ||= Faraday::Response.new({})
-            halt!(502, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
+            if proxy_condition == :always
+              res ||= Faraday::Response.new({})
+              halt!(502, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
+            end
           end
         else
           env['response.post'] = post
