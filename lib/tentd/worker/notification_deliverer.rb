@@ -7,9 +7,12 @@ module TentD
       sidekiq_options :retry => 10
 
       DeliveryFailure = Class.new(StandardError)
+      EntityUnreachable = Class.new(DeliveryFailure)
       RelationshipNotFound = Class.new(DeliveryFailure)
 
       MAX_RELATIONSHIP_RETRY = 10.freeze
+
+      attr_accessor :retry_count
 
       def perform(post_id, entity, entity_id=nil, relationship_retry = nil)
         unless post = Model::Post.where(:id => post_id).first
@@ -56,16 +59,54 @@ module TentD
 
         res = client.post.update(post.entity, post.public_id, post.as_json(:delivery => true), {}, :notification => true)
 
-        unless res.status == 200
-          # TODO: create/update delivery failure post
+        if res.status == 200
+          logger.info "Delivered Post(#{post_id}) to Entity(#{entity})"
+        else
+          if res.status > 500
+            error_class = EntityUnreachable
+          else
+            error_class = DeliveryFailure
+          end
 
-          raise DeliveryFailure.new("Failed deliver post(id: #{post.id}) via #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}\nREQUEST_BODY: #{post.as_json.inspect}\n\nRESPONSE_BODY: #{res.body.inspect}")
+          raise error_class.new("Failed deliver post(id: #{post.id}) via #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}\nREQUEST_BODY: #{post.as_json.inspect}\nRESPONSE_BODY: #{res.body.inspect}\nSTATUS: #{res.status.inspect}")
         end
+      rescue EntityUnreachable
+        if retry_count == 0
+          delivery_failure(entity, post, "temporary", "unreachable")
+        end
+
+        raise
+      rescue DeliveryFailure
+        if retry_count == 0
+          delivery_failure(entity, post, "temporary", "delivery_failed")
+        end
+
+        raise
       end
 
       def retries_exhausted(post_id, entity)
-        # TODO: update delivery failure post
-        # TODO: if it's a relationship post, delete the relationship
+        return unless post = Model::Post.where(:id => post_id).first
+
+        existing_delivery_failure = Model::DeliveryFailure.where(
+          :user_id => post.user_id,
+          :failed_post_id => post.id,
+          :entity => entity
+        ).first
+
+        reason = existing_delivery_failure ? existing_delivery_failure.reasion : 'delivery_failed'
+        delivery_failure(entity, post, "permanent", reason)
+      end
+
+      private
+
+      def delivery_failure(target_entity, post, status, reason)
+        unless post.mentions.to_a.any? { |m| m['entity'] == target_entity }
+          return
+        end
+
+        logger.info "Creating #{status.inspect} delivery failure for Post(#{post.id}) to Entity(#{target_entity}): #{reason}"
+
+        Model::DeliveryFailure.find_or_create(target_entity, post, status, reason)
       end
     end
 

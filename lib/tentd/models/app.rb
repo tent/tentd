@@ -30,6 +30,7 @@ module TentD
         q.query_conditions << ["AND",
           ["OR",
             "(?)::text = ANY (notification_type_ids)",
+            "(?)::text = ANY (notification_type_ids)",
             "(?)::text = ANY (notification_type_ids)"
           ],
           ["OR",
@@ -43,6 +44,7 @@ module TentD
 
         # notification_type_ids
         q.query_bindings << post.type_id
+        q.query_bindings << post.type_base_id
         q.query_bindings << all_type_id
 
         # read_type_ids

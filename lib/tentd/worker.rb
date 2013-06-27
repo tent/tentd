@@ -1,6 +1,16 @@
 module TentD
   module Worker
 
+    class RetryCount
+      def call(worker, msg, queue)
+        if worker.respond_to?(:retry_count=)
+          worker.retry_count = msg['retry_count'] || 0
+        end
+
+        yield
+      end
+    end
+
     require 'sidekiq'
 
     def self.configure_client(redis_opts = {}, &block)
@@ -12,8 +22,14 @@ module TentD
 
     def self.configure_server(redis_opts = {}, &block)
       TentD.setup_database!
+
       Sidekiq.configure_server do |config|
         config.redis = { :namespace => ENV['REDIS_NAMESPACE'] || 'tentd.worker', :url => ENV['REDIS_URL'] }.merge(redis_opts)
+
+        config.server_middleware do |chain|
+          chain.add RetryCount
+        end
+
         yield(config) if block_given?
       end
     end

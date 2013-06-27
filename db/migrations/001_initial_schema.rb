@@ -103,6 +103,19 @@ Sequel.migration do
       index [:post_id, :version, :post], :name => :unique_post_parents, :unique => true
     end
 
+    create_table(:delivery_failures) do
+      primary_key :id
+      foreign_key :user_id        , :users
+      foreign_key :failed_post_id , :posts # post for which delivery failed
+      foreign_key :post_id        , :posts # delivery failure post
+
+      column :entity , "text" , :null => false # entity to whom delivery failed
+      column :status , "text" , :null => false
+      column :reason , "text" , :null => false
+
+      index [:user_id, :failed_post_id, :entity, :status], :name => :unique_delivery_failrues, :unique => true
+    end
+
     create_table(:apps) do
       primary_key :id
       foreign_key :user_id                  , :users

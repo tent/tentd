@@ -32,6 +32,7 @@ module TentD
     require 'tentd/models/subscription'
     require 'tentd/models/credentials'
     require 'tentd/models/mention'
+    require 'tentd/models/delivery_failure'
 
   end
 end

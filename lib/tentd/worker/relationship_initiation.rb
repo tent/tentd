@@ -10,6 +10,9 @@ module TentD
       DiscoveryFailure = Class.new(InitiationFailure)
       DeliveryFailure = Class.new(InitiationFailure)
       InvalidResponse = Class.new(InitiationFailure)
+      EntityUnreachable = Class.new(InitiationFailure)
+
+      attr_accessor :retry_count
 
       def perform(user_id, target_entity_id, deliver_post_id=nil)
         # user no longer exists, abort
@@ -46,8 +49,20 @@ module TentD
 
         client = TentClient.new(target_entity)
 
-        unless client.server_meta
-          raise DiscoveryFailure.new("Failed to perform discovery on #{target_entity.inspect}")
+        discovery_res = TentClient::Discovery.discover(client, target_entity, :return_response => true)
+
+        unless discovery_res.success?
+          discovery_error = "Failed to perform discovery on #{target_entity.inspect}: #{discovery_res.env[:method].to_s.upcase} #{discovery_res.env[:url].to_s} failed with status #{discovery_res.status}"
+        end
+
+        if discovery_res.status > 500
+          raise EntityUnreachable.new(discovery_error)
+        end
+
+        if discovery_res.success? && (Hash === discovery_res.body)
+          client = TentClient.new(target_entity, :server_meta => discovery_res.body['post'])
+        else
+          raise DiscoveryFailure.new(discovery_error)
         end
 
         ##
@@ -155,6 +170,32 @@ module TentD
         ##
         # Deliver dependent post
         NotificationDeliverer.perform_async(deliver_post_id, target_entity, target_entity_id)
+      rescue EntityUnreachable
+        if retry_count == 0 && deliver_post_id
+          delivery_failure(target_entity, deliver_post_id, 'temporary', 'unreachable')
+        end
+
+        raise
+      rescue DiscoveryFailure
+        if retry_count == 0 && deliver_post_id
+          delivery_failure(target_entity, deliver_post_id, 'temporary', 'discovery_failed')
+        end
+
+        raise
+      rescue TentClient::ServerNotFound, TentClient::MalformedServerMeta => e
+        if retry_count == 0 && deliver_post_id
+          delivery_failure(target_entity, deliver_post_id, 'temporary', 'discovery_failed')
+        end
+
+        error = DiscoveryFailure.new(e.inspect)
+        error.set_backtrace(e.backtrace)
+        raise error
+      rescue InitiationFailure
+        if retry_count == 0 && deliver_post_id
+          delivery_failure(target_entity, deliver_post_id, 'temporary', 'relationship_failed')
+        end
+
+        raise
       end
 
       def retries_exhausted(user_id, target_entity_id, deliver_post_id=nil)
@@ -179,6 +220,14 @@ module TentD
         logger.info "Queuing Post(#{post_id}) for delivery"
 
         NotificationDeliverer.perform_in(5, post_id, entity, entity_id)
+      end
+
+      def delivery_failure(target_entity, post_id, status, reason)
+        return unless post = Model::Post.where(:id => post_id).first
+
+        logger.info "Creating #{status.inspect} delivery failure for Post(#{post_id}) to Entity(#{target_entity}): #{reason}"
+
+        Model::DeliveryFailure.find_or_create(target_entity, post, status, reason)
       end
     end
 
