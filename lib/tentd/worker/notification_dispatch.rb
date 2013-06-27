@@ -39,7 +39,7 @@ module TentD
 
         subscriptions = subscriptions.all.to_a
 
-        logger.info "Found #{subscriptions.size} subscriptions for #{post_id}"
+        logger.info "Found #{subscriptions.size} subscriptions for Post(#{post_id})"
 
         # get rid of duplicates
         subscriptions.uniq! { |s| s.relationship_id }
@@ -62,6 +62,9 @@ module TentD
 
         # queue delivery for each subscribed app
         subscribed_apps = Model::App.subscribers(post, :select => :id)
+
+        logger.info "Found #{subscribed_apps.size} app subscriptions for Post(#{post_id})"
+
         subscribed_apps.each do |app|
           NotificationAppDeliverer.perform_async(post_id, app.id)
         end
