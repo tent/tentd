@@ -30,8 +30,6 @@ module TentD
           Sidekiq.options[:require] = File.join(File.expand_path(File.dirname(__FILE__)), 'sidekiq.rb') # tentd/sidekiq
           Sidekiq.options[:logfile] = ENV['SIDEKIQ_LOG']
 
-          TentD::Worker.configure_server
-
           cli = Sidekiq::CLI.instance
           cli.parse([])
           cli.run
