@@ -200,6 +200,9 @@ module TentD
 
         if self[:public] == false
           attrs[:permissions] = { :public => false }
+          if (env = options[:env]) && Authorizer.new(env).app?
+            attrs[:permissions][:entities] = self.permissions_entities if self.permissions_entities.to_a.any?
+          end
         end
 
         attrs
