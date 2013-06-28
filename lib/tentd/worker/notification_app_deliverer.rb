@@ -29,13 +29,17 @@ module TentD
         logger.info "Delivering Post(#{post_id}) to App(#{app_id})"
 
         client = TentClient.new(nil, :credentials => Model::Credentials.slice_credentials(app_credentials))
-        client.http.put(app.notification_url, {}, post.as_json(
+        res = client.http.put(app.notification_url, {}, post.as_json(
           :env => {
             'current_auth' => app_credentials,
             'current_auth.resource' => app
           }
         )) do |request|
           request.headers['Content-Type'] = %(application/vnd.tent.post.v0+json; type="%s"; rel="https://tent.io/rels/notification") % post.type
+        end
+
+        unless res.status == 200
+          logger.error "Failed to deliver Post(#{post_id}) to App(#{app_id}): #{res.status} #{res.headers.inspect} #{res.body}"
         end
 
       rescue URI::InvalidURIError => e
