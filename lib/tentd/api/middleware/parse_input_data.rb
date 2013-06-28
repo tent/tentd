@@ -23,6 +23,7 @@ module TentD
               memo << attachment
               memo
             }
+            env['CONTENT_TYPE'] = data[:type] if data
             data ? Yajl::Parser.parse(rack_input('rack.input' => data[:tempfile])) : nil
           else
             data
