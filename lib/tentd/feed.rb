@@ -59,7 +59,7 @@ module TentD
       q = _build_query(params)
 
       if env['current_auth.resource'] && TentType.new(env['current_auth.resource'].type).base == 'https://tent.io/types/app-auth'
-        read_types = env['current_auth.resource'].content['post_types']['read']
+        read_types = env['current_auth.resource'].content['types']['read']
 
         unless read_types == %w( all )
           read_types.map! { |uri| TentType.new(uri) }

@@ -4,7 +4,7 @@ module TentD
 
       class AppAuth < Base
         def read_types
-          @read_types ||= resource.content['post_types']['read'].to_a
+          @read_types ||= resource.content['types']['read'].to_a
         end
 
         def read_type?(type_uri)
@@ -31,7 +31,7 @@ module TentD
         end
 
         def write_types
-          resource.content['post_types']['write'].to_a
+          resource.content['types']['write'].to_a
         end
 
         def write_all_types?

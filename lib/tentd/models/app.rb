@@ -3,7 +3,7 @@ module TentD
 
     class App < Sequel::Model(TentD.database[:apps])
       plugin :serialization
-      serialize_attributes :pg_array, :read_types, :read_type_ids, :write_post_types, :scopes, :notification_type_base_ids, :notification_type_ids
+      serialize_attributes :pg_array, :read_types, :read_type_ids, :write_types, :scopes, :notification_type_base_ids, :notification_type_ids
 
       plugin :paranoia if Model.soft_delete
 
@@ -66,8 +66,8 @@ module TentD
           :notification_url => post.content['notification_url'],
         }
 
-        if post.content['notification_post_types'].to_a.any?
-          types = Type.find_or_create_types(post.content['notification_post_types'])
+        if post.content['notification_types'].to_a.any?
+          types = Type.find_or_create_types(post.content['notification_types'])
           attrs[:notification_type_ids] = types.map(&:id).uniq
         end
 
@@ -103,9 +103,9 @@ module TentD
 
         app.update(
           :auth_post_id => auth_post.id,
-          :read_types => auth_post.content['post_types']['read'].to_a,
-          :read_type_ids => Type.find_types(auth_post.content['post_types']['read'].to_a).map(&:id).uniq,
-          :write_post_types => auth_post.content['post_types']['write'].to_a
+          :read_types => auth_post.content['types']['read'].to_a,
+          :read_type_ids => Type.find_types(auth_post.content['types']['read'].to_a).map(&:id).uniq,
+          :write_types => auth_post.content['types']['write'].to_a
         )
       end
 

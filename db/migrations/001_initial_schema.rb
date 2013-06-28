@@ -117,9 +117,9 @@ Sequel.migration do
       column :notification_url      , "text" # post.content.notification_url
       column :notification_type_ids , "text[]"
 
-      column :read_types            , "text[]" # auth_post.content.post_types.read
-      column :read_type_ids         , "text[]" # auth_post.content.post_types.read ids
-      column :write_post_types      , "text[]" # auth_post.content.post_types.write
+      column :read_types            , "text[]" # auth_post.content.types.read
+      column :read_type_ids         , "text[]" # auth_post.content.types.read ids
+      column :write_types           , "text[]" # auth_post.content.types.write
       column :scopes                , "text[]" # auth_post.content.scopes
       column :deleted_at            , "timestamp without time zone"
 

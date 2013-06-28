@@ -2,7 +2,7 @@ module TentD
   module Model
 
     class AppAuth
-      def self.create(current_user, app_post, post_types, scopes = [])
+      def self.create(current_user, app_post, types, scopes = [])
 
         type, base_type = Type.find_or_create("https://tent.io/types/app-auth/v0#")
         published_at_timestamp = Utils.timestamp
@@ -22,7 +22,7 @@ module TentD
           :received_at => published_at_timestamp,
 
           :content => {
-            :post_types => post_types,
+            :types => types,
             :scopes => scopes
           },
 
@@ -41,9 +41,9 @@ module TentD
           :auth_hawk_key => credentials_post.content['hawk_key'],
           :auth_credentials_post_id => credentials_post.id,
 
-          :read_types => post_types['read'],
-          :read_type_ids => Type.find_types(post_types['read']).map(&:id),
-          :write_post_types => post_types['write']
+          :read_types => types['read'],
+          :read_type_ids => Type.find_types(types['read']).map(&:id),
+          :write_types => types['write']
         )
 
         Mention.create(

@@ -16,7 +16,7 @@ module TentD
           app_post = Model::Post.first(:user_id => env['current_user'].id, :public_id => env['params']['client_id'])
           app_auth_post = Model::AppAuth.create(
             env['current_user'], app_post,
-            app_post.content['post_types'],
+            app_post.content['types'],
             app_post.content['scopes']
           )
 
