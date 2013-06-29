@@ -38,7 +38,7 @@ module TentD
             halt!(500, "Internal Server Error")
           end
         else
-          if post.destroy
+          if post.destroy(delete_options)
             env['response.status'] = 200
           else
             halt!(500, "Internal Server Error")
