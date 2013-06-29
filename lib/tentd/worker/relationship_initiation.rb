@@ -212,7 +212,7 @@ module TentD
         attrs = Model::PostBuilder.build_attributes({
           'data' => post,
           'current_user' => current_user,
-        }, { :entity => entity, :public_id => post['id'] })
+        }, { :entity => entity, :public_id => post['id'], :notification => true })
         Model::Post.create(attrs)
       end
 
