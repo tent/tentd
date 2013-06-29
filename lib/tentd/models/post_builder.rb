@@ -156,6 +156,15 @@ module TentD
           end
         end
 
+        if options[:import] && (Hash === data['version']) && data['version']['id']
+          canonical_json = TentCanonicalJson.encode(Post.new(attrs).as_json)
+          expected_version = Utils.hex_digest(canonical_json)
+          attrs[:version] = data['version']['id']
+          unless attrs[:version] == expected_version
+            raise CreateFailure.new("Invalid version id. Got(#{attrs[:version]}), Expected(#{expected_version}) #{canonical_json}")
+          end
+        end
+
         attrs
       end
 
