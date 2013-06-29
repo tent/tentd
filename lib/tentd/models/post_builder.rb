@@ -77,8 +77,8 @@ module TentD
               end
             end
           end
-        elsif options[:version]
-          unless options[:notification]
+        elsif options[:public_id]
+          unless options[:import] || options[:notification]
             raise CreateFailure.new("Parent version not specified")
           end
         end
