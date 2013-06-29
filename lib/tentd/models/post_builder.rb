@@ -121,9 +121,12 @@ module TentD
         else
           if Array === data['attachments']
             data['attachments'] = data['attachments'].inject([]) do |memo, attachment|
-              next memo unless attachment.has_key?('digest')
-              if attachment['model'] = Attachment.where(:digest => attachment['digest']).first
+              raise CreateFailure.new("Unknown attachment: #{Yajl::Encoder.encode(attachment)}") unless attachment.has_key?('digest')
+              if model = Attachment.where(:digest => attachment['digest']).first
+                attachment['model'] = model
                 memo << attachment
+              else
+                raise CreateFailure.new("Unknown attachment: #{Yajl::Encoder.encode(attachment)}")
               end
               memo
             end
