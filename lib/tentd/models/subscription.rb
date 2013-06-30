@@ -11,11 +11,10 @@ module TentD
           raise Post::CreateFailure.new("Subscription must mention an entity! #{post_attrs[:mentions].inspect}")
         end
 
-        unless subscription = where(:user_id => post_attrs[:user_id], :type => post_attrs[:content]['type']).first
-          type = Type.find_or_create_full(post_attrs[:content]['type'])
+        type = Type.find_or_create_full(post_attrs[:content]['type'])
+        target_entity_id = Entity.first_or_create(target_entity).id
+        unless subscription = where(:user_id => post_attrs[:user_id], :type_id => type.id, :entity_id => target_entity_id).first
           post = Post.create(post_attrs)
-
-          target_entity_id = Entity.first_or_create(target_entity).id
 
           subscription = create(
             :user_id => post.user_id,
