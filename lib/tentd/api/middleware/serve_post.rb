@@ -11,12 +11,14 @@ module TentD
           :post => post.as_json(:env => env)
         }
 
+        authorizer = Authorizer.new(env)
+
         if env['REQUEST_METHOD'] == 'GET'
-          if params['max_refs']
+          if params['max_refs'] && authorizer.app?
             env['response'][:refs] = Refs.new(env).fetch(post, params['max_refs'].to_i)
           end
 
-          if params['profiles']
+          if params['profiles'] && authorizer.app?
             env['response'][:profiles] = MetaProfile.new(env, [post]).profiles(params['profiles'].split(','))
           end
         end

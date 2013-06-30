@@ -48,7 +48,7 @@ module TentD
         DEFAULT_PAGE_LIMIT
       end
 
-      if params['max_refs']
+      if params['max_refs'] && authorizer.app?
         _limit = [MAX_PAGE_LIMIT / [Refs::MAX_REFS_PER_POST, params['max_refs'].to_i].min, _limit].min
       end
 
@@ -317,11 +317,11 @@ module TentD
         :posts => _models.map { |m| m.as_json(:env => env) }
       }
 
-      if params['max_refs']
+      if params['max_refs'] && authorizer.app?
         res[:refs] = Refs.new(env).fetch(*_models, params['max_refs'].to_i)
       end
 
-      if params['profiles']
+      if params['profiles'] && authorizer.app?
         res[:profiles] = API::MetaProfile.new(env, _models).profiles(params['profiles'].split(','))
       end
 
