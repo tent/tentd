@@ -27,9 +27,9 @@ Sequel.migration do
     create_table(:types) do
       primary_key :id
 
-      column :base       , "text"   , :null => false
-      column :version    , "text"   , :null => false
-      column :fragment   , "text"
+      column :base     , "text"   , :null => false
+      column :version  , "bigint" , :null => false
+      column :fragment , "text"
 
       index [:base, :version, :fragment], :name => :unique_types, :unique => true
     end
