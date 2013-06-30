@@ -59,12 +59,12 @@ module TentD
     def proxy_condition
       return :never unless authorizer.proxy_authorized?
 
-      case env['HTTP_CACHE_CONTROL']
-      when 'no-cache'
+      case env['HTTP_CACHE_CONTROL'].to_s
+      when /\bno-cache\b/
         :always
-      when 'proxy-if-miss'
+      when /\bproxy-if-miss\b/
         :on_miss
-      when 'only-if-cached'
+      when /\bonly-if-cached\b/
         :never
       else
         env['request.feed'] ? :never : :on_miss
