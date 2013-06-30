@@ -82,6 +82,10 @@ module TentD
         subscription
       end
 
+      def self.post_destroyed(post)
+        where(:post_id => post.id).destroy
+      end
+
       def post
         @post ||= Post.where(:id => self.post_id).first
       end

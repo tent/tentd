@@ -53,6 +53,14 @@ module TentD
         end
       end
 
+      def after_destroy
+        if TentType.new(self.type).base == %(https://tent.io/types/subscription)
+          Subscription.post_destroyed(self)
+        end
+
+        super
+      end
+
       def queue_delivery
         return unless deliverable?
         Worker::NotificationDispatch.perform_async(self.id)
