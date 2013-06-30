@@ -14,7 +14,6 @@ module TentD
     POST_CONTENT_TYPE = %(#{POST_CONTENT_MIME}; type="%s").freeze
     ERROR_CONTENT_TYPE = %(application/vnd.tent.error.v0+json).freeze
     MULTIPART_CONTENT_TYPE = MULTIPART_CONTENT_MIME
-    ATTACHMENT_DIGEST_HEADER = %(Attachment-Digest).freeze
 
     MENTIONS_CONTENT_TYPE = %(application/vnd.tent.post-mentions.v0+json).freeze
     CHILDREN_CONTENT_TYPE = %(application/vnd.tent.post-children.v0+json).freeze

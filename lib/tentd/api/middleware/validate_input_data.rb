@@ -33,20 +33,6 @@ module TentD
       def validate_attachments!(env)
         return unless env['attachments']
         halt!(400, "Malformed Request") unless Array === env['attachments']
-
-        env['attachments'].each do |attachment|
-          validate_attachment_hash!(attachment)
-        end
-      end
-
-      def validate_attachment_hash!(attachment)
-        return unless attachment[:headers].has_key?(ATTACHMENT_DIGEST_HEADER)
-
-        digest = TentD::Utils.hex_digest(attachment[:tempfile])
-
-        unless digest == attachment[:headers][ATTACHMENT_DIGEST_HEADER]
-          halt!(400, "Attachment digest mismatch: #{digest}")
-        end
       end
 
       def encode(data)
