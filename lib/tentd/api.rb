@@ -19,6 +19,12 @@ module TentD
     CHILDREN_CONTENT_TYPE = %(application/vnd.tent.post-children.v0+json).freeze
     VERSIONS_CONTENT_TYPE = %(application/vnd.tent.post-versions.v0+json).freeze
 
+    PROXY_HEADERS = Set.new(%w(
+      Content-Type
+      Content-Length
+      ETag
+    )).freeze
+
     require 'tentd/api/middleware'
     require 'tentd/api/middleware/hello_world'
     require 'tentd/api/middleware/not_found'

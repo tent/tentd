@@ -46,14 +46,21 @@ module TentD
       auth_candidate && auth_candidate.read_entity?(entity)
     end
 
-    def proxy_client(entity, options = nil)
-      if options == {:skip_response_serialization => true}
-        self.class.proxy_client(current_user, entity, options)
-      elsif options
-        self.class.proxy_client(current_user, entity, options)
-      else
-        self.class.proxy_client(current_user, entity)
+    def proxy_client(entity, options = {})
+      self.class.proxy_client(current_user, entity, options)
+    end
+
+    def request(entity, options = {}, &block)
+      res = yield(proxy_client(entity, options.merge(:skip_response_serialization => true)))
+
+      body = res.body.respond_to?(:each) ? res.body : [res.body]
+
+      headers = API::PROXY_HEADERS.inject({}) do |memo, key|
+        memo[key] = res.headers[key] if res.headers[key]
+        memo
       end
+
+      [res.status, headers, body]
     end
 
     def proxy_condition

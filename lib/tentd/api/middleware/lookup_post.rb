@@ -24,13 +24,11 @@ module TentD
 
         if !post && proxy_condition != :never && !env['request.post_list']
           # proxy request
-          proxy_client = request_proxy_manager.proxy_client(params[:entity], :skip_response_serialization => true)
-
           begin
-            res = proxy_client.post.get(params[:entity], params[:post])
-
-            body = res.body.respond_to?(:each) ? res.body : [res.body]
-            return [res.status, res.headers, body]
+            status, headers, body = request_proxy_manager.request(params[:entity]) do |client|
+              client.post.get(params[:entity], params[:post])
+            end
+            return [status, headers, body]
           rescue Faraday::Error::TimeoutError
             if proxy_condition == :always
               res ||= Faraday::Response.new({})

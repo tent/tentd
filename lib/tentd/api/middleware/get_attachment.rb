@@ -24,13 +24,11 @@ module TentD
 
         if !attachment && proxy_condition != :never && request_proxy_manager.can_proxy?(params[:entity])
           # proxy request
-          proxy_client = request_proxy_manager.proxy_client(params[:entity])
-
           begin
-            res = proxy_client.attachment.get(params[:entity], params[:digest])
-
-            body = res.body.respond_to?(:each) ? res.body : [res.body]
-            return [res.status, res.headers, body]
+            status, headers, body = request_proxy_manager.request(params[:entity]) do |client|
+              client.attachment.get(params[:entity], params[:digest])
+            end
+            return [status, headers, body]
           rescue Faraday::Error::TimeoutError
             halt!(504, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
           rescue Faraday::Error::ConnectionFailed
