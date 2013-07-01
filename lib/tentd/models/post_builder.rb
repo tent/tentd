@@ -122,7 +122,7 @@ module TentD
           if Array === data['attachments']
             data['attachments'] = data['attachments'].inject([]) do |memo, attachment|
               raise CreateFailure.new("Unknown attachment: #{Yajl::Encoder.encode(attachment)}") unless attachment.has_key?('digest')
-              if model = Attachment.where(:digest => attachment['digest']).first
+              if model = Attachment.find_by_digest(attachment['digest'])
                 attachment['model'] = model
                 memo << attachment
               else
@@ -300,15 +300,17 @@ module TentD
 
       def create_attachments(post, attachments)
         attachments.each_with_index do |attachment, index|
-          data = attachment[:tempfile].read
-          attachment[:tempfile].rewind
+          attachment_record = Attachment.find_or_create(
+            Utils::Hash.symbolize_keys(
+              Utils::Hash.slice(post.attachments[index], 'digest', 'size').merge(:data => attachment[:tempfile])
+            )
+          )
 
           PostsAttachment.create(
-            :attachment_id => Attachment.find_or_create(
-              TentD::Utils::Hash.slice(post.attachments[index], 'digest', 'size').merge(:data => data)
-            ).id,
-            :post_id => post.id,
-            :content_type => attachment[:content_type]
+            :digest => attachment_record.digest,
+            :content_type => attachment[:content_type],
+            :attachment_id => attachment_record.id,
+            :post_id => post.id
           )
         end
       end

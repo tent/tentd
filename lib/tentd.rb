@@ -37,6 +37,47 @@ module TentD
     require 'tentd/model'
 
     Model.soft_delete = ENV['SOFT_DELETE'].to_s != 'false'
+
+    if (aws_access_key_id = options[:aws_access_key_id] || ENV['AWS_ACCESS_KEY_ID']) &&
+       (aws_secret_access_key = options[:aws_secret_access_key] || ENV['AWS_SECRET_ACCESS_KEY'])
+      # use S3 for attachments
+
+
+      fog_adapter = {
+        :provider => 'AWS',
+        :aws_access_key_id => aws_access_key_id,
+        :aws_secret_access_key => aws_secret_access_key
+      }
+
+      if aws_host = options[:aws_host] || ENV['AWS_HOST']
+        fog_adapter[:host] = aws_host
+      end
+
+      if aws_port = options[:aws_port] || ENV['AWS_PORT']
+        fog_adapter[:port] = aws_port
+      end
+
+      if aws_scheme = options[:aws_scheme] || ENV['AWS_SCHEME']
+        fog_adapter[:scheme] = aws_scheme
+      end
+    elsif path = ENV['LOCAL_ATTACHMENTS_ROOT']
+      fog_adapter = {
+        :provider => 'Local',
+        :local_root => path
+      }
+    else
+      fog_adapter = nil
+    end
+
+    if fog_adapter
+      require 'tentd/models/attachment/fog'
+
+      Model::Attachment.fog_adapter = fog_adapter
+
+      Model::Attachment.namespace = options[:attachments_namespace] || ENV['ATTACHMENTS_NAMESPACE'] || 'tentd_attachments'
+    else
+      require 'tentd/models/attachment/sequel'
+    end
   end
 
   def self.database

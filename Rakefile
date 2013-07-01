@@ -67,6 +67,9 @@ task :validator_spec do
 
     ENV['SIDEKIQ_LOG'] = File.join(File.expand_path(File.dirname(__FILE__)), 'validator-sidekiq.log')
 
+    # make sure attachments are separate
+    ENV['ATTACHMENTS_NAMESPACE'] = 'validator_attachments'
+
     # wait until tentd server boots
     tentd_started = false
     until tentd_started

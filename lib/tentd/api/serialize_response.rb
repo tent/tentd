@@ -10,7 +10,18 @@ module TentD
         response_headers = build_response_headers(env)
         if env.has_key?('response') && env['response']
           response_body = env['response'].respond_to?(:as_json) ? env['response'].as_json : env['response']
-          [env['response.status'] || 200, { 'Content-Type' => content_type(response_body) }.merge(response_headers), [serialize(response_body)]]
+
+          response_headers = {
+            'Content-Type' => content_type(response_body)
+          }.merge(response_headers)
+
+          response_body = serialize(response_body)
+
+          if String === response_body
+            response_body = [response_body]
+          end
+
+          [env['response.status'] || 200, response_headers, response_body]
         else
           if env['response.status']
             [env['response.status'], {}.merge(response_headers), []]

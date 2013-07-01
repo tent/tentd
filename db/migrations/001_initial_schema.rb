@@ -227,6 +227,7 @@ Sequel.migration do
       foreign_key :post_id       , :posts       , :on_delete => :cascade
       foreign_key :attachment_id , :attachments , :on_delete => :cascade
 
+      column :digest       , "text"
       column :content_type , "text"   , :null => false
 
       index [:post_id, :attachment_id, :content_type], :name => :unique_posts_attachments, :unique => true

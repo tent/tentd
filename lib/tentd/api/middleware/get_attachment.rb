@@ -40,8 +40,8 @@ module TentD
           halt!(404, "Not Found")
         end
 
-        env['response'] = attachment.data.lit
-        (env['response.headers'] ||= {})['Content-Length'] = attachment.data.bytesize.to_s
+        env['response'] = attachment
+        (env['response.headers'] ||= {})['Content-Length'] = attachment.size.to_s
         env['response.headers']['Content-Type'] = post_attachment.content_type
         env
       end

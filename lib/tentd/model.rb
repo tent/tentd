@@ -26,7 +26,6 @@ module TentD
     require 'tentd/models/post_builder'
     require 'tentd/models/app'
     require 'tentd/models/app_auth'
-    require 'tentd/models/attachment'
     require 'tentd/models/posts_attachment'
     require 'tentd/models/relationship'
     require 'tentd/models/subscription'
