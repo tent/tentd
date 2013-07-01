@@ -51,18 +51,24 @@ module TentD
       def lookup_attachment(env)
         params = env['params']
 
-        attachment = Model::Attachment.where(:digest => params[:digest]).first
+        attachment = nil
+
+        attachment = Model::Attachment.find_by_digest(params[:digest])
         return unless attachment
 
-        post_attachment = Model::PostsAttachment.where(:attachment_id => attachment.id).first
-        return unless post_attachment
+        posts = Model::Post.
+          qualify.
+          join(:posts_attachments, :posts__id => :posts_attachments__post_id).
+          where(:posts_attachments__digest => attachment.digest, :posts__user_id => env['current_user'].id).
+          order(Sequel.desc(:posts__received_at)).
+          all
+        return unless posts.any?
 
-        post = Model::Post.where(:id => post_attachment.post_id, :user_id => env['current_user'].id).first
-        return unless post
-
-        unless Authorizer.new(env).read_authorized?(post)
+        unless post = posts.find { |post| Authorizer.new(env).read_authorized?(post) }
           return
         end
+
+        post_attachment = Model::PostsAttachment.where(:post_id => post.id).first
 
         [attachment, post_attachment]
       end
