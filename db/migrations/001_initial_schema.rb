@@ -215,9 +215,9 @@ Sequel.migration do
     create_table(:attachments) do
       primary_key :id
 
-      column :digest     , "text"   , :null => false
-      column :size       , "bigint" , :null => false
-      column :data       , "bytea"  , :null => false
+      column :digest   , "text"     , :null => false
+      column :size     , "bigint"   , :null => false
+      column :data_oid , "bigint"   , :null => false
 
       index [:digest, :size], :name => :unique_attachments, :unique => true
     end

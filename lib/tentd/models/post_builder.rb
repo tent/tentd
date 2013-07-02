@@ -300,11 +300,10 @@ module TentD
 
       def create_attachments(post, attachments)
         attachments.each_with_index do |attachment, index|
-          attachment_record = Attachment.find_or_create(
-            Utils::Hash.symbolize_keys(
-              Utils::Hash.slice(post.attachments[index], 'digest', 'size').merge(:data => attachment[:tempfile])
-            )
-          )
+          attrs = Utils::Hash.slice(
+            Utils::Hash.symbolize_keys(post.attachments[index]), :digest, :size
+          ).merge(:data => attachment[:tempfile])
+          attachment_record = Attachment.find_or_create(attrs)
 
           PostsAttachment.create(
             :digest => attachment_record.digest,

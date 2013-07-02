@@ -1,16 +1,20 @@
+require 'tentd/models/large_object'
+
 module TentD
   module Model
 
     class Attachment < Sequel::Model(TentD.database[:attachments])
+      include SequelPGLargeObject
+
+      pg_large_object :data
+
       def self.find_by_digest(digest)
         where(:digest => digest).first
       end
 
       def self.find_or_create(attrs)
-        if attrs[:data].respond_to?(:read)
-          data = attrs[:data].read
-          attrs[:data].rewind if attrs[:data].respond_to?(:rewind)
-          attrs[:data] = data
+        if String === attrs[:data]
+          attrs[:data] = StringIO.new(attrs[:data])
         end
 
         create(attrs)
@@ -22,12 +26,14 @@ module TentD
         end
       end
 
-      def data
-        self[:data].lit
+      def each(&block)
+        return unless self.data
+        self.data.each(&block)
       end
 
-      def each(&block)
-        data.lit.each(&block)
+      def read
+        return unless self.data
+        self.data.read
       end
     end
 

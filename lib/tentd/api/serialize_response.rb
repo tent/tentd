@@ -9,7 +9,10 @@ module TentD
       def call(env)
         response_headers = build_response_headers(env)
         if env.has_key?('response') && env['response']
-          response_body = env['response'].respond_to?(:as_json) ? env['response'].as_json : env['response']
+          response_body = env['response']
+          if !response_body.respond_to?(:each) && response_body.respond_to?(:as_json)
+            response_body = response_body.as_json(:env => env)
+          end
 
           response_headers = {
             'Content-Type' => content_type(response_body)
