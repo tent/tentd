@@ -14,6 +14,25 @@ RUN_SIDEKIQ     | Optional | Set to 'true' if you want to boot sidekiq via `conf
 SIDEKIQ_LOG     | Optional | Sidekiq log file (defaults to STDOUT and STDERR)
 SOFT_DELETE     | Optional | To perminently delete db records, set to `false`. Defaults to `true` (sets `deleted_at` timestamp instead of removing from db)
 
+#### Attachment Storage Options
+
+Precedence is in the same order as listed below.
+
+name       | env                              | description
+----       | ---                              | -----------
+Amazon S3  | AWS_ACCESS_KEY_ID                | Access key identifier
+           | AWS_SECRET_ACCESS_KEY            | Access key
+           | S3_BUCKET                        | Bucket name
+Google     | GOOGLE_STORAGE_ACCESS_KEY_ID     | Access key identifier
+           | GOOGLE_STORAGE_SECRET_ACCESS_KEY | Access key
+           | GOOGLE_BUCKET                    | Bucket name
+Rackspace  | RACKSPACE_USERNAME               | Username
+           | RACKSPACE_API_KEY                | Api key
+           | RACKSPACE_AUTH_URL               | Auth URL (European Rackspace)
+           | RACKSPACE_CONTAINER              | Container (bucket) name
+Filesystem | LOCAL_ATTACHMENTS_ROOT           | Path to directory (e.g. `~/tent-attachments`)
+Postgres   | POSTGRES_ATTACHMENTS             | Default. Set to `true` to override any of the other options.
+
 ### Database Setup
 
 ```bash
