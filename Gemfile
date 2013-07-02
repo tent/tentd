@@ -9,6 +9,8 @@ gem 'json-pointer', :git => 'git://github.com/tent/json-pointer-ruby.git', :bran
 gem 'tent-canonical-json', :git => 'git://github.com/tent/tent-canonical-json-ruby.git', :branch => 'master'
 gem 'api-validator', :git => 'git://github.com/tent/api-validator.git', :branch => 'master'
 gem 'hawk-auth', :git => 'git://github.com/tent/hawk-ruby.git', :branch => 'master'
+gem 'sequel_pg', :require => 'sequel'
+gem 'sequel', :require => false
 
 group :development, :test do
   gem 'tent-validator', :git => 'git://github.com/tent/tent-validator.git', :branch => 'master'
