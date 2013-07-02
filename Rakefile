@@ -68,9 +68,7 @@ task :validator_spec do
     ENV['SIDEKIQ_LOG'] = File.join(File.expand_path(File.dirname(__FILE__)), 'validator-sidekiq.log')
 
     # always use postgres for attachments
-    ENV['AWS_ACCESS_KEY_ID'] = nil
-    ENV['AWS_SECRET_ACCESS_KEY'] = nil
-    ENV['LOCAL_ATTACHMENTS_ROOT'] = nil
+    ENV['POSTGRES_ATTACHMENTS'] = 'true'
 
     # wait until tentd server boots
     tentd_started = false

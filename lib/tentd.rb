@@ -69,6 +69,11 @@ module TentD
       fog_adapter = nil
     end
 
+    # force use of postgres for attachments
+    if ENV['POSTGRES_ATTACHMENTS'].to_s == 'true'
+      fog_adapter = nil
+    end
+
     if fog_adapter
       require 'tentd/models/attachment/fog'
 
