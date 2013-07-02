@@ -60,6 +60,27 @@ module TentD
       if aws_scheme = options[:aws_scheme] || ENV['AWS_SCHEME']
         fog_adapter[:scheme] = aws_scheme
       end
+
+    elsif (google_storage_access_key_id = ENV['GOOGLE_STORAGE_ACCESS_KEY_ID']) &&
+          (google_storage_secret_access_key = ENV['GOOGLE_STORAGE_SECRET_ACCESS_KEY'])
+
+      fog_adapter = {
+        :provider => 'Google',
+        :google_storage_secret_access_key_id => google_storage_secret_access_key_id,
+        :google_storage_secret_access_key => google_storage_secret_access_key
+      }
+    elsif (rackspace_username = ENV['RACKSPACE_USERNAME']) &&
+          (rackspace_api_key = ENV['RACKSPACE_API_KEY'])
+
+      fog_adapter = {
+        :provider => 'Rackspace',
+        :rackspace_username => rackspace_username,
+        :rackspace_api_key => rackspace_api_key
+      }
+
+      if rackspace_auth_url = ENV['RACKSPACE_AUTH_URL']
+        fog_adapter[:rackspace_auth_url] = rackspace_auth_url
+      end
     elsif path = ENV['LOCAL_ATTACHMENTS_ROOT']
       fog_adapter = {
         :provider => 'Local',
