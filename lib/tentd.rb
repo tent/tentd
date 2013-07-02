@@ -74,7 +74,7 @@ module TentD
 
       Model::Attachment.fog_adapter = fog_adapter
 
-      Model::Attachment.namespace = options[:attachments_namespace] || ENV['ATTACHMENTS_NAMESPACE'] || 'tentd_attachments'
+      Model::Attachment.namespace = options[:attachments_namespace] || ENV['S3_BUCKET'] || ENV['ATTACHMENTS_NAMESPACE'] || 'tentd-attachments'
     else
       require 'tentd/models/attachment/sequel'
     end
