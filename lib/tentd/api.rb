@@ -27,6 +27,7 @@ module TentD
 
     require 'tentd/api/middleware'
     require 'tentd/api/middleware/hello_world'
+    require 'tentd/api/middleware/discover'
     require 'tentd/api/middleware/not_found'
     require 'tentd/api/middleware/user_lookup'
     require 'tentd/api/middleware/authentication'
@@ -126,6 +127,10 @@ module TentD
 
     get '/oauth/authorize' do |b|
       b.use OAuth::Authorize
+    end
+
+    get '/discover' do |b|
+      b.use Discover
     end
 
     post '/oauth/token' do |b|

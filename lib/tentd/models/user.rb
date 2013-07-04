@@ -57,7 +57,8 @@ module TentD
                   "post_attachment" => "#{self.entity}/posts/{entity}/{post}/attachments/{name}",
                   "attachment" => "#{self.entity}/attachments/{entity}/{digest}",
                   "batch" => "#{self.entity}/batch",
-                  "server_info" => "#{self.entity}/server"
+                  "server_info" => "#{self.entity}/server",
+                  "discover" => "#{self.entity}/discover?entity={entity}"
                 },
                 "preference" => 0
               }
