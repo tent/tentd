@@ -15,7 +15,7 @@ module TentD
 
     def self.configure_client(redis_opts = {}, &block)
       Sidekiq.configure_client do |config|
-        config.redis = { :namespace => ENV['REDIS_NAMESPACE'] || 'tentd.worker', :size => 1, :url => ENV['REDIS_URL'] }.merge(redis_opts)
+        config.redis = { :namespace => ENV['REDIS_NAMESPACE'] || 'tentd.worker', :size => 1, :url => ENV['REDIS_URL'] || ENV['REDISCLOUD_URL'] }.merge(redis_opts)
         yield(config) if block_given?
       end
     end
@@ -24,7 +24,7 @@ module TentD
       TentD.setup_database!
 
       Sidekiq.configure_server do |config|
-        config.redis = { :namespace => ENV['REDIS_NAMESPACE'] || 'tentd.worker', :url => ENV['REDIS_URL'] }.merge(redis_opts)
+        config.redis = { :namespace => ENV['REDIS_NAMESPACE'] || 'tentd.worker', :url => ENV['REDIS_URL'] || ENV['REDISCLOUD_URL'] }.merge(redis_opts)
 
         config.server_middleware do |chain|
           chain.add RetryCount

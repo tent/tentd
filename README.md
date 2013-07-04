@@ -61,7 +61,7 @@ RUN_SIDEKIQ=true bundle exec unicorn
 ### Heroku
 
 ```bash
-heroku create --addons heroku-postgresql:dev
+heroku create --addons heroku-postgresql:dev,rediscloud:20
 heroku pg:promote $(heroku pg | head -1 | cut -f2 -d" ")
 heroku config:add TENT_ENTITY=$(heroku info -s | grep web_url | cut -f2 -d"=" | sed 's/http/https/' | sed 's/\/$//')
 git push heroku master
