@@ -1,9 +1,12 @@
 require 'bundler/setup'
 require 'bundler/gem_tasks'
 
-require 'rspec/core/rake_task'
-RSpec::Core::RakeTask.new(:rspec) do |spec|
-  spec.pattern = 'spec/**/*_spec.rb'
+begin
+  require 'rspec/core/rake_task'
+  RSpec::Core::RakeTask.new(:rspec) do |spec|
+    spec.pattern = 'spec/**/*_spec.rb'
+  end
+rescue LoadError
 end
 
 task :validator_spec do
