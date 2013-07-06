@@ -4,7 +4,11 @@ module TentD
     class CreatePost < Middleware
       def action(env)
         begin
-          post = Model::Post.create_from_env(env)
+          if TentType.new(env['data']['type']).base == %(https://tent.io/types/app-auth)
+            post = Model::AppAuth.create_from_env(env)
+          else
+            post = Model::Post.create_from_env(env)
+          end
         rescue Model::Post::CreateFailure => e
           halt!(400, e.message)
         end

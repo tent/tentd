@@ -2,6 +2,32 @@ module TentD
   module Model
 
     class AppAuth
+      def self.create_from_env(env)
+        data = env['data']
+
+        app_mention = data['mentions'].to_a.find { |m| TentType.new(m['type']).base == %(https://tent.io/types/app) }
+        app_public_id = app_mention['post'] if app_mention
+
+        unless app_public_id
+          raise Post::CreateFailure.new("Post must mention an app")
+        end
+
+        app_post = Post.where(
+          :user_id => env['current_user'].id,
+          :public_id => app_public_id
+        ).order(Sequel.desc(:received_at)).first
+
+        unless app_public_id
+          raise Post::CreateFailure.new("Post must mention an existing app")
+        end
+
+        self.create(
+          env['current_user'],
+          app_post,
+          data['content']['types']
+        )
+      end
+
       def self.create(current_user, app_post, types, scopes = [])
 
         type, base_type = Type.find_or_create("https://tent.io/types/app-auth/v0#")
