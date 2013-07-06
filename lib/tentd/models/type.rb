@@ -16,15 +16,28 @@ module TentD
         tent_types_without_fragment = tent_types.select { |t| !t.has_fragment? }
         tent_types_with_fragment = tent_types.select { |t| t.has_fragment? }
 
-        q = where
+        q = Query.new(Type)
+
+        _conditions = ["OR"]
 
         if tent_types_without_fragment.any?
-          q = q.where(:base => tent_types_without_fragment.map(&:base), :fragment => nil)
+          _conditions << ["AND",
+            "base IN ?",
+            "fragment IS NULL"
+          ]
+          q.query_bindings << tent_types_without_fragment.map(&:base)
         end
 
         tent_types_with_fragment.each do |tent_type|
-          q = q.where(:base => tent_type.base, :fragment => tent_type.fragment.to_s)
+          _conditions << ["AND",
+            "base = ?",
+            "fragment = ?"
+          ]
+          q.query_bindings << tent_type.base
+          q.query_bindings << tent_type.fragment.to_s
         end
+
+        q.query_conditions << _conditions
 
         types = q.all.to_a
       end
