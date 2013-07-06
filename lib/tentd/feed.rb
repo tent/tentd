@@ -58,8 +58,8 @@ module TentD
     def build_query(params = send(:params))
       q = _build_query(params)
 
-      if env['current_auth.resource'] && TentType.new(env['current_auth.resource'].type).base == 'https://tent.io/types/app-auth'
-        read_types = env['current_auth.resource'].content['types']['read']
+      if authorizer.app?
+        read_types = authorizer.auth_candidate.read_types
 
         unless read_types == %w( all )
           read_types.map! { |uri| TentType.new(uri) }
@@ -71,18 +71,12 @@ module TentD
           _condition = ["OR", "#{q.table_name}.public = true"]
 
           if authorized_base_type_ids.any?
-            _condition << ["AND",
-              "#{q.table_name}.public = false",
-              "#{q.table_name}.type_base_id IN ?"
-            ]
+            _condition << "#{q.table_name}.type_base_id IN ?"
             q.query_bindings << authorized_base_type_ids
           end
 
           if authorized_type_ids_with_fragments.any?
-            _condition << ["AND",
-              "#{q.table_name}.public = false",
-              "#{q.table_name}.type_id IN ?"
-            ]
+            _condition << "#{q.table_name}.type_id IN ?"
             q.query_bindings << authorized_type_ids_with_fragments
           end
 
