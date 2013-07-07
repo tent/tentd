@@ -60,6 +60,12 @@ module TentD
         post = Post.create(post_attrs)
         credentials_post = Credentials.generate(current_user, post, :bidirectional_mention => true)
 
+        # Ref credentials
+        post.refs = [
+          { "entity" => current_user.entity, "type" => credentials_post.type, "post" => credentials_post.public_id }
+        ]
+        post = post.save_version(:public_id => post.public_id)
+
         # Update app record
         app = App.first(:post_id => app_post.id)
         app.update(
