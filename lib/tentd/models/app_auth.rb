@@ -24,7 +24,8 @@ module TentD
         self.create(
           env['current_user'],
           app_post,
-          data['content']['types']
+          data['content']['types'],
+          data['content']['scopes'].to_a
         )
       end
 
