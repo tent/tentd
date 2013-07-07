@@ -14,6 +14,8 @@ module TentD
           halt!(400, "client_id missing") if env['params']['client_id'].to_s == ""
 
           app_post = Model::Post.first(:user_id => env['current_user'].id, :public_id => env['params']['client_id'])
+          halt!(400, "invalid client_id") unless app_post
+
           app_auth_post = Model::AppAuth.create(
             env['current_user'], app_post,
             app_post.content['types'],
