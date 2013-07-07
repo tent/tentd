@@ -2,6 +2,13 @@ module TentD
   module Model
 
     class Mention < Sequel::Model(TentD.database[:mentions])
+
+      def self.create(attrs)
+        super
+      rescue Sequel::UniqueConstraintViolation => e
+        where(:user_id => attrs[:user_id], :entity_id => attrs[:entity_id], :post => attrs[:post]).first
+      end
+
       def self.link_posts(source_post, target_post, options = {})
         source_post.mentions ||= []
         source_post.mentions << { "entity" => target_post.entity, "type" => target_post.type, "post" => target_post.public_id }
