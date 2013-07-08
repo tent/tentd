@@ -22,7 +22,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency 'yajl-ruby'
   gem.add_runtime_dependency 'sequel_pg'
   gem.add_runtime_dependency 'pg'
-  gem.add_runtime_dependency 'sequel', '3.48.0'
+  gem.add_runtime_dependency 'sequel', '3.46.0'
   gem.add_runtime_dependency 'sequel-json'
   gem.add_runtime_dependency 'sequel-pg_array'
   gem.add_runtime_dependency 'tent-schemas'
