@@ -1,4 +1,4 @@
-# Tentd - Protocol v0.3 [![Build Status](https://travis-ci.org/tent/tentd.png?branch=0.3)](https://travis-ci.org/tent/tentd)
+# Tentd - Protocol v0.3 [![Build Status](https://travis-ci.org/tent/tentd.png?branch=master)](https://travis-ci.org/tent/tentd)
 
 **If you're looking to self-host, see [tentd-omnibus](https://github.com/tent/tentd-omnibus).**
 
