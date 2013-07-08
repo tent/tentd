@@ -42,7 +42,7 @@ module TentD
         logger.info "Found #{subscriptions.size} subscriptions for Post(#{post_id})"
 
         # get rid of duplicates
-        subscriptions.uniq! { |s| s.relationship_id }
+        subscriptions.uniq! { |s| s.subscriber_entity_id }
 
         # queue delivery for each subscription
         subscriptions.each do |subscription|
