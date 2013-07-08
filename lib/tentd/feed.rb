@@ -188,7 +188,7 @@ module TentD
       end
 
       if params['entities']
-        q.query_conditions << "entity IN ?"
+        q.query_conditions << "#{q.table_name}.entity IN ?"
         q.query_bindings << params['entities']
       end
 
