@@ -72,7 +72,6 @@ module TentD
     middleware ParseInputData
     middleware ParseContentType
     middleware ParseLinkHeader
-    middleware ValidateInputData
     middleware SetRequestProxyManager
 
     match '/' do |b|
@@ -84,6 +83,7 @@ module TentD
     end
 
     post '/posts' do |b|
+      b.use ValidateInputData
       b.use ValidatePostContentType
       b.use CreatePost
       b.use ServePost
@@ -99,6 +99,7 @@ module TentD
     end
 
     put '/posts/:entity/:post' do |b|
+      b.use ValidateInputData
       b.use CreatePostVersion
       b.use ServePost
     end
