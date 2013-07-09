@@ -69,6 +69,10 @@ module TentD
       end
 
       def fetch_meta_profile(entity, &block)
+        if entity == current_user.entity
+          return current_user.meta_post.as_json
+        end
+
         return unless meta_post = TentClient.new(entity).server_meta_post
         return unless meta_profile = meta_post['content']['profile']
 
@@ -79,8 +83,12 @@ module TentD
         yield meta_profile
       end
 
+      def current_user
+        @current_user ||= env['current_user']
+      end
+
       def current_user_id
-        @current_user_id = env['current_user'].id
+        @current_user_id ||= current_user.id
       end
 
       def request_proxy_manager
