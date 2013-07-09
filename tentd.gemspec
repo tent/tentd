@@ -33,10 +33,6 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency 'unicorn'
   gem.add_runtime_dependency 'fog'
 
-  gem.add_development_dependency 'rack-test', '~> 0.6.1'
-  gem.add_development_dependency 'rspec', '~> 2.11'
-  gem.add_development_dependency 'mocha', '~> 0.13'
-  gem.add_development_dependency 'webmock'
   gem.add_development_dependency 'bundler'
   gem.add_development_dependency 'rake'
   gem.add_development_dependency 'puma', '2.0.1'
