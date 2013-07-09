@@ -81,7 +81,7 @@ module TentD
         :always
       when /\bproxy-if-miss\b/
         :on_miss
-      when /\bonly-if-cached\b/
+      when /\bno-proxy\b/
         :never
       else
         env['request.feed'] ? :never : :on_miss
