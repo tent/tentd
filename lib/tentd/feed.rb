@@ -109,6 +109,12 @@ module TentD
 
       timestamp_column = q.sort_columns.split(' ').first
 
+      q.query_conditions << "#{q.table_name}.version = (
+        SELECT version FROM #{q.table_name} AS tmp
+        WHERE tmp.public_id = #{q.table_name}.public_id
+        ORDER BY received_at DESC LIMIT 1
+      )"
+
       if params['since']
         since_timestamp, since_version = params['since'].split(' ')
         since_timestamp = since_timestamp.to_i
