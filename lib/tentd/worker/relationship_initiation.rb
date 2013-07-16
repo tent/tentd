@@ -18,7 +18,12 @@ module TentD
         # user no longer exists, abort
         return unless current_user = Model::User.where(:id => user_id).first
 
-        target_entity = Model::Entity.where(:id => target_entity_id).first.entity
+        target_entity = Model::Entity.where(:id => target_entity_id).first
+
+        # entity no longer exists, abort
+        return unless target_entity
+
+        target_entity = target_entity.entity
 
         relationship = begin
           Model::Relationship.create(:user_id => user_id, :entity_id => target_entity_id)
