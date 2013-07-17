@@ -1,4 +1,4 @@
-# tentd [![Build Status](https://travis-ci.org/tent/tentd.png?branch=master)](https://travis-ci.org/tent/tentd)
+# tentd [![Build Status](https://travis-ci.org/tent/tentd.png?branch=0.2)](https://travis-ci.org/tent/tentd)
 
 (**note:** 0.3 development is happening on a [different branch](https://github.com/tent/tentd/tree/0.3))
 
