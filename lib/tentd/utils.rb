@@ -78,6 +78,27 @@ module TentD
         end
       end
 
+      def deep_merge!(hash, *others)
+        others.each do |other|
+          other.each_pair do |key, val|
+            if hash.has_key?(key)
+              next if hash[key] == val
+              case val
+              when ::Hash
+                Utils::Hash.deep_merge!(hash[key], val)
+              when Array
+                hash[key].concat(val)
+              when FalseClass
+                # false always wins
+                hash[key] = val
+              end
+            else
+              hash[key] = val
+            end
+          end
+        end
+      end
+
       def slice(hash, *keys)
         keys.each_with_object(hash.class.new) { |k, new_hash|
           new_hash[k] = hash[k] if hash.has_key?(k)

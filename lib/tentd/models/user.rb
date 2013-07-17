@@ -7,7 +7,7 @@ module TentD
 
       plugin :paranoia if Model.soft_delete
 
-      def self.create(attrs)
+      def self.create(attrs, options = {})
         entity = Entity.first_or_create(attrs[:entity])
         user = super(attrs.merge(
           :entity_id => entity.id,
@@ -17,7 +17,7 @@ module TentD
             :hawk_algorithm => TentD::Utils.hawk_algorithm
           }
         ))
-        user.create_meta_post
+        user.create_meta_post(options.delete(:meta_post_attrs) || {})
         user
       end
 
@@ -25,13 +25,13 @@ module TentD
         first(:entity => entity_uri) || create(:entity => entity_uri)
       end
 
-      def create_meta_post
+      def create_meta_post(attrs = {})
         type, base_type = Type.find_or_create("https://tent.io/types/meta/v0#")
         published_at_timestamp = Utils.timestamp
 
         api_root = ENV['API_ROOT'] || self.entity
 
-        meta_post = Post.create(
+        Utils::Hash.deep_merge!(attrs, {
           :user_id => self.id,
           :entity_id => self.entity_id,
           :entity => self.entity,
@@ -67,7 +67,9 @@ module TentD
             ]
           },
           :public => true
-        )
+        })
+
+        meta_post = Post.create(attrs)
 
         self.update(:meta_post_id => meta_post.id)
         meta_post

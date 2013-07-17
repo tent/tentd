@@ -3,7 +3,7 @@ PG_DB_URL_REGEXP = %r{\A(?:postgres://(?:([^:]+):)?(?:([^@]+)@)?([^/]+)/)?(.+)\Z
 namespace :db do
   task :migrate do
     path = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..', 'db', 'migrations'))
-    %x{bundle exec sequel -m #{path} #{ENV['DATABASE_URL']}}
+    system("bundle exec sequel -m #{path} #{ENV['DATABASE_URL']}")
   end
 
   task :create do
@@ -14,7 +14,7 @@ namespace :db do
     }.inject([]) { |m, (k,v)| next m unless v; m << %(--#{k}="#{v}"); m }.join(" ")
     dbname = m[4]
 
-    %x{createdb #{opts} #{dbname}}
+    system("createdb #{opts} #{dbname}")
   end
 
   task :drop do
@@ -25,7 +25,7 @@ namespace :db do
     }.inject([]) { |m, (k,v)| next m unless v; m << %(--#{k}="#{v}"); m }.join(" ")
     dbname = m[4]
 
-    %x{dropdb #{opts} #{dbname}}
+    system("dropdb #{opts} #{dbname}")
   end
 
   task :setup => [:create, :migrate] do
