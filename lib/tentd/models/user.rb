@@ -29,6 +29,8 @@ module TentD
         type, base_type = Type.find_or_create("https://tent.io/types/meta/v0#")
         published_at_timestamp = Utils.timestamp
 
+        api_root = ENV['API_ROOT'] || self.entity
+
         meta_post = Post.create(
           :user_id => self.id,
           :entity_id => self.entity_id,
@@ -49,16 +51,16 @@ module TentD
               {
                 "version" => "0.3",
                 "urls" => {
-                  "oauth_auth" => "#{self.entity}/oauth/authorize",
-                  "oauth_token" => "#{self.entity}/oauth/token",
-                  "posts_feed" => "#{self.entity}/posts",
-                  "new_post" => "#{self.entity}/posts",
-                  "post" => "#{self.entity}/posts/{entity}/{post}",
-                  "post_attachment" => "#{self.entity}/posts/{entity}/{post}/attachments/{name}",
-                  "attachment" => "#{self.entity}/attachments/{entity}/{digest}",
-                  "batch" => "#{self.entity}/batch",
-                  "server_info" => "#{self.entity}/server",
-                  "discover" => "#{self.entity}/discover?entity={entity}"
+                  "oauth_auth" => "#{api_root}/oauth/authorize",
+                  "oauth_token" => "#{api_root}/oauth/token",
+                  "posts_feed" => "#{api_root}/posts",
+                  "new_post" => "#{api_root}/posts",
+                  "post" => "#{api_root}/posts/{entity}/{post}",
+                  "post_attachment" => "#{api_root}/posts/{entity}/{post}/attachments/{name}",
+                  "attachment" => "#{api_root}/attachments/{entity}/{digest}",
+                  "batch" => "#{api_root}/batch",
+                  "server_info" => "#{api_root}/server",
+                  "discover" => "#{api_root}/discover?entity={entity}"
                 },
                 "preference" => 0
               }

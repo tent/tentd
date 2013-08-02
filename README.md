@@ -15,6 +15,7 @@ REDIS_NAMESPACE | Optional | Redis key namespace for sidekiq (defaults to `tentd
 RUN_SIDEKIQ     | Optional | Set to 'true' if you want to boot sidekiq via `config.ru`
 SIDEKIQ_LOG     | Optional | Sidekiq log file (defaults to STDOUT and STDERR)
 SOFT_DELETE     | Optional | To perminently delete db records, set to `false`. Defaults to `true` (sets `deleted_at` timestamp instead of removing from db)
+API_ROOT        | Optional | Required if different from `TENT_ENTITY`
 
 #### Attachment Storage Options
 
