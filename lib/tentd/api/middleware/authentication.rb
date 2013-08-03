@@ -91,7 +91,7 @@ module TentD
       end
 
       def request_port(env)
-        env['SERVER_PORT']
+        ENV['SERVER_PORT'] || env['SERVER_PORT']
       end
 
       def request_method(env)
