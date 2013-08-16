@@ -22,6 +22,8 @@ module TentD
             app_post.content['scopes']
           )
 
+          Model::AppAuth.update_app_post_refs(app_auth_post, app_post)
+
           credentials_post = nil
           app_auth_post.mentions.each do |m|
             type = Model::Type.find_or_create_full('https://tent.io/types/credentials/v0#')

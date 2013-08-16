@@ -94,6 +94,19 @@ module TentD
 
         post
       end
+
+      def self.update_app_post_refs(post, app_post)
+        # Update app post to ref auth
+        app_post.refs ||= []
+        app_post.refs.delete_if { |ref| ref['type'] == post.type }
+        app_post.refs.push(
+          'type' => post.type,
+          'entity' => post.entity,
+          'post' => post.public_id
+        )
+        app_post.save
+        app_post
+      end
     end
 
   end
