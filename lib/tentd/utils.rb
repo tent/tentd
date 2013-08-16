@@ -25,7 +25,7 @@ module TentD
         digest << buffer
       end
       io.rewind
-      digest.hexdigest[0...64]
+      "sha512t256-" + digest.hexdigest[0...64]
     end
 
     def self.timestamp
