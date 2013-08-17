@@ -11,7 +11,7 @@ module TentD
             halt!(403, "Invalid token code")
           end
 
-          unless env['current_auth.resource'] && (resource = env['current_auth.resource']) && TentType.new(resource.type).base == %(https://tent.io/types/app) && app.post_id == resource.id
+          unless env['current_auth.resource'] && (resource = env['current_auth.resource']) && TentType.new(resource.type).base == %(https://tent.io/types/app) && app.post.public_id == resource.public_id
             halt!(401, "Request must be signed using app credentials")
           end
 
