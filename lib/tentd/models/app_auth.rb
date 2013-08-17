@@ -69,7 +69,10 @@ module TentD
         post = post.save_version(:public_id => post.public_id)
 
         # Update app record
-        app = App.first(:post_id => app_post.id)
+        unless app = App.first(:post_id => app_post.id)
+          # app doesn't exist
+          app = App.update_or_create_from_post(app_post)
+        end
         app.update(
           :auth_post_id => post.id,
           :auth_hawk_key => credentials_post.content['hawk_key'],
