@@ -176,7 +176,8 @@ module TentD
           'current_user' => post.user,
           'data' => {
             'type' => 'https://tent.io/types/delete/v0#',
-            'refs' => [ ref ]
+            'refs' => [ ref ],
+            'mentions' => post.mentions.to_a
           }
         )
       end
