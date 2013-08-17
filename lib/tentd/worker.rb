@@ -21,6 +21,9 @@ module TentD
     end
 
     def self.configure_server(redis_opts = {}, &block)
+      require 'sequel'
+      Sequel.single_threaded = false
+
       TentD.setup_database!
 
       Sidekiq.configure_server do |config|
