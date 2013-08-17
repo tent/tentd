@@ -55,6 +55,8 @@ module TentD
         # don't attempt to deliver notification to ourself
         mentioned_entities -= [post.entity]
 
+        logger.info "Found #{mentioned_entities.size} mentioned entities for Post(#{post_id})"
+
         # queue delivery for each mentioned entity
         mentioned_entities.each do |entity|
           NotificationDeliverer.perform_async(post_id, entity)
