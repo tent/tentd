@@ -91,10 +91,14 @@ module TentD
       end
 
       def self.create_version_from_env(env, options = {})
+        TentD.logger.debug "Post.create_version_from_env" if TentD.settings[:debug]
+
         PostBuilder.create_from_env(env, options.merge(:public_id => env['params']['post']))
       end
 
       def self.import_notification(env)
+        TentD.logger.debug "Post.import_notification" if TentD.settings[:debug]
+
         create_version_from_env(env, :notification => true, :entity => env['params']['entity'])
       end
 

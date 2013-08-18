@@ -12,7 +12,22 @@ module TentD
     VALID_ID = /\A[-0-9a-z_]+\Z/i
   end
 
+  def self.settings
+    @settings ||= {}
+  end
+
+  def self.logger
+    return self.settings[:logger] if self.settings[:logger]
+
+    require 'logger'
+    self.settings[:logger] = Logger.new(STDOUT, STDERR)
+
+    self.settings[:logger]
+  end
+
   def self.setup!(options = {})
+    self.settings[:debug] = ENV['DEBUG'] == 'true'
+
     setup_database!(options)
 
     require 'tentd/worker'
