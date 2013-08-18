@@ -11,7 +11,7 @@ name            | required | description
 TENT_ENTITY     | Required | Entity URI (can be omitted if `env['current_user']` is set to an instance of `TentD::Model::User` prior to `TentD::API::UserLookup` being called)
 DATABASE_URL    | Required | URL of postgres database (e.g. `postgres://localhost/tentd`)
 REDIS_URL       | Required | URL of redis server (e.g. `redis://localhost:6379`)
-REDIS_NAMESPACE | Optional | Redis key namespace for sidekiq (defaults to `tentd.worker`)
+REDIS_NAMESPACE | Optional | Redis key namespace for sidekiq (defaults to not set)
 RUN_SIDEKIQ     | Optional | Set to 'true' if you want to boot sidekiq via `config.ru`
 SIDEKIQ_LOG     | Optional | Sidekiq log file (defaults to STDOUT and STDERR)
 SOFT_DELETE     | Optional | To perminently delete db records, set to `false`. Defaults to `true` (sets `deleted_at` timestamp instead of removing from db)
