@@ -17,7 +17,7 @@ module TentD
 
         type = Type.find_or_create_full(post_attrs[:content]['type'])
         target_entity_id = Entity.first_or_create(target_entity).id
-        unless subscription = where(:user_id => post_attrs[:user_id], :type_id => type.id, :entity_id => target_entity_id, :subscriber_entity_id => post.entity_id).first
+        unless subscription = where(:user_id => post_attrs[:user_id], :type_id => type.id, :entity_id => target_entity_id, :subscriber_entity_id => post_attrs[:entity_id]).first
           TentD.logger.debug "Subscription.find_or_create -> Post.create" if TentD.settings[:debug]
 
           post = Post.create(post_attrs)
