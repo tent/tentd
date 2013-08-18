@@ -13,7 +13,9 @@ module TentD
   end
 
   def self.settings
-    @settings ||= {}
+    @settings ||= {
+      :debug => ENV['DEBUG'] == 'true'
+    }
   end
 
   def self.logger
@@ -26,8 +28,6 @@ module TentD
   end
 
   def self.setup!(options = {})
-    self.settings[:debug] = ENV['DEBUG'] == 'true'
-
     setup_database!(options)
 
     require 'tentd/worker'
