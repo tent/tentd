@@ -77,12 +77,23 @@ module TentD
         def create(attrs)
           _create(attrs)
         rescue Sequel::UniqueConstraintViolation => e
-          first(
+          params = {
             :user_id => attrs[:user_id],
             :entity_id => attrs[:entity_id],
             :public_id => attrs[:public_id],
             :version => attrs[:version]
-          )
+          }
+
+          TentD.logger.debug "Post.create: UniqueConstraintViolation" if TentD.settings[:debug]
+          TentD.logger.debug "Post.create -> Post.first(#{params.inspect})" if TentD.settings[:debug]
+
+          post = first(params)
+
+          TentD.logger.debug "Post.first => Post(#{post ? post.id : nil.inspect})" if TentD.settings[:debug]
+
+          raise CreateFailure.new("Server Error") unless post
+
+          post
         end
       end
 
