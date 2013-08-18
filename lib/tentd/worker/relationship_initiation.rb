@@ -15,13 +15,13 @@ module TentD
       attr_accessor :retry_count
 
       def perform(user_id, target_entity_id, deliver_post_id=nil)
-        logger.debug "RelationshipInitiation#perform(#{user_id}, #{target_entity_id}, #{deliver_post_id.inspect})" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform(#{user_id}, #{target_entity_id}, #{deliver_post_id.inspect})" if TentD.settings[:debug]
 
         # user no longer exists, abort
-        logger.debug "RelationshipInitiation#perform: checking for User(#{user_id})" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: checking for User(#{user_id})" if TentD.settings[:debug]
         return unless current_user = Model::User.where(:id => user_id).first
 
-        logger.debug "RelationshipInitiation#perform: checking for Entity(#{target_entity_id})" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: checking for Entity(#{target_entity_id})" if TentD.settings[:debug]
         target_entity = Model::Entity.where(:id => target_entity_id).first
 
         # entity no longer exists, abort
@@ -30,7 +30,7 @@ module TentD
         target_entity = target_entity.entity
 
         relationship = begin
-          logger.debug "RelationshipInitiation#perform -> Relationship.create" if TentD.settings[:debug]
+          TentD.logger.debug "RelationshipInitiation#perform -> Relationship.create" if TentD.settings[:debug]
 
           Model::Relationship.create(:user_id => user_id, :entity_id => target_entity_id)
         rescue Sequel::UniqueConstraintViolation
@@ -49,7 +49,7 @@ module TentD
         # Create relationship#initial post with credentials
         ##
 
-        logger.debug "RelationshipInitiation#perform -> Relationship.create_initial" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform -> Relationship.create_initial" if TentD.settings[:debug]
 
         Model::Relationship.create_initial(current_user, target_entity, relationship)
 
@@ -60,7 +60,7 @@ module TentD
         # Perform discovery on target entity
         ##
 
-        logger.debug "RelationshipInitiation#perform -> TentClient::Discovery.discover" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform -> TentClient::Discovery.discover" if TentD.settings[:debug]
 
         client = TentClient.new(target_entity)
 
@@ -84,7 +84,7 @@ module TentD
         # Send relationship#initial post to target entity's server
         ##
 
-        logger.debug "RelationshipInitiation#perform: Deliver relationship#initial to Entity(#{target_entity})" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: Deliver relationship#initial to Entity(#{target_entity})" if TentD.settings[:debug]
 
         res = client.post.update(relationship_data[:entity], relationship_data[:id], relationship_data, params = {},
           :notification => true
@@ -110,7 +110,7 @@ module TentD
         # Fetch credentials linked in response
         ##
 
-        logger.debug "RelationshipInitiation#perform: Parse Link header for credentials link" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: Parse Link header for credentials link" if TentD.settings[:debug]
 
         links = TentClient::LinkHeader.parse(res.headers['Link'].to_s).links
         credentials_url = links.find { |link| link[:rel] == 'https://tent.io/rels/credentials' }
@@ -120,7 +120,7 @@ module TentD
         end
         credentials_url = credentials_url.uri
 
-        logger.debug "RelationshipInitiation#perform: Fetch credentials" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: Fetch credentials" if TentD.settings[:debug]
 
         res = client.http.get(credentials_url)
 
@@ -138,7 +138,7 @@ module TentD
         # Fetch remote relationship post via credentials' mentions
         ##
 
-        logger.debug "RelationshipInitiation#perform: Fetch remote relationship" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: Fetch remote relationship" if TentD.settings[:debug]
 
         mention = remote_credentials_post['mentions'].to_a.find { |m|
           m['type'] == 'https://tent.io/types/relationship/v0#'
@@ -173,12 +173,12 @@ module TentD
 
         ##
         # Save meta post
-        logger.debug "RelationshipInitiation#perform: save meta post" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: save meta post" if TentD.settings[:debug]
         remote_meta_post = save_remote_post(current_user, target_entity, client.server_meta_post)
 
         ##
         # Update relationship post (remove fragment)
-        logger.debug "RelationshipInitiation#perform: Update relationship post (remove fragment)" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: Update relationship post (remove fragment)" if TentD.settings[:debug]
         relationship.meta_post_id = remote_meta_post.id
         relationship.remote_credentials_id = remote_credentials_post['id']
         relationship.remote_credentials = {
@@ -190,15 +190,15 @@ module TentD
 
         ##
         # Deliver relationship post
-        logger.debug "RelationshipInitiation#perform: Deliver relationship post" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: Deliver relationship post" if TentD.settings[:debug]
         NotificationDeliverer.perform_async(relationship.post_id, target_entity, target_entity_id)
 
         ##
         # Deliver dependent post
-        logger.debug "RelationshipInitiation#perform: Deliver dependent post: Post(#{deliver_post_id.inspect})" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: Deliver dependent post: Post(#{deliver_post_id.inspect})" if TentD.settings[:debug]
         NotificationDeliverer.perform_async(deliver_post_id, target_entity, target_entity_id)
       rescue EntityUnreachable => e
-        logger.debug "RelationshipInitiation#perform: EntityUnreachable: #{e.inspect}" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: EntityUnreachable: #{e.inspect}" if TentD.settings[:debug]
 
         if retry_count == 0 && deliver_post_id
           delivery_failure(target_entity, deliver_post_id, 'temporary', 'unreachable')
@@ -206,7 +206,7 @@ module TentD
 
         raise
       rescue DiscoveryFailure => e
-        logger.debug "RelationshipInitiation#perform: DiscoveryFailure: #{e.inspect}" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: DiscoveryFailure: #{e.inspect}" if TentD.settings[:debug]
 
         if retry_count == 0 && deliver_post_id
           delivery_failure(target_entity, deliver_post_id, 'temporary', 'discovery_failed')
@@ -214,7 +214,7 @@ module TentD
 
         raise
       rescue TentClient::ServerNotFound, TentClient::MalformedServerMeta => e
-        logger.debug "RelationshipInitiation#perform: MalformedServerMeta: #{e.inspect}" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: MalformedServerMeta: #{e.inspect}" if TentD.settings[:debug]
 
         if retry_count == 0 && deliver_post_id
           delivery_failure(target_entity, deliver_post_id, 'temporary', 'discovery_failed')
@@ -224,7 +224,7 @@ module TentD
         error.set_backtrace(e.backtrace)
         raise error
       rescue InitiationFailure => e
-        logger.debug "RelationshipInitiation#perform: InitiationFailure: #{e.inspect}" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#perform: InitiationFailure: #{e.inspect}" if TentD.settings[:debug]
 
         if retry_count == 0 && deliver_post_id
           delivery_failure(target_entity, deliver_post_id, 'temporary', 'relationship_failed')
@@ -234,7 +234,7 @@ module TentD
       end
 
       def retries_exhausted(user_id, target_entity_id, deliver_post_id=nil)
-        logger.debug "RelationshipInitiation#retries_exhausted(#{user_id}, #{target_entity_id}, #{deliver_post_id.inspect})" if TentD.settings[:debug]
+        TentD.logger.debug "RelationshipInitiation#retries_exhausted(#{user_id}, #{target_entity_id}, #{deliver_post_id.inspect})" if TentD.settings[:debug]
 
         if deliver_post_id
           queue_post_delivery(deliver_post_id, target_entity, target_entity_id)
