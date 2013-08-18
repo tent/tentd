@@ -158,7 +158,7 @@ module TentD
           end
         end
 
-        if options[:import] && (Hash === data['version']) && data['version']['id']
+        if (Hash === data['version']) && data['version']['id']
           canonical_json = TentCanonicalJson.encode(Post.new(attrs).as_json)
           expected_version = Utils.hex_digest(canonical_json)
           attrs[:version] = data['version']['id']
