@@ -49,8 +49,11 @@ module TentD
           Sidekiq.options[:require] = File.join(File.expand_path(File.dirname(__FILE__)), 'sidekiq.rb') # tentd/sidekiq
           Sidekiq.options[:logfile] = ENV['SIDEKIQ_LOG']
 
+          args = []
+          args.push('--verbose') if TentD.settings[:debug]
+
           cli = Sidekiq::CLI.instance
-          cli.parse([])
+          cli.parse(args)
           cli.run
         rescue => e
           raise e if $DEBUG
