@@ -91,7 +91,7 @@ module TentD
 
           TentD.logger.debug "Post.first => Post(#{post ? post.id : nil.inspect})" if TentD.settings[:debug]
 
-          raise CreateFailure.new("Server Error") unless post
+          raise CreateFailure.new("Server Error: #{Yajl::Encoder.encode(params)}") unless post
 
           post
         end
