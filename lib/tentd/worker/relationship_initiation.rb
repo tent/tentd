@@ -1,3 +1,5 @@
+require 'tentd'
+
 module TentD
   module Worker
 
@@ -11,6 +13,8 @@ module TentD
       DeliveryFailure = Class.new(InitiationFailure)
       InvalidResponse = Class.new(InitiationFailure)
       EntityUnreachable = Class.new(InitiationFailure)
+
+      CredentialsType = TentType.new("https://tent.io/types/credentials/v0#")
 
       attr_accessor :retry_count
 
@@ -128,7 +132,7 @@ module TentD
           raise InvalidResponse.new("Failed to fetch credentials via GET #{credentials_url.inspect}")
         end
 
-        unless (Hash === res.body) && (Hash === res.body['post']) && (res.body['post']['type'] == "https://tent.io/types/credentials/v0#")
+        unless (Hash === res.body) && (Hash === res.body['post']) && (TentType.new(res.body['post']['type']).base == CredentialsType.base)
           raise InvalidResponse.new("Invalid credentials response body: #{res.body.inspect}")
         end
 
