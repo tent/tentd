@@ -25,7 +25,9 @@ module TentD
         if !post && proxy_condition != :never && !env['request.post_list']
           # proxy request
           status, headers, body = request_proxy_manager.request(params[:entity]) do |client|
-            client.post.get(params[:entity], params[:post])
+            client.post.get(params[:entity], params[:post]) do |request|
+              request.headers['Accept'] = env['HTTP_ACCEPT']
+            end
           end
           return [status, headers, body]
         else
