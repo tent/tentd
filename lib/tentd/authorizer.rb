@@ -15,6 +15,27 @@ module TentD
       AuthCandidate.new(env['current_user'], env['current_auth.resource'])
     end
 
+    def app_json
+      candidate = auth_candidate
+
+      app_post = case candidate
+      when AuthCandidate::App
+        candidate.resource
+      when AuthCandidate::AppAuth
+        if (_app = Model::App.where(:auth_post_id => candidate.resource.id).first)
+          _app.post
+        end
+      end
+
+      if app_post
+        {
+          :name => app_post.content['name'],
+          :url => app_post.content['url'],
+          :id => app_post.public_id
+        }
+      end
+    end
+
     def app?
       return false unless env['current_auth']
 

@@ -43,6 +43,18 @@ module TentD
           :content => data['content'],
         }
 
+        if options[:notification] || options[:import]
+          if data['app']
+            attrs[:app_name] = data['app']['name']
+            attrs[:app_url] = data['app']['url']
+            attrs[:app_id] = data['app']['id'] if options[:import]
+          end
+        elsif _app = Authorizer.new(env).app_json
+          attrs[:app_name] = _app[:name]
+          attrs[:app_url] = _app[:url]
+          attrs[:app_id] = _app[:id]
+        end
+
         if options[:import]
           attrs.merge!(
             :entity_id => Entity.first_or_create(data['entity']).id,
