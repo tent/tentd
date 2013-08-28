@@ -97,7 +97,13 @@ module TentD
     def can_set_permissions?
       return true if Hash === env['data'] && env['data']['entity'] != current_user.entity
 
-      auth_candidate && auth_candidate.has_scope?('permissions')
+      # Credentials aren't linked to a valid resource
+      return false unless auth_candidate
+
+      # Private server credentials have full authorization
+      return true if env['current_auth'][:credentials_resource] == current_user
+
+      auth_candidate.has_scope?('permissions')
     end
 
     def proxy_authorized?
