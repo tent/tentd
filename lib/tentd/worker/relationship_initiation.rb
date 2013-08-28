@@ -197,6 +197,27 @@ module TentD
         # Deliver dependent post
         logger.debug "RelationshipInitiation#perform: Deliver dependent post: Post(#{deliver_post_id.inspect})"
         NotificationDeliverer.perform_async(deliver_post_id, target_entity, target_entity_id)
+
+        ##
+        # Subscribe to meta post
+        Model::Post.create_from_env(
+          'current_user' => current_user,
+          'current_auth' => {
+            :credentials_resource => current_user
+          },
+          'data' => {
+            'type' => 'https://tent.io/types/subscription/v0#https://tent.io/types/meta/v0',
+            'content' => {
+              'type' => 'https://tent.io/types/meta/v0#',
+            },
+            'mentions' => [ { 'entity' => target_entity } ],
+            'permissions' => {
+              'public' => false,
+              'entities' => [target_entity]
+            }
+          }
+        )
+
       rescue EntityUnreachable => e
         logger.debug "RelationshipInitiation#perform: EntityUnreachable: #{e.inspect}"
 
