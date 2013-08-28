@@ -9,10 +9,16 @@ module TentD
       @env = env
     end
 
+    def current_user
+      env['current_user']
+    end
+
     def auth_candidate
+      return @auth_candidate if @auth_candidate
+
       return unless env['current_auth.resource']
 
-      AuthCandidate.new(env['current_user'], env['current_auth.resource'])
+      @auth_candidate ||= AuthCandidate.new(current_user, env['current_auth.resource'])
     end
 
     def app_json
@@ -40,7 +46,7 @@ module TentD
       return false unless env['current_auth']
 
       # Private server credentials have same permissions as fully authorized app
-      return true if env['current_auth'][:credentials_resource] == env['current_user']
+      return true if env['current_auth'][:credentials_resource] == current_user
 
       return false unless resource = env['current_auth.resource']
 
@@ -52,7 +58,7 @@ module TentD
       return false unless env['current_auth']
 
       # Private server credentials have full authorization
-      return true if env['current_auth'][:credentials_resource] == env['current_user']
+      return true if env['current_auth'][:credentials_resource] == current_user
 
       # Credentials aren't linked to a valid resource
       return false unless auth_candidate
@@ -64,7 +70,7 @@ module TentD
       return false unless env['current_auth']
 
       # Private server credentials have full authorization
-      return true if env['current_auth'][:credentials_resource] == env['current_user']
+      return true if env['current_auth'][:credentials_resource] == current_user
 
       # Credentials aren't linked to a valid resource
       return false unless auth_candidate
@@ -76,7 +82,7 @@ module TentD
       return false unless env['current_auth']
 
       # Private server credentials have full authorization
-      return true if env['current_auth'][:credentials_resource] == env['current_user']
+      return true if env['current_auth'][:credentials_resource] == current_user
 
       # Credentials aren't linked to a valid resource
       return false unless auth_candidate
@@ -92,7 +98,7 @@ module TentD
       return false unless env['current_auth']
 
       # Private server credentials have full authorization
-      return true if env['current_auth'][:credentials_resource] == env['current_user']
+      return true if env['current_auth'][:credentials_resource] == current_user
 
       # Credentials aren't linked to a valid resource
       return false unless auth_candidate
@@ -101,12 +107,12 @@ module TentD
     end
 
     def read_entity?(entity)
-      return true if entity == env['current_user'].entity
+      return true if entity == current_user.entity
 
       return false unless env['current_auth']
 
       # Private server credentials have full authorization
-      return true if env['current_auth'][:credentials_resource] == env['current_user']
+      return true if env['current_auth'][:credentials_resource] == current_user
 
       # Credentials aren't linked to a valid resource
       return false unless auth_candidate
