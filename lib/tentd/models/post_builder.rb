@@ -163,7 +163,7 @@ module TentD
           expected_version = Utils.hex_digest(canonical_json)
           attrs[:version] = data['version']['id']
           unless attrs[:version] == expected_version
-            raise CreateFailure.new("Invalid version id. Got(#{attrs[:version]}), Expected(#{expected_version}) #{canonical_json}")
+            raise CreateFailure.new("Invalid version id. Got(#{Yajl::Encoder.encode(attrs[:version])}), Expected(#{expected_version}) #{canonical_json}")
           end
         end
 
