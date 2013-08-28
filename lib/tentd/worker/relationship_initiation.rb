@@ -106,10 +106,6 @@ module TentD
           raise DeliveryFailure.new("Got(status: #{res.status} body: #{res.body.inspect}) performing PUT #{res.env[:url].to_s} with #{relationship_data.inspect}")
         end
 
-        unless (Hash === res.body) && (Hash === res.body['post']) && (relationship_data[:type] == res.body['post']['type'])
-          raise InvalidResponse.new("Invalid relationship response body: #{res.body.inspect}")
-        end
-
         ##
         # Fetch credentials linked in response
         ##
