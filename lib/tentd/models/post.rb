@@ -183,6 +183,21 @@ module TentD
         obj
       end
 
+      def app_as_json(options = {})
+        obj = {
+          :name => self.app_name,
+          :url => self.app_url
+        }
+
+        if (env = options[:env]) && Authorizer.new(env).app?
+          obj[:id] = self.app_id
+        end
+
+        obj.reject! { |k,v| v.nil? }
+
+        obj
+      end
+
       def as_json(options = {})
         attrs = {
           :id => self.public_id,
@@ -193,16 +208,17 @@ module TentD
           :content => self.content,
           :mentions => self.mentions,
           :refs => self.refs,
-          :version => version_as_json(options)
+          :version => version_as_json(options),
+          :app => app_as_json(options)
         }
         attrs.delete(:received_at) if attrs[:received_at].nil?
         attrs.delete(:content) if attrs[:content].nil?
         attrs.delete(:mentions) if attrs[:mentions].nil?
         attrs.delete(:refs) if attrs[:refs].nil?
+        attrs.delete(:app) if attrs[:app].keys.empty?
 
         unless (env = options[:env]) && Authorizer.new(env).app?
           attrs.delete(:received_at)
-          (attrs[:app] || {}).delete(:id)
         end
 
         if Array(self.attachments).any?
