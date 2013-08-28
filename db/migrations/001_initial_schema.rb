@@ -173,7 +173,7 @@ Sequel.migration do
       column :deleted_at        , "timestamp without time zone"
 
       index [:user_id, :type_id], :name => :index_subscriptions_user_type
-      index [:user_id, :entity_id, :type_id], :name => :unique_subscriptions, :unique => true
+      index [:user_id, :entity_id, :subscriber_entity_id, :type_id], :name => :unique_subscriptions, :unique => true
     end
 
     create_table(:groups) do
