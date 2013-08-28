@@ -94,6 +94,12 @@ module TentD
       end
     end
 
+    def can_set_permissions?
+      return true if Hash === env['data'] && env['data']['entity'] != current_user.entity
+
+      auth_candidate && auth_candidate.has_scope?('permissions')
+    end
+
     def proxy_authorized?
       return false unless env['current_auth']
 

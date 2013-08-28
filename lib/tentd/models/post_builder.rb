@@ -101,18 +101,22 @@ module TentD
           # meta post is always public
           attrs[:public] = true
         else
-          if Hash === data['permissions']
-            if data['permissions']['public'] == true
-              attrs[:public] = true
-            else
-              attrs[:public] = false
+          if Authorizer.new(env).can_set_permissions?
+            if Hash === data['permissions']
+              if data['permissions']['public'] == true
+                attrs[:public] = true
+              else
+                attrs[:public] = false
 
-              if Array === data['permissions']['entities']
-                attrs[:permissions_entities] = data['permissions']['entities']
+                if Array === data['permissions']['entities']
+                  attrs[:permissions_entities] = data['permissions']['entities']
+                end
               end
+            else
+              attrs[:public] = true
             end
           else
-            attrs[:public] = true
+            attrs[:public] = false
           end
         end
 
