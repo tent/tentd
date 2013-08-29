@@ -59,7 +59,7 @@ module TentD
       q = _build_query(params)
 
       if authorizer.app?
-        read_types = authorizer.auth_candidate.read_types
+        read_types = authorizer.auth_candidate.read_types | authorizer.auth_candidate.write_types
 
         unless read_types == %w( all )
           read_types.map! { |uri| TentType.new(uri) }
