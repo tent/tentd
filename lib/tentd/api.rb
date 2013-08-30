@@ -8,7 +8,7 @@ module TentD
     POST_CONTENT_MIME = %(application/vnd.tent.post.v0+json).freeze
     MULTIPART_CONTENT_MIME = %(multipart/form-data).freeze
 
-    CREDENTIALS_MIME_TYPE = %(https://tent.io/types/credentials/v0#).freeze
+    CREDENTIALS_MIME_TYPE = %(https://tent.io/types/credentials/v0).freeze
     RELATIONSHIP_MIME_TYPE = %(https://tent.io/types/relationship/v0#).freeze
 
     POST_CONTENT_TYPE = %(#{POST_CONTENT_MIME}; type="%s").freeze
