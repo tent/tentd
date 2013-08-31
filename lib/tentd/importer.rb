@@ -358,7 +358,8 @@ module TentD
       return unless mention[:entity]
 
       new_mention = {
-        entity: mention[:entity]
+        original_entity: mention[:entity],
+        entity: rewrite_entity(mention[:entity])
       }
       new_mention[:post] = mention[:mentioned_post_id] if mention[:mentioned_post_id]
 
@@ -400,6 +401,8 @@ module TentD
         }
       end
 
+      new_post[:original_entity] = post[:entity]
+
       if post[:original]
         new_post[:entity] = @entity
       else
@@ -420,7 +423,7 @@ module TentD
       export_permissions(post[:id]) do |permission|
         transpose_permission(permission) do |entity|
           new_post[:permissions][:entities] ||= []
-          new_post[:permissions][:entities] << entity
+          new_post[:permissions][:entities] << rewrite_entity(entity)
         end
       end
 
@@ -470,6 +473,7 @@ module TentD
         new_post[:refs] = [{
           type: "https://tent.io/types/status/v0#",
           post: post[:content][:id],
+          original_entity: post[:content][:entity],
           entity: rewrite_entity(post[:content][:entity])
         }]
         new_post[:mentions] = new_post[:refs]
@@ -508,7 +512,8 @@ module TentD
         new_post[:type] = "https://tent.io/types/favorite/v0#https://tent.io/types/status/v0"
         new_post[:refs] = [{
           post: post[:content][:id],
-          entity: post[:content][:entity]
+          original_entity: post[:content][:entity],
+          entity: rewrite_entity(post[:content][:entity])
         }]
       end
 
