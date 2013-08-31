@@ -40,6 +40,8 @@ module TentD
         def perform
           @profile_urls = perform_head_discovery || perform_get_discovery || []
           @profile_urls.map! { |l| l =~ %r{\A/} ? URI.join(url, l).to_s : l }
+        rescue Faraday::Error::TimeoutError, Faraday::Error::ConnectionFailed
+          @profile_urls = []
         end
 
         def get_profile
