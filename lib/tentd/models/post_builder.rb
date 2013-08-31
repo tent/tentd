@@ -60,6 +60,8 @@ module TentD
             :entity_id => Entity.first_or_create(data['entity']).id,
             :entity => data['entity']
           )
+
+          attrs[:original_entity] = data['original_entity'] if data['original_entity']
         elsif options[:entity]
           attrs.merge!(
             :entity_id => options[:entity_id] || Entity.first_or_create(options[:entity]).id,

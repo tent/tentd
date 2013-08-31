@@ -217,6 +217,10 @@ module TentD
         attrs.delete(:refs) if attrs[:refs].nil?
         attrs.delete(:app) if attrs[:app].keys.empty?
 
+        if self.original_entity
+          attrs[:original_entity] = self.original_entity
+        end
+
         unless (env = options[:env]) && Authorizer.new(env).app?
           attrs.delete(:received_at)
         end
