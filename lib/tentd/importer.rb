@@ -555,7 +555,7 @@ module TentD
 
     def import_subscriptions
       export_relationships do |following|
-        entity = rewrite_entity(following.entity)
+        entity = rewrite_entity(following[:entity])
         @entities.delete(entity)
 
         unless meta_post = perform_discovery(entity)
