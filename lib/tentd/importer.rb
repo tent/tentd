@@ -575,7 +575,7 @@ module TentD
               entity: entity
             }],
             permissions: {
-              public: following.public
+              public: following[:public]
             }
           }
 
