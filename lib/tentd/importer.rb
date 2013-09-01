@@ -567,6 +567,7 @@ module TentD
           tent_type = TentType.new(type)
 
           attrs = {
+            entity: @user.entity,
             type: "https://tent.io/types/subscription/v0##{tent_type.to_s(fragment: false)}",
             content: {
               type: tent_type.to_s
