@@ -27,7 +27,13 @@ module TentD
         )
 
         if Hawk::AuthenticationFailure === res
-          halt!(403, "Authentication failure: #{res.message}")
+          if res.key == :ts
+            halt!(401, "Authentication failure: #{res.message}", :headers => {
+              "WWW-Authenticate" => res.header
+            })
+          else
+            halt!(403, "Authentication failure: #{res.message}")
+          end
         else
           env['current_auth'] = res
         end
