@@ -2,6 +2,8 @@
 
 **If you're looking to self-host, see [tentd-omnibus](https://github.com/tent/tentd-omnibus).**
 
+tentd is an alpha implementation of a Tent Protocol server. It currently contains **broken code, many bugs, and security flaws**. The code should only be used to experiment with how Tent works. Under no circumstances should the code in its current form be used for data that is supposed to be private.
+
 ## Setup
 
 ### ENV Variables
