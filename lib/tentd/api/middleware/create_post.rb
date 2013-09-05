@@ -51,8 +51,13 @@ module TentD
       private
 
       def write_authorized?(env)
+        writeable_types = %w[
+          https://tent.io/types/app
+          https://tent.io/types/relationship
+        ]
+
         Authorizer.new(env).write_authorized?(env['data']['entity'], env['data']['type']) ||
-        TentType.new(env['data']['type']).base == %(https://tent.io/types/app) # anyone can create an app post
+        writeable_types.include?(TentType.new(env['data']['type']).base)
       end
     end
 
