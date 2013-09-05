@@ -56,8 +56,10 @@ module TentD
           https://tent.io/types/relationship
         ]
 
-        Authorizer.new(env).write_authorized?(env['data']['entity'], env['data']['type']) ||
-        writeable_types.include?(TentType.new(env['data']['type']).base)
+        authorizer = Authorizer.new(env)
+
+        authorizer.write_authorized?(env['data']['entity'], env['data']['type']) ||
+        (!authorizer.auth_candidate && writeable_types.include?(TentType.new(env['data']['type']).base))
       end
     end
 
