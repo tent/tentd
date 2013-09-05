@@ -3,6 +3,10 @@ module TentD
 
     class CreatePost < Middleware
       def action(env)
+        unless write_authorized?(env)
+          halt!(403, "Unauthorized")
+        end
+
         begin
           if TentType.new(env['data']['type']).base == %(https://tent.io/types/app-auth)
             post = Model::AppAuth.create_from_env(env)
@@ -42,6 +46,13 @@ module TentD
         end
 
         env
+      end
+
+      private
+
+      def write_authorized?(env)
+        Authorizer.new(env).write_authorized?(env['data']['entity'], env['data']['type']) ||
+        TentType.new(env['data']['type']).base == %(https://tent.io/types/app) # anyone can create an app post
       end
     end
 
