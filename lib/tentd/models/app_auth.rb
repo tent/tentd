@@ -54,7 +54,7 @@ module TentD
           },
 
           :mentions => [
-            { "entity" => current_user.entity, "type" => app_post.type, "post" => app_post.public_id }
+            { "entity" => current_user.entity, "type" => app_post.type, "post" => app_post.public_id, "version" => app_post.version }
           ]
         }
 
@@ -63,7 +63,7 @@ module TentD
 
         # Ref credentials and app
         post.refs = [
-          { "entity" => current_user.entity, "type" => app_post.type, "post" => app_post.public_id },
+          { "entity" => current_user.entity, "type" => app_post.type, "post" => app_post.public_id, "version" => app_post.version },
           { "entity" => current_user.entity, "type" => credentials_post.type, "post" => credentials_post.public_id }
         ]
         post = post.save_version(:public_id => post.public_id)
