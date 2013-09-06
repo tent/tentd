@@ -21,8 +21,10 @@ module TentD
         else
           TentD.logger.debug "CreatePostVersion: create post version" if TentD.settings[:debug]
 
-          unless Authorizer.new(env).write_post_id?(env['data']['entity'], env['data']['id'], env['data']['type'])
-            TentD.logger.debug "CreatePostVersion: Unauthorized" if TentD.settings[:debug]
+          authorizer = Authorizer.new(env)
+          entity, id, type = env['params']['entity'], env['params']['post'], env['data']['type']
+          unless authorizer.write_post_id?(entity, id, type)
+            TentD.logger.debug "CreatePostVersion: Unauthorized for write_post_id?(#{entity.inspect}, #{id.inspect}, #{type.inspect})" if TentD.settings[:debug]
 
             if env['current_auth']
               halt!(403, "Unauthorized")
