@@ -40,6 +40,10 @@ module TentD
           false
         end
 
+        def write_post_id?(entity, public_id, type_uri)
+          write_entity?(entity) && write_type?(type_uri)
+        end
+
         def write_all_types?
           false
         end

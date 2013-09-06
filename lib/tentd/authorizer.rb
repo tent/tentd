@@ -78,6 +78,22 @@ module TentD
       auth_candidate.write_post?(post)
     end
 
+    def write_post_id?(entity, public_id, post_type)
+      return false unless env['current_auth']
+
+      # Private server credentials have full authorization
+      return true if env['current_auth'][:credentials_resource] == current_user
+
+      # Credentials aren't linked to a valid resource
+      return false unless auth_candidate
+
+      if env['request.import']
+        auth_candidate.has_scope?('import') && auth_candidate.write_type?(post_type)
+      else
+        auth_candidate.write_post_id?(entity, public_id, post_type)
+      end
+    end
+
     def write_authorized?(entity, post_type)
       return false unless env['current_auth']
 
