@@ -387,7 +387,10 @@ module TentD
       end
 
       env = {
-        'current_user' => @user
+        'current_user' => @user,
+        'current_auth' => {
+          :credentials_resource => @user
+        }
       }
 
       new_post = {
@@ -582,6 +585,9 @@ module TentD
 
           import_post(
             'current_user' => @user,
+            'current_auth' => {
+              :credentials_resource => @user
+            },
             'data' => TentD::Utils::Hash.stringify_keys(attrs)
           )
         end
