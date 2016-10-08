@@ -28,7 +28,7 @@ Sequel.migration do
       primary_key :id
 
       column :base     , "text"   , :null => false
-      column :version  , "bigint" , :null => false
+      column :version  , "text"   , :null => false
       column :fragment , "text"
 
       index [:base, :version, :fragment], :name => :unique_types, :unique => true
@@ -44,7 +44,7 @@ Sequel.migration do
       column :server_credentials , "text"   , :null => false
       column :deleted_at         , "timestamp without time zone"
 
-      index [:entity_id, :deleted_at], :name => :unique_users, :unique => true
+      index [:entity_id], :name => :unique_users, :unique => true
     end
 
     create_table(:posts) do
@@ -90,7 +90,7 @@ Sequel.migration do
 
       index [:user_id], :name => :index_posts_user
       index [:user_id, :public_id], :name => :index_posts_user_public_id
-      index [:user_id, :entity_id, :public_id, :version, :deleted_at], :name => :unique_posts, :unique => true
+      index [:user_id, :entity_id, :public_id, :version], :name => :unique_posts, :unique => true
     end
 
     create_table(:parents) do
@@ -137,7 +137,7 @@ Sequel.migration do
       column :deleted_at            , "timestamp without time zone"
 
       index [:user_id, :auth_hawk_key], :name => :index_apps_user_auth_hawk_key
-      index [:user_id, :post_id, :deleted_at], :name => :unique_app, :unique => true
+      index [:user_id, :post_id], :name => :unique_app, :unique => true
     end
 
     create_table(:relationships) do
@@ -156,7 +156,7 @@ Sequel.migration do
       column :deleted_at            , "timestamp without time zone"
 
       index [:user_id, :type_id], :name => :index_relationships_user_type
-      index [:user_id, :entity_id, :deleted_at], :name => :unique_relationships, :unique => true
+      index [:user_id, :entity_id], :name => :unique_relationships, :unique => true
     end
 
     create_table(:subscriptions) do
@@ -173,7 +173,7 @@ Sequel.migration do
       column :deleted_at        , "timestamp without time zone"
 
       index [:user_id, :type_id], :name => :index_subscriptions_user_type
-      index [:user_id, :post_id, :type_id, :deleted_at], :name => :unique_subscriptions, :unique => true
+      index [:user_id, :entity_id, :subscriber_entity_id, :type_id], :name => :unique_subscriptions, :unique => true
     end
 
     create_table(:groups) do

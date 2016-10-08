@@ -3,7 +3,12 @@ module TentD
 
     class Credentials
       def self.generate(current_user, target_post=nil, options = {})
-        type, base_type = Type.find_or_create("https://tent.io/types/credentials/v0#")
+        if target_post
+          target_post_type = TentType.new(target_post.type)
+          type, base_type = Type.find_or_create("https://tent.io/types/credentials/v0##{target_post_type.to_s(:fragment => false)}")
+        else
+          type, base_type = Type.find_or_create("https://tent.io/types/credentials/v0#")
+        end
         published_at_timestamp = (Time.now.to_f * 1000).to_i
 
         post_attrs = {

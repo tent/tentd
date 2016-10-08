@@ -77,12 +77,23 @@ module TentD
         def create(attrs)
           _create(attrs)
         rescue Sequel::UniqueConstraintViolation => e
-          first(
+          params = {
             :user_id => attrs[:user_id],
             :entity_id => attrs[:entity_id],
             :public_id => attrs[:public_id],
             :version => attrs[:version]
-          )
+          }
+
+          TentD.logger.debug "Post.create: UniqueConstraintViolation" if TentD.settings[:debug]
+          TentD.logger.debug "Post.create -> Post.first(#{params.inspect})" if TentD.settings[:debug]
+
+          post = first(params)
+
+          TentD.logger.debug "Post.first => Post(#{post ? post.id : nil.inspect})" if TentD.settings[:debug]
+
+          raise CreateFailure.new("Server Error: #{Yajl::Encoder.encode(params)}") unless post
+
+          post
         end
       end
 
@@ -91,10 +102,14 @@ module TentD
       end
 
       def self.create_version_from_env(env, options = {})
+        TentD.logger.debug "Post.create_version_from_env" if TentD.settings[:debug]
+
         PostBuilder.create_from_env(env, options.merge(:public_id => env['params']['post']))
       end
 
       def self.import_notification(env)
+        TentD.logger.debug "Post.import_notification" if TentD.settings[:debug]
+
         create_version_from_env(env, :notification => true, :entity => env['params']['entity'])
       end
 
@@ -168,6 +183,21 @@ module TentD
         obj
       end
 
+      def app_as_json(options = {})
+        obj = {
+          :name => self.app_name,
+          :url => self.app_url
+        }
+
+        if (env = options[:env]) && Authorizer.new(env).app?
+          obj[:id] = self.app_id
+        end
+
+        obj.reject! { |k,v| v.nil? }
+
+        obj
+      end
+
       def as_json(options = {})
         attrs = {
           :id => self.public_id,
@@ -178,16 +208,21 @@ module TentD
           :content => self.content,
           :mentions => self.mentions,
           :refs => self.refs,
-          :version => version_as_json(options)
+          :version => version_as_json(options),
+          :app => app_as_json(options)
         }
         attrs.delete(:received_at) if attrs[:received_at].nil?
         attrs.delete(:content) if attrs[:content].nil?
         attrs.delete(:mentions) if attrs[:mentions].nil?
         attrs.delete(:refs) if attrs[:refs].nil?
+        attrs.delete(:app) if attrs[:app].keys.empty?
+
+        if self.original_entity
+          attrs[:original_entity] = self.original_entity
+        end
 
         unless (env = options[:env]) && Authorizer.new(env).app?
           attrs.delete(:received_at)
-          (attrs[:app] || {}).delete(:id)
         end
 
         if Array(self.attachments).any?

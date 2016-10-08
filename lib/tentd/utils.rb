@@ -25,7 +25,7 @@ module TentD
         digest << buffer
       end
       io.rewind
-      digest.hexdigest[0...64]
+      "sha512t256-" + digest.hexdigest[0...64]
     end
 
     def self.timestamp
@@ -75,6 +75,27 @@ module TentD
           item
         else
           item.respond_to?(:dup) ? item.dup : item
+        end
+      end
+
+      def deep_merge!(hash, *others)
+        others.each do |other|
+          other.each_pair do |key, val|
+            if hash.has_key?(key)
+              next if hash[key] == val
+              case val
+              when ::Hash
+                Utils::Hash.deep_merge!(hash[key], val)
+              when Array
+                hash[key].concat(val)
+              when FalseClass
+                # false always wins
+                hash[key] = val
+              end
+            else
+              hash[key] = val
+            end
+          end
         end
       end
 

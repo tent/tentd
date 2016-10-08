@@ -1,3 +1,5 @@
+require 'tentd'
+
 module TentD
   module Worker
 
@@ -12,15 +14,28 @@ module TentD
       InvalidResponse = Class.new(InitiationFailure)
       EntityUnreachable = Class.new(InitiationFailure)
 
+      CredentialsType = TentType.new("https://tent.io/types/credentials/v0#")
+
       attr_accessor :retry_count
 
       def perform(user_id, target_entity_id, deliver_post_id=nil)
+        logger.debug "RelationshipInitiation#perform(#{user_id}, #{target_entity_id}, #{deliver_post_id.inspect})"
+
         # user no longer exists, abort
+        logger.debug "RelationshipInitiation#perform: checking for User(#{user_id})"
         return unless current_user = Model::User.where(:id => user_id).first
 
-        target_entity = Model::Entity.where(:id => target_entity_id).first.entity
+        logger.debug "RelationshipInitiation#perform: checking for Entity(#{target_entity_id})"
+        target_entity = Model::Entity.where(:id => target_entity_id).first
+
+        # entity no longer exists, abort
+        return unless target_entity
+
+        target_entity = target_entity.entity
 
         relationship = begin
+          logger.debug "RelationshipInitiation#perform -> Relationship.create"
+
           Model::Relationship.create(:user_id => user_id, :entity_id => target_entity_id)
         rescue Sequel::UniqueConstraintViolation
         end
@@ -38,6 +53,8 @@ module TentD
         # Create relationship#initial post with credentials
         ##
 
+        logger.debug "RelationshipInitiation#perform -> Relationship.create_initial"
+
         Model::Relationship.create_initial(current_user, target_entity, relationship)
 
         relationship_data = relationship.post.as_json
@@ -46,6 +63,8 @@ module TentD
         ##
         # Perform discovery on target entity
         ##
+
+        logger.debug "RelationshipInitiation#perform -> TentClient::Discovery.discover"
 
         client = TentClient.new(target_entity)
 
@@ -69,6 +88,8 @@ module TentD
         # Send relationship#initial post to target entity's server
         ##
 
+        logger.debug "RelationshipInitiation#perform: Deliver relationship#initial to Entity(#{target_entity})"
+
         res = client.post.update(relationship_data[:entity], relationship_data[:id], relationship_data, params = {},
           :notification => true
         ) do |request|
@@ -85,13 +106,11 @@ module TentD
           raise DeliveryFailure.new("Got(status: #{res.status} body: #{res.body.inspect}) performing PUT #{res.env[:url].to_s} with #{relationship_data.inspect}")
         end
 
-        unless (Hash === res.body) && (Hash === res.body['post']) && (relationship_data[:type] == res.body['post']['type'])
-          raise InvalidResponse.new("Invalid relationship response body: #{res.body.inspect}")
-        end
-
         ##
         # Fetch credentials linked in response
         ##
+
+        logger.debug "RelationshipInitiation#perform: Parse Link header for credentials link"
 
         links = TentClient::LinkHeader.parse(res.headers['Link'].to_s).links
         credentials_url = links.find { |link| link[:rel] == 'https://tent.io/rels/credentials' }
@@ -101,13 +120,15 @@ module TentD
         end
         credentials_url = credentials_url.uri
 
+        logger.debug "RelationshipInitiation#perform: Fetch credentials"
+
         res = client.http.get(credentials_url)
 
         unless res.status == 200
           raise InvalidResponse.new("Failed to fetch credentials via GET #{credentials_url.inspect}")
         end
 
-        unless (Hash === res.body) && (Hash === res.body['post']) && (res.body['post']['type'] == "https://tent.io/types/credentials/v0#")
+        unless (Hash === res.body) && (Hash === res.body['post']) && (TentType.new(res.body['post']['type']).base == CredentialsType.base)
           raise InvalidResponse.new("Invalid credentials response body: #{res.body.inspect}")
         end
 
@@ -116,6 +137,8 @@ module TentD
         ##
         # Fetch remote relationship post via credentials' mentions
         ##
+
+        logger.debug "RelationshipInitiation#perform: Fetch remote relationship"
 
         mention = remote_credentials_post['mentions'].to_a.find { |m|
           m['type'] == 'https://tent.io/types/relationship/v0#'
@@ -150,10 +173,12 @@ module TentD
 
         ##
         # Save meta post
+        logger.debug "RelationshipInitiation#perform: save meta post"
         remote_meta_post = save_remote_post(current_user, target_entity, client.server_meta_post)
 
         ##
         # Update relationship post (remove fragment)
+        logger.debug "RelationshipInitiation#perform: Update relationship post (remove fragment)"
         relationship.meta_post_id = remote_meta_post.id
         relationship.remote_credentials_id = remote_credentials_post['id']
         relationship.remote_credentials = {
@@ -165,24 +190,53 @@ module TentD
 
         ##
         # Deliver relationship post
+        logger.debug "RelationshipInitiation#perform: Deliver relationship post"
         NotificationDeliverer.perform_async(relationship.post_id, target_entity, target_entity_id)
 
         ##
         # Deliver dependent post
+        logger.debug "RelationshipInitiation#perform: Deliver dependent post: Post(#{deliver_post_id.inspect})"
         NotificationDeliverer.perform_async(deliver_post_id, target_entity, target_entity_id)
-      rescue EntityUnreachable
+
+        ##
+        # Subscribe to meta post
+        Model::Post.create_from_env(
+          'current_user' => current_user,
+          'current_auth' => {
+            :credentials_resource => current_user
+          },
+          'data' => {
+            'type' => 'https://tent.io/types/subscription/v0#https://tent.io/types/meta/v0',
+            'content' => {
+              'type' => 'https://tent.io/types/meta/v0#',
+            },
+            'mentions' => [ { 'entity' => target_entity } ],
+            'permissions' => {
+              'public' => false,
+              'entities' => [target_entity]
+            }
+          }
+        )
+
+      rescue EntityUnreachable => e
+        logger.debug "RelationshipInitiation#perform: EntityUnreachable: #{e.inspect}"
+
         if retry_count == 0 && deliver_post_id
           delivery_failure(target_entity, deliver_post_id, 'temporary', 'unreachable')
         end
 
         raise
-      rescue DiscoveryFailure
+      rescue DiscoveryFailure => e
+        logger.debug "RelationshipInitiation#perform: DiscoveryFailure: #{e.inspect}"
+
         if retry_count == 0 && deliver_post_id
           delivery_failure(target_entity, deliver_post_id, 'temporary', 'discovery_failed')
         end
 
         raise
       rescue TentClient::ServerNotFound, TentClient::MalformedServerMeta => e
+        logger.debug "RelationshipInitiation#perform: MalformedServerMeta: #{e.inspect}"
+
         if retry_count == 0 && deliver_post_id
           delivery_failure(target_entity, deliver_post_id, 'temporary', 'discovery_failed')
         end
@@ -190,7 +244,9 @@ module TentD
         error = DiscoveryFailure.new(e.inspect)
         error.set_backtrace(e.backtrace)
         raise error
-      rescue InitiationFailure
+      rescue InitiationFailure => e
+        logger.debug "RelationshipInitiation#perform: InitiationFailure: #{e.inspect}"
+
         if retry_count == 0 && deliver_post_id
           delivery_failure(target_entity, deliver_post_id, 'temporary', 'relationship_failed')
         end
@@ -199,6 +255,8 @@ module TentD
       end
 
       def retries_exhausted(user_id, target_entity_id, deliver_post_id=nil)
+        logger.debug "RelationshipInitiation#retries_exhausted(#{user_id}, #{target_entity_id}, #{deliver_post_id.inspect})"
+
         if deliver_post_id
           queue_post_delivery(deliver_post_id, target_entity, target_entity_id)
         end

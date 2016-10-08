@@ -13,7 +13,7 @@ module TentD
         end
 
         status, headers, body = env['request_proxy_manager'].request(params[:entity]) do |client|
-          TentClient::Discovery.discover(client, params[:entity], :return_response => true)
+          TentClient::Discovery.new(client, params[:entity], :skip_serialization => true).discover(:return_response => true)
         end
 
         [status, headers, body]

@@ -8,7 +8,7 @@ module TentD
     POST_CONTENT_MIME = %(application/vnd.tent.post.v0+json).freeze
     MULTIPART_CONTENT_MIME = %(multipart/form-data).freeze
 
-    CREDENTIALS_MIME_TYPE = %(https://tent.io/types/credentials/v0#).freeze
+    CREDENTIALS_MIME_TYPE = %(https://tent.io/types/credentials/v0).freeze
     RELATIONSHIP_MIME_TYPE = %(https://tent.io/types/relationship/v0#).freeze
 
     POST_CONTENT_TYPE = %(#{POST_CONTENT_MIME}; type="%s").freeze
@@ -72,7 +72,6 @@ module TentD
     middleware ParseInputData
     middleware ParseContentType
     middleware ParseLinkHeader
-    middleware ValidateInputData
     middleware SetRequestProxyManager
 
     match '/' do |b|
@@ -84,6 +83,7 @@ module TentD
     end
 
     post '/posts' do |b|
+      b.use ValidateInputData
       b.use ValidatePostContentType
       b.use CreatePost
       b.use ServePost
@@ -99,6 +99,7 @@ module TentD
     end
 
     put '/posts/:entity/:post' do |b|
+      b.use ValidateInputData
       b.use CreatePostVersion
       b.use ServePost
     end

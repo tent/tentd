@@ -1,14 +1,6 @@
 require 'bundler/setup'
 require 'bundler/gem_tasks'
 
-begin
-  require 'rspec/core/rake_task'
-  RSpec::Core::RakeTask.new(:rspec) do |spec|
-    spec.pattern = 'spec/**/*_spec.rb'
-  end
-rescue LoadError
-end
-
 task :validator_spec do
   $stdout, $stderr = STDOUT.dup, STDERR.dup
 
@@ -121,9 +113,7 @@ task :validator_spec do
   exit $?.exitstatus
 end
 
-task :spec => [:rspec, :validator_spec] do
-end
-task :default => :spec
+task :default => :validator_spec
 
 lib = File.expand_path(File.join(File.dirname(__FILE__), 'lib'))
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)

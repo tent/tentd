@@ -137,6 +137,10 @@ module TentD
           :auth_credentials_post_id => credentials_post.id,
         )
       end
+
+      def post
+        Model::Post.first(:id => self.post_id)
+      end
     end
 
   end

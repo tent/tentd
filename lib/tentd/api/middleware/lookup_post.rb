@@ -24,22 +24,12 @@ module TentD
 
         if !post && proxy_condition != :never && !env['request.post_list']
           # proxy request
-          begin
-            status, headers, body = request_proxy_manager.request(params[:entity]) do |client|
-              client.post.get(params[:entity], params[:post])
-            end
-            return [status, headers, body]
-          rescue Faraday::Error::TimeoutError
-            if proxy_condition == :always
-              res ||= Faraday::Response.new({})
-              halt!(504, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
-            end
-          rescue Faraday::Error::ConnectionFailed
-            if proxy_condition == :always
-              res ||= Faraday::Response.new({})
-              halt!(502, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
+          status, headers, body = request_proxy_manager.request(params[:entity]) do |client|
+            client.post.get(params[:entity], params[:post]) do |request|
+              request.headers['Accept'] = env['HTTP_ACCEPT']
             end
           end
+          return [status, headers, body]
         else
           env['response.post'] = post
         end

@@ -61,18 +61,28 @@ module TentD
       end
 
       [res.status, headers, body]
+    rescue Faraday::Error::TimeoutError
+      res ||= Faraday::Response.new({})
+      halt!(504, res)
+    rescue Faraday::Error::ConnectionFailed
+      res ||= Faraday::Response.new({})
+      halt!(502, res)
+    end
+
+    def halt!(status, res)
+      raise API::Middleware::Halt.new(status, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
     end
 
     def proxy_condition
       return :never unless authorizer.proxy_authorized?
 
       case env['HTTP_CACHE_CONTROL'].to_s
-      when /\bno-cache\b/
-        :always
       when /\bproxy-if-miss\b/
         :on_miss
-      when /\bonly-if-cached\b/
+      when /\bno-proxy\b/
         :never
+      when /\bproxy\b/
+        :always
       else
         env['request.feed'] ? :never : :on_miss
       end

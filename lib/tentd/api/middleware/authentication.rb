@@ -27,7 +27,13 @@ module TentD
         )
 
         if Hawk::AuthenticationFailure === res
-          halt!(403, "Authentication failure: #{res.message}")
+          if res.key == :ts
+            halt!(401, "Authentication failure: #{res.message}", :headers => {
+              "WWW-Authenticate" => res.header
+            })
+          else
+            halt!(403, "Authentication failure: #{res.message}")
+          end
         else
           env['current_auth'] = res
         end
@@ -91,7 +97,7 @@ module TentD
       end
 
       def request_port(env)
-        env['SERVER_PORT']
+        ENV['SERVER_PORT'] || env['SERVER_PORT']
       end
 
       def request_method(env)

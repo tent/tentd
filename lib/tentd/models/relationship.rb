@@ -10,7 +10,10 @@ module TentD
       attr_writer :post, :credentials_post, :meta_post
 
       def before_save
-        self.active = true
+        if self.remote_credentials_id
+          self.active = true
+        end
+
         super
       end
 

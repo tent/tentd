@@ -15,6 +15,8 @@ module TentD
       attr_accessor :retry_count
 
       def perform(post_id, entity, entity_id=nil, relationship_retry = nil)
+        logger.info "Attempting to deliver Post(#{post_id} to Entity(#{entity})"
+
         unless post = Model::Post.where(:id => post_id).first
           logger.info "Post(#{post_id}) deleted"
           return
@@ -101,6 +103,7 @@ module TentD
 
       def delivery_failure(target_entity, post, status, reason)
         unless post.mentions.to_a.any? { |m| m['entity'] == target_entity }
+          logger.info "Delivery failed: Post(#{post.id}) Entity(#{target_entity})"
           return
         end
 
