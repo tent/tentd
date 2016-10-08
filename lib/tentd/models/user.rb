@@ -7,7 +7,7 @@ module TentD
 
       plugin :paranoia if Model.soft_delete
 
-      def self.create(attrs)
+      def self.create(attrs, options = {})
         entity = Entity.first_or_create(attrs[:entity])
         user = super(attrs.merge(
           :entity_id => entity.id,
@@ -17,7 +17,7 @@ module TentD
             :hawk_algorithm => TentD::Utils.hawk_algorithm
           }
         ))
-        user.create_meta_post
+        user.create_meta_post(options.delete(:meta_post_attrs) || {})
         user
       end
 
@@ -25,11 +25,13 @@ module TentD
         first(:entity => entity_uri) || create(:entity => entity_uri)
       end
 
-      def create_meta_post
+      def create_meta_post(attrs = {})
         type, base_type = Type.find_or_create("https://tent.io/types/meta/v0#")
         published_at_timestamp = Utils.timestamp
 
-        meta_post = Post.create(
+        api_root = ENV['API_ROOT'] || self.entity
+
+        Utils::Hash.deep_merge!(attrs, {
           :user_id => self.id,
           :entity_id => self.entity_id,
           :entity => self.entity,
@@ -49,23 +51,25 @@ module TentD
               {
                 "version" => "0.3",
                 "urls" => {
-                  "oauth_auth" => "#{self.entity}/oauth/authorize",
-                  "oauth_token" => "#{self.entity}/oauth/token",
-                  "posts_feed" => "#{self.entity}/posts",
-                  "new_post" => "#{self.entity}/posts",
-                  "post" => "#{self.entity}/posts/{entity}/{post}",
-                  "post_attachment" => "#{self.entity}/posts/{entity}/{post}/attachments/{name}",
-                  "attachment" => "#{self.entity}/attachments/{entity}/{digest}",
-                  "batch" => "#{self.entity}/batch",
-                  "server_info" => "#{self.entity}/server",
-                  "discover" => "#{self.entity}/discover?entity={entity}"
+                  "oauth_auth" => "#{api_root}/oauth/authorize",
+                  "oauth_token" => "#{api_root}/oauth/token",
+                  "posts_feed" => "#{api_root}/posts",
+                  "new_post" => "#{api_root}/posts",
+                  "post" => "#{api_root}/posts/{entity}/{post}",
+                  "post_attachment" => "#{api_root}/posts/{entity}/{post}/attachments/{name}",
+                  "attachment" => "#{api_root}/attachments/{entity}/{digest}",
+                  "batch" => "#{api_root}/batch",
+                  "server_info" => "#{api_root}/server",
+                  "discover" => "#{api_root}/discover?entity={entity}"
                 },
                 "preference" => 0
               }
             ]
           },
           :public => true
-        )
+        })
+
+        meta_post = Post.create(attrs)
 
         self.update(:meta_post_id => meta_post.id)
         meta_post

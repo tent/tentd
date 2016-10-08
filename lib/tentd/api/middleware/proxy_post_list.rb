@@ -23,10 +23,6 @@ module TentD
           end
         end
         return [status, headers, body]
-      rescue Faraday::Error::TimeoutError
-        halt!(504, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
-      rescue Faraday::Error::ConnectionFailed
-        halt!(502, "Failed to proxy request: #{res.env[:method].to_s.upcase} #{res.env[:url].to_s}")
       end
     end
 

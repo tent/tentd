@@ -12,6 +12,21 @@ module TentD
     VALID_ID = /\A[-0-9a-z_]+\Z/i
   end
 
+  def self.settings
+    @settings ||= {
+      :debug => ENV['DEBUG'] == 'true'
+    }
+  end
+
+  def self.logger
+    return self.settings[:logger] if self.settings[:logger]
+
+    require 'logger'
+    self.settings[:logger] = Logger.new(STDOUT, STDERR)
+
+    self.settings[:logger]
+  end
+
   def self.setup!(options = {})
     setup_database!(options)
 
@@ -31,9 +46,10 @@ module TentD
     require 'logger'
 
     if database_url = options[:database_url] || ENV['DATABASE_URL']
-      @database = Sequel.connect(database_url, :logger => Logger.new(ENV['DB_LOGFILE'] || STDOUT))
+      @database = Sequel.connect(database_url, :logger => options[:database_logger] || Logger.new(ENV['DB_LOGFILE'] || STDOUT))
     end
 
+    require 'tentd/query'
     require 'tentd/model'
 
     Model.soft_delete = ENV['SOFT_DELETE'].to_s != 'false'

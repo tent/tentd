@@ -7,6 +7,8 @@ module TentD
       CreateFailure = Post::CreateFailure
 
       def build_attributes(env, options = {})
+        TentD.logger.debug "PostBuilder.build_attributes" if TentD.settings[:debug]
+
         data = env['data']
         current_user = env['current_user']
         type, base_type = Type.find_or_create(data['type'])
@@ -41,11 +43,25 @@ module TentD
           :content => data['content'],
         }
 
+        if options[:notification] || options[:import]
+          if data['app']
+            attrs[:app_name] = data['app']['name']
+            attrs[:app_url] = data['app']['url']
+            attrs[:app_id] = data['app']['id'] if options[:import]
+          end
+        elsif _app = Authorizer.new(env).app_json
+          attrs[:app_name] = _app[:name]
+          attrs[:app_url] = _app[:url]
+          attrs[:app_id] = _app[:id]
+        end
+
         if options[:import]
           attrs.merge!(
             :entity_id => Entity.first_or_create(data['entity']).id,
             :entity => data['entity']
           )
+
+          attrs[:original_entity] = data['original_entity'] if data['original_entity']
         elsif options[:entity]
           attrs.merge!(
             :entity_id => options[:entity_id] || Entity.first_or_create(options[:entity]).id,
@@ -87,18 +103,22 @@ module TentD
           # meta post is always public
           attrs[:public] = true
         else
-          if Hash === data['permissions']
-            if data['permissions']['public'] == true
-              attrs[:public] = true
-            else
-              attrs[:public] = false
+          if Authorizer.new(env).can_set_permissions?
+            if Hash === data['permissions']
+              if data['permissions']['public'] == true
+                attrs[:public] = true
+              else
+                attrs[:public] = false
 
-              if Array === data['permissions']['entities']
-                attrs[:permissions_entities] = data['permissions']['entities']
+                if Array === data['permissions']['entities']
+                  attrs[:permissions_entities] = data['permissions']['entities']
+                end
               end
+            else
+              attrs[:public] = true
             end
           else
-            attrs[:public] = true
+            attrs[:public] = false
           end
         end
 
@@ -156,12 +176,12 @@ module TentD
           end
         end
 
-        if options[:import] && (Hash === data['version']) && data['version']['id']
+        if (Hash === data['version']) && data['version']['id']
           canonical_json = TentCanonicalJson.encode(Post.new(attrs).as_json)
           expected_version = Utils.hex_digest(canonical_json)
           attrs[:version] = data['version']['id']
           unless attrs[:version] == expected_version
-            raise CreateFailure.new("Invalid version id. Got(#{attrs[:version]}), Expected(#{expected_version}) #{canonical_json}")
+            raise CreateFailure.new("Invalid version id. Got(#{Yajl::Encoder.encode(attrs[:version])}), Expected(#{expected_version}) #{canonical_json}")
           end
         end
 
@@ -176,7 +196,8 @@ module TentD
           'current_user' => post.user,
           'data' => {
             'type' => 'https://tent.io/types/delete/v0#',
-            'refs' => [ ref ]
+            'refs' => [ ref ],
+            'mentions' => post.mentions.to_a
           }
         )
       end
@@ -210,10 +231,18 @@ module TentD
       end
 
       def create_from_env(env, options = {})
+        TentD.logger.debug "PostBuilder.create_from_env with options: #{options.inspect}" if TentD.settings[:debug]
+
         attrs = build_attributes(env, options)
 
+        TentD.logger.debug "PostBuilder.build_attributes done" if TentD.settings[:debug]
+
         if TentType.new(env['data']['type']).base == %(https://tent.io/types/subscription)
+          TentD.logger.debug "PostBuilder.create_from_env: subscription post" if TentD.settings[:debug]
+
           if options[:notification]
+            TentD.logger.debug "PostBuilder.create_from_env: notification" if TentD.settings[:debug]
+
             subscription = Subscription.create_from_notification(env['current_user'], attrs, env['current_auth.resource'])
             post = subscription.post
           else
@@ -235,45 +264,76 @@ module TentD
           )
           # is a relationship post or credentials mentioning one
 
+          TentD.logger.debug "PostBuilder.create_from_env -> RelationshipImporter.import" if TentD.settings[:debug]
+
           import_results = RelationshipImporter.import(env['current_user'], attrs)
           post = import_results.post
         else
+          TentD.logger.debug "PostBuilder.create_from_env -> Post.create" if TentD.settings[:debug]
+
           post = Post.create(attrs)
         end
 
+        TentD.logger.debug "PostBuilder.create_from_env: post created: #{post ? post.id : nil.inspect}" if TentD.settings[:debug]
+
         case TentType.new(post.type).base
         when %(https://tent.io/types/app)
+          TentD.logger.debug "PostBuilder.create_from_env -> App.update_or_create_from_post" if TentD.settings[:debug]
+
           App.update_or_create_from_post(post, :create_credentials => !options[:import])
         when %(https://tent.io/types/app-auth)
+          TentD.logger.debug "PostBuilder.create_from_env: app-auth" if TentD.settings[:debug]
+
           if options[:import] && (m = post.mentions.find { |m| TentType.new(m['type']).base == %(https://tent.io/types/app) })
+            TentD.logger.debug "PostBuilder.create_from_env -> App.update_app_auth" if TentD.settings[:debug]
+
             App.update_app_auth(post, m['post'])
           end
         when %(https://tent.io/types/credentials)
+          TentD.logger.debug "PostBuilder.create_from_env: credentials" if TentD.settings[:debug]
+
           if options[:import]
+            TentD.logger.debug "PostBuilder.create_from_env: import" if TentD.settings[:debug]
+
             if m = post.mentions.find { |m| TentType.new(m['type']).base == %(https://tent.io/types/app) }
+              TentD.logger.debug "PostBuilder.create_from_env -> App.update_credentials" if TentD.settings[:debug]
+
               App.update_credentials(post, m['post'])
             elsif m = post.mentions.find { |m| TentType.new(m['type']).base == %(https://tent.io/types/app-auth) }
+              TentD.logger.debug "PostBuilder.create_from_env -> App.update_app_auth_credentials" if TentD.settings[:debug]
+
               App.update_app_auth_credentials(post, m['post'])
             end
           end
         end
 
         if options[:notification] && TentType.new(post.type).base == %(https://tent.io/types/delete)
+          TentD.logger.debug "PostBuilder.create_from_env -> PostBuilder.delete_from_notification" if TentD.settings[:debug]
+
           delete_from_notification(env, post)
         end
 
         if TentType.new(post.type).base == %(https://tent.io/types/meta)
+          TentD.logger.debug "PostBuilder.create_from_env -> User(#{env['current_user'].id})#update_meta_post_id" if TentD.settings[:debug]
+
           env['current_user'].update_meta_post_id(post)
+
+          TentD.logger.debug "PostBuilder.create_from_env -> Relationship.update_meta_post_ids" if TentD.settings[:debug]
+
           Relationship.update_meta_post_ids(post)
         end
 
         if Array === env['data']['mentions']
+          TentD.logger.debug "PostBuilder.create_from_env -> Post(#{post.id})#create_mentions" if TentD.settings[:debug]
+
           post.create_mentions(env['data']['mentions'])
         end
 
         unless options[:notification]
           if Array === env['data']['attachments']
             env['data']['attachments'].each do |attachment|
+              TentD.logger.debug "PostBuilder.create_from_env -> PostsAttachment.create" if TentD.settings[:debug]
+
               PostsAttachment.create(
                 :attachment_id => attachment['model'].id,
                 :content_type => attachment['content_type'],
@@ -283,15 +343,21 @@ module TentD
           end
 
           if Array === env['attachments']
+            TentD.logger.debug "PostBuilder.create_from_env -> Post(#{post.id})#create_attachments" if TentD.settings[:debug]
+
             post.create_attachments(env['attachments'])
           end
         end
 
         if Array === attrs[:version_parents]
+          TentD.logger.debug "PostBuilder.create_from_env -> Post(#{post.id})#create_version_parents" if TentD.settings[:debug]
+
           post.create_version_parents(attrs[:version_parents])
         end
 
         if !options[:notification] && !options[:import] && options[:deliver_notification] != false
+          TentD.logger.debug "PostBuilder.create_from_env -> Post(#{post.id})#queue_delivery" if TentD.settings[:debug]
+
           post.queue_delivery
         end
 

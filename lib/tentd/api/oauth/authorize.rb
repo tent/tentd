@@ -22,10 +22,12 @@ module TentD
             app_post.content['scopes']
           )
 
+          Model::AppAuth.update_app_post_refs(app_auth_post, app_post)
+
           credentials_post = nil
           app_auth_post.mentions.each do |m|
-            type = Model::Type.find_or_create_full('https://tent.io/types/credentials/v0#')
-            if _post = Model::Post.first(:user_id => env['current_user'].id, :public_id => m['post'], :type_id => type.id)
+            type_base = Model::Type.find_or_create_base('https://tent.io/types/credentials/v0#')
+            if _post = Model::Post.first(:user_id => env['current_user'].id, :public_id => m['post'], :type_base_id => type_base.id)
               credentials_post = _post
               break
             end

@@ -1,4 +1,8 @@
-# Tentd - Protocol v0.3 [![Build Status](https://travis-ci.org/tent/tentd.png?branch=0.3)](https://travis-ci.org/tent/tentd)
+# Tentd - Protocol v0.3 [![Build Status](https://travis-ci.org/tent/tentd.png?branch=master)](https://travis-ci.org/tent/tentd)
+
+**If you're looking to self-host, see [tentd-omnibus](https://github.com/tent/tentd-omnibus).**
+
+tentd is an alpha implementation of a Tent Protocol server. It currently contains **broken code, many bugs, and security flaws**. The code should only be used to experiment with how Tent works. Under no circumstances should the code in its current form be used for data that is supposed to be private.
 
 ## Setup
 
@@ -9,10 +13,12 @@ name            | required | description
 TENT_ENTITY     | Required | Entity URI (can be omitted if `env['current_user']` is set to an instance of `TentD::Model::User` prior to `TentD::API::UserLookup` being called)
 DATABASE_URL    | Required | URL of postgres database (e.g. `postgres://localhost/tentd`)
 REDIS_URL       | Required | URL of redis server (e.g. `redis://localhost:6379`)
-REDIS_NAMESPACE | Optional | Redis key namespace for sidekiq (defaults to `tentd.worker`)
+REDIS_NAMESPACE | Optional | Redis key namespace for sidekiq (defaults to not set)
 RUN_SIDEKIQ     | Optional | Set to 'true' if you want to boot sidekiq via `config.ru`
 SIDEKIQ_LOG     | Optional | Sidekiq log file (defaults to STDOUT and STDERR)
 SOFT_DELETE     | Optional | To perminently delete db records, set to `false`. Defaults to `true` (sets `deleted_at` timestamp instead of removing from db)
+API_ROOT        | Optional | Required if different from `TENT_ENTITY`
+SERVER_PORT     | Optional | Exposed server port (e.g. 443)
 
 #### Attachment Storage Options
 

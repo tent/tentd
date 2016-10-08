@@ -54,7 +54,7 @@ module TentD
           },
 
           :mentions => [
-            { "entity" => current_user.entity, "type" => app_post.type, "post" => app_post.public_id }
+            { "entity" => current_user.entity, "type" => app_post.type, "post" => app_post.public_id, "version" => app_post.version }
           ]
         }
 
@@ -63,13 +63,16 @@ module TentD
 
         # Ref credentials and app
         post.refs = [
-          { "entity" => current_user.entity, "type" => app_post.type, "post" => app_post.public_id },
+          { "entity" => current_user.entity, "type" => app_post.type, "post" => app_post.public_id, "version" => app_post.version },
           { "entity" => current_user.entity, "type" => credentials_post.type, "post" => credentials_post.public_id }
         ]
         post = post.save_version(:public_id => post.public_id)
 
         # Update app record
-        app = App.first(:post_id => app_post.id)
+        unless app = App.first(:post_id => app_post.id)
+          # app doesn't exist
+          app = App.update_or_create_from_post(app_post)
+        end
         app.update(
           :auth_post_id => post.id,
           :auth_hawk_key => credentials_post.content['hawk_key'],
@@ -93,6 +96,19 @@ module TentD
         Mention.link_posts(app_post, post)
 
         post
+      end
+
+      def self.update_app_post_refs(post, app_post)
+        # Update app post to ref auth
+        app_post.refs ||= []
+        app_post.refs.delete_if { |ref| ref['type'] == post.type }
+        app_post.refs.push(
+          'type' => post.type,
+          'entity' => post.entity,
+          'post' => post.public_id
+        )
+        app_post.save
+        app_post
       end
     end
 

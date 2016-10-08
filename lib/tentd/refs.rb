@@ -57,7 +57,7 @@ module TentD
       unless reffed_posts.size == max_refs
         foreign_refs = foreign_refs.inject([]) do |memo, ref|
           # skip over refs that are already found
-          next if reffed_posts.any? { |post|
+          next memo if reffed_posts.any? { |post|
             if ref['version']
               post.entity == ref['entity'] && post.public_id == ref['post'] && post.version == ref['version']
             else
